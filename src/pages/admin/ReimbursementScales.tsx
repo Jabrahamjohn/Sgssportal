@@ -1,65 +1,94 @@
-// Simple UI to load and save `settings` table entries `procedure_tiers` and `general_limits`.
-
 import React, { useEffect, useState } from 'react'
-import { supabase } from '../../services/supabaseClient'
+import { getReimbursementScales, updateReimbursementScales } from '../../services/adminService'
+import { Button } from '../../components/ui/Button'
+import { SettingsCard } from '../../components/admin/SettingsCard'
 
-
-export default function ReimbursementScales(){
-const [tiers, setTiers] = useState<any>(null)
-const [limits, setLimits] = useState<any>(null)
-const [loading, setLoading] = useState(true)
-
-
-useEffect(()=>{ load() }, [])
-
-
-async function load(){
-setLoading(true)
-const { data: t } = await supabase.from('settings').select('value').eq('key','procedure_tiers').single()
-const { data: l } = await supabase.from('settings').select('value').eq('key','general_limits').single()
-setTiers(t?.value || {})
-setLimits(l?.value || {})
-setLoading(false)
+interface ScaleItem {
+  category: string
+  fund_share: number
+  member_share: number
+  ceiling: number
 }
 
+export default function ReimbursementScales() {
+  const [scales, setScales] = useState<ScaleItem[]>([])
+  const [saving, setSaving] = useState(false)
 
-async function save(){
-await supabase.from('settings').upsert([{ key: 'procedure_tiers', value: tiers }, { key: 'general_limits', value: limits }], { onConflict: ['key'] })
-alert('Saved')
-}
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await getReimbursementScales()
+      if (data) setScales(data)
+    }
+    fetchData()
+  }, [])
 
+  const handleChange = (index: number, field: keyof ScaleItem, value: any) => {
+    const updated = [...scales]
+    updated[index][field] = value
+    setScales(updated)
+  }
 
-if (loading) return <div>Loading...</div>
+  const handleSave = async () => {
+    setSaving(true)
+    const success = await updateReimbursementScales(scales)
+    setSaving(false)
+    if (success) alert('Reimbursement scales updated successfully!')
+    else alert('Failed to save changes.')
+  }
 
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-semibold text-gray-800">Reimbursement Scales</h1>
 
-return (
-<div className="space-y-4">
-<h2 className="text-xl">Reimbursement Scales</h2>
-<div className="bg-white p-4 rounded shadow">
-<h3>Procedure tiers</h3>
-{Object.keys(tiers).map(k => (
-<div key={k} className="flex gap-2 items-center">
-<label className="w-32">{k}</label>
-<input value={tiers[k]} onChange={(e)=> setTiers({...tiers, [k]: Number(e.target.value)})} className="p-2 border rounded" />
-</div>
-))}
-</div>
+      <SettingsCard title="Fund Reimbursement Rules">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b text-gray-600">
+              <th className="py-2">Category</th>
+              <th>Fund Share (%)</th>
+              <th>Member Share (%)</th>
+              <th>Ceiling (Ksh)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {scales.map((s, i) => (
+              <tr key={i} className="border-b">
+                <td className="py-2">{s.category}</td>
+                <td>
+                  <input
+                    type="number"
+                    className="w-20 border rounded px-2 py-1"
+                    value={s.fund_share}
+                    onChange={(e) => handleChange(i, 'fund_share', Number(e.target.value))}
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    className="w-20 border rounded px-2 py-1"
+                    value={s.member_share}
+                    onChange={(e) => handleChange(i, 'member_share', Number(e.target.value))}
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    className="w-28 border rounded px-2 py-1"
+                    value={s.ceiling}
+                    onChange={(e) => handleChange(i, 'ceiling', Number(e.target.value))}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-
-<div className="bg-white p-4 rounded shadow">
-<h3>General limits</h3>
-{Object.keys(limits).map(k => (
-<div key={k} className="flex gap-2 items-center">
-<label className="w-48">{k}</label>
-<input value={limits[k]} onChange={(e)=> setLimits({...limits, [k]: Number(e.target.value)})} className="p-2 border rounded" />
-</div>
-))}
-</div>
-
-
-<div>
-<button onClick={save} className="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
-</div>
-</div>
-)
+        <div className="mt-6 flex justify-end">
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
+      </SettingsCard>
+    </div>
+  )
 }

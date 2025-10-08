@@ -8,6 +8,8 @@ import Header from './components/layout/Header'
 import Sidebar from './components/layout/Sidebar'
 import { useAuth } from './hooks/useAuth'
 import ReimbursementScales from './pages/admin/ReimbursementScales'
+import NewMemberForm from './pages/members/NewMemberForm'
+import MemberDetail from './pages/members/MemberDetail'
 
 export default function App() {
   const { user } = useAuth() || { user: null }
@@ -31,6 +33,8 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/claims/outpatient" element={<OutpatientClaimForm />} />
             <Route path="/members" element={<MembersList />} />
+            <Route path="/members/new" element={<NewMemberForm />} />
+            <Route path="/members/:id" element={<MemberDetail />} />
             <Route path="/admin/reimbursement-scales" element={<ReimbursementScales />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

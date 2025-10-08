@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { ClaimSection } from '../../components/claims/ClaimSection'
 import { ClaimItemsTable } from '../../components/claims/ClaimItemsTable'
-import { TotalsCard } from '../../components/claims/TotalsCard'
+import TotalsCard  from '../../components/claims/TotalsCard'
 import { Button } from '../../components/ui/Button'
 
 export default function InpatientClaimForm() {

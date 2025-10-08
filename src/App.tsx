@@ -11,6 +11,10 @@ import Header from './components/layout/Header'
 import Sidebar from './components/layout/Sidebar'
 import RoleSwitcher from './components/RoleSwitcher'
 import MockUserBanner from './components/MockUserBanner'
+import ClaimsDashboard from './pages/claims/ClaimsDashboard'
+import OutpatientClaimForm from './pages/claims/OutpatientClaimForm'
+import InpatientClaimForm from './pages/claims/InpatientClaimForm'
+import ChronicClaimForm from './pages/claims/ChronicClaimForm'
 
 export default function App() {
   return (
@@ -27,6 +31,11 @@ export default function App() {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/reimbursement-scales" element={<ReimbursementScales />} />
             <Route path="/admin/membership-types" element={<MembershipTypes />} />
+            <Route path="/claims" element={<ClaimsDashboard />} />
+<Route path="/claims/outpatient" element={<OutpatientClaimForm />} />
+<Route path="/claims/inpatient" element={<InpatientClaimForm />} />
+<Route path="/claims/chronic" element={<ChronicClaimForm />} />
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

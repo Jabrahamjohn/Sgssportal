@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { ClaimSection } from '../../components/claims/ClaimSection'
 import { Button } from '../../components/ui/Button'
-import { TotalsCard } from '../../components/claims/TotalsCard'
+import TotalsCard  from '../../components/claims/TotalsCard'
 
 export default function ChronicClaimForm() {
   const [doctor, setDoctor] = useState('')

@@ -17,6 +17,7 @@ export default function RoleSwitcher() {
         <option value="claims_officer">Claims Officer</option>
         <option value="approver">Approver</option>
       </select>
+      <p className="text-xs mt-1 text-gray-500">Active role: <span className="font-medium">{user.role}</span></p>
     </div>
   )
 }

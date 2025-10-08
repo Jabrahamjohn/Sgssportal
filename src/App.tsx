@@ -10,6 +10,7 @@ import MembershipTypes from './pages/admin/MembershipTypes'
 import Header from './components/layout/Header'
 import Sidebar from './components/layout/Sidebar'
 import RoleSwitcher from './components/RoleSwitcher'
+import MockUserBanner from './components/MockUserBanner'
 
 export default function App() {
   return (
@@ -30,7 +31,9 @@ export default function App() {
           </Routes>
         </main>
       </div>
+      {/*Role Switcher and Mock User Banner */}
       <RoleSwitcher />
+      <MockUserBanner />
     </div>
   )
 }

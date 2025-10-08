@@ -4,6 +4,29 @@ import { ClaimSection } from '../../components/claims/ClaimSection'
 import { ClaimItemsTable } from '../../components/claims/ClaimItemsTable'
 import TotalsCard  from '../../components/claims/TotalsCard'
 import ReimbursementPreview from '../../components/claims/ReimbursementPreview'
+import { createClaim } from '../../services/claimsService'
+import { supabase } from '../../services/supabaseClient'
+
+const handleSubmit = async () => {
+  const { data: user } = await supabase.auth.getUser()
+  if (!user?.user?.id) {
+    alert('You must be logged in.')
+    return
+  }
+
+  try {
+    const items = [...consultations, ...medicines, ...investigations, ...procedures].map(i => ({
+      description: i.diagnosis || i.medicine || i.procedure || i.test || 'Unknown',
+      amount: i.cost || i.charge || 0,
+      category: 'outpatient'
+    }))
+
+    await createClaim(user.user.id, 'outpatient', items, totals.grandTotal)
+    alert('Claim submitted successfully!')
+  } catch (err: any) {
+    alert('Error submitting claim: ' + err.message)
+  }
+}
 
 
 export default function OutpatientClaimForm() {
@@ -44,6 +67,8 @@ export default function OutpatientClaimForm() {
 
       <div className="flex justify-end">
         <Button onClick={calculateTotal}>Calculate Total</Button>
+        <Button onClick={handleSubmit} className="bg-green-600 text-white">Submit Claim</Button>
+
       </div>
       <ReimbursementPreview
   total={totals.grandTotal}

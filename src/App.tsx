@@ -15,6 +15,7 @@ import ClaimsDashboard from './pages/claims/ClaimsDashboard'
 import OutpatientClaimForm from './pages/claims/OutpatientClaimForm'
 import InpatientClaimForm from './pages/claims/InpatientClaimForm'
 import ChronicClaimForm from './pages/claims/ChronicClaimForm'
+import ClaimsAdminPanel from './pages/admin/ClaimsAdminPanel'
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
 <Route path="/claims/outpatient" element={<OutpatientClaimForm />} />
 <Route path="/claims/inpatient" element={<InpatientClaimForm />} />
 <Route path="/claims/chronic" element={<ChronicClaimForm />} />
+<Route path="/admin/claims" element={<ClaimsAdminPanel />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

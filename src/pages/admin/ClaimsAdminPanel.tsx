@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { getAllClaims, updateClaimStatus, fetchClaimDetails } from '../../services/adminClaimsService'
 import { supabase } from '../../services/supabaseClient'
 import { Button } from '../../components/ui/Button'
+import { exportClaimsToCSV, exportClaimsToPDF } from '../../services/reportService'
 
 export default function ClaimsAdminPanel() {
   const [claims, setClaims] = useState<any[]>([])
@@ -30,6 +31,11 @@ export default function ClaimsAdminPanel() {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-semibold text-gray-800">Claims Administration</h1>
+      <div className="flex justify-end gap-3 mb-4">
+  <Button onClick={exportClaimsToCSV}>Export CSV</Button>
+  <Button onClick={exportClaimsToPDF}>Export PDF</Button>
+</div>
+
 
       <table className="w-full border-collapse text-sm bg-white shadow-sm rounded-lg">
         <thead>

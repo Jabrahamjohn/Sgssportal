@@ -1,33 +1,38 @@
 import React, { useEffect, useState } from 'react'
-import { supabase } from '../../services/supabaseClient'
+import { getReimbursementScales } from '../../services/reimbursementService'
 
-export default function ReimbursementPreview({ total, category }: { total: number; category: string }) {
-  const [rule, setRule] = useState<any>(null)
+interface Props {
+  total: number
+  category: string
+}
+
+export default function ReimbursementPreview({ total, category }: Props) {
+  const [scales, setScales] = useState<any[]>([])
 
   useEffect(() => {
-    async function loadRule() {
-      const { data } = await supabase.from('reimbursement_scales').select('*').eq('category', category).single()
-      setRule(data)
-    }
-    loadRule()
-  }, [category])
+    getReimbursementScales().then(setScales)
+  }, [])
 
-  if (!rule) return <p className="text-gray-400 text-sm">Loading reimbursement data...</p>
+  const scale = scales.find(s => s.category.toLowerCase() === category.toLowerCase())
 
-  const fundPortion = (total * rule.fund_share) / 100
-  const memberPortion = (total * rule.member_share) / 100
-  const payable = Math.min(fundPortion, rule.ceiling)
+  if (!scale) return <div className="text-sm text-gray-500">Loading reimbursement details...</div>
+
+  const fundShare = (scale.fund_share / 100) * total
+  const memberShare = (scale.member_share / 100) * total
+  const cappedTotal = Math.min(total, scale.ceiling)
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mt-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-blue-800 mb-2">Reimbursement Calculation</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-        <div><p>Fund Share</p><p>{rule.fund_share}%</p></div>
-        <div><p>Member Share</p><p>{rule.member_share}%</p></div>
-        <div><p>Ceiling</p><p>Ksh {rule.ceiling.toLocaleString()}</p></div>
-        <div><p>Total Payable</p><p className="font-semibold">Ksh {payable.toLocaleString()}</p></div>
+    <div className="border rounded-lg p-4 bg-gray-50 mt-4">
+      <h3 className="font-semibold text-gray-700 mb-2">💰 Reimbursement Breakdown ({category})</h3>
+      <div className="text-sm space-y-1">
+        <p>Total Claimed: <strong>KES {total.toLocaleString()}</strong></p>
+        <p>Fund Share ({scale.fund_share}%): <strong>KES {fundShare.toLocaleString()}</strong></p>
+        <p>Member Share ({scale.member_share}%): <strong>KES {memberShare.toLocaleString()}</strong></p>
+        <p>Ceiling: <strong>KES {scale.ceiling.toLocaleString()}</strong></p>
+        <p className="text-blue-700 font-semibold mt-2">
+          Payable (Capped): KES {cappedTotal.toLocaleString()}
+        </p>
       </div>
-      <p className="text-xs text-gray-500 mt-1">Member pays: Ksh {memberPortion.toLocaleString()}</p>
     </div>
   )
 }

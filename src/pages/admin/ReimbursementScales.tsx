@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { getReimbursementScales, updateReimbursementScales } from '../../services/adminService'
+import { supabase } from '../../services/supabaseClient'
 import { Button } from '../../components/ui/Button'
-import { SettingsCard } from '../../components/admin/SettingsCard'
 
-interface ScaleItem {
+interface Scale {
+  id: string
   category: string
   fund_share: number
   member_share: number
@@ -11,84 +11,130 @@ interface ScaleItem {
 }
 
 export default function ReimbursementScales() {
-  const [scales, setScales] = useState<ScaleItem[]>([])
-  const [saving, setSaving] = useState(false)
+  const [scales, setScales] = useState<Scale[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState<string | null>(null)
+
+  // 🧠 Fetch data
+  async function fetchScales() {
+    const { data, error } = await supabase
+      .from('reimbursement_scales')
+      .select('*')
+      .order('category', { ascending: true })
+
+    if (error) {
+      console.error(error)
+      return
+    }
+    setScales(data)
+    setLoading(false)
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
-      const data = await getReimbursementScales()
-      if (data) setScales(data)
-    }
-    fetchData()
+    fetchScales()
   }, [])
 
-  const handleChange = (index: number, field: keyof ScaleItem, value: any) => {
-    const updated = [...scales]
-    updated[index][field] = value
-    setScales(updated)
+  // 💾 Save updates
+  async function saveScale(id: string, updated: Partial<Scale>) {
+    const { error } = await supabase
+      .from('reimbursement_scales')
+      .update(updated)
+      .eq('id', id)
+
+    if (error) {
+      alert('Error saving changes: ' + error.message)
+      return
+    }
+
+    setEditing(null)
+    fetchScales()
   }
 
-  const handleSave = async () => {
-    setSaving(true)
-    const success = await updateReimbursementScales(scales)
-    setSaving(false)
-    if (success) alert('Reimbursement scales updated successfully!')
-    else alert('Failed to save changes.')
-  }
+  if (loading) return <p>Loading reimbursement scales...</p>
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <h1 className="text-2xl font-semibold text-gray-800">Reimbursement Scales</h1>
+      <p className="text-gray-600 mb-4">
+        Adjust the fund and member shares for each claim category below.
+      </p>
 
-      <SettingsCard title="Fund Reimbursement Rules">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b text-gray-600">
-              <th className="py-2">Category</th>
-              <th>Fund Share (%)</th>
-              <th>Member Share (%)</th>
-              <th>Ceiling (Ksh)</th>
+      <table className="w-full border-collapse text-sm bg-white shadow rounded-lg overflow-hidden">
+        <thead>
+          <tr className="bg-gray-100 text-gray-700">
+            <th className="p-3 text-left">Category</th>
+            <th className="p-3 text-left">Fund Share (%)</th>
+            <th className="p-3 text-left">Member Share (%)</th>
+            <th className="p-3 text-left">Ceiling (KES)</th>
+            <th className="p-3 text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {scales.map((scale) => (
+            <tr key={scale.id} className="border-b last:border-none">
+              <td className="p-3">{scale.category}</td>
+
+              {editing === scale.id ? (
+                <>
+                  <td className="p-3">
+                    <input
+                      type="number"
+                      defaultValue={scale.fund_share}
+                      className="border rounded px-2 py-1 w-20"
+                      onChange={(e) =>
+                        (scale.fund_share = Number(e.target.value))
+                      }
+                    />
+                  </td>
+                  <td className="p-3">
+                    <input
+                      type="number"
+                      defaultValue={scale.member_share}
+                      className="border rounded px-2 py-1 w-20"
+                      onChange={(e) =>
+                        (scale.member_share = Number(e.target.value))
+                      }
+                    />
+                  </td>
+                  <td className="p-3">
+                    <input
+                      type="number"
+                      defaultValue={scale.ceiling}
+                      className="border rounded px-2 py-1 w-28"
+                      onChange={(e) =>
+                        (scale.ceiling = Number(e.target.value))
+                      }
+                    />
+                  </td>
+                  <td className="p-3 text-center">
+                    <Button
+                      className="mr-2"
+                      onClick={() => saveScale(scale.id, scale)}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditing(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </td>
+                </>
+              ) : (
+                <>
+                  <td className="p-3">{scale.fund_share}%</td>
+                  <td className="p-3">{scale.member_share}%</td>
+                  <td className="p-3">KES {scale.ceiling.toLocaleString()}</td>
+                  <td className="p-3 text-center">
+                    <Button onClick={() => setEditing(scale.id)}>Edit</Button>
+                  </td>
+                </>
+              )}
             </tr>
-          </thead>
-          <tbody>
-            {scales.map((s, i) => (
-              <tr key={i} className="border-b">
-                <td className="py-2">{s.category}</td>
-                <td>
-                  <input
-                    type="number"
-                    className="w-20 border rounded px-2 py-1"
-                    value={s.fund_share}
-                    onChange={(e) => handleChange(i, 'fund_share', Number(e.target.value))}
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    className="w-20 border rounded px-2 py-1"
-                    value={s.member_share}
-                    onChange={(e) => handleChange(i, 'member_share', Number(e.target.value))}
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    className="w-28 border rounded px-2 py-1"
-                    value={s.ceiling}
-                    onChange={(e) => handleChange(i, 'ceiling', Number(e.target.value))}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="mt-6 flex justify-end">
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </div>
-      </SettingsCard>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

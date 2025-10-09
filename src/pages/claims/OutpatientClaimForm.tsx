@@ -73,12 +73,8 @@ export default function OutpatientClaimForm() {
       <ReimbursementPreview
   total={totals.grandTotal}
   category="Outpatient"
-  scales={[
-    { category: 'Outpatient', fund_share: 80, member_share: 20, ceiling: 50000 },
-    { category: 'Inpatient', fund_share: 85, member_share: 15, ceiling: 200000 },
-    { category: 'Chronic', fund_share: 60, member_share: 40, ceiling: 120000 },
-  ]}
 />
+
     </div>
   )
 }

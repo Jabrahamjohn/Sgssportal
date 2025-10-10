@@ -104,3 +104,13 @@ values
     'system'
   )
 on conflict do nothing;
+
+
+-- sample attachments + review seeds for testing
+-- Note: we don't insert real storage_path — the frontend will upload files to storage and write record.
+
+-- Example review line
+insert into claim_reviews (claim_id, reviewer_id, role, action, note)
+values
+  ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'committee', 'reviewed', 'Sample review from seed')
+on conflict do nothing;

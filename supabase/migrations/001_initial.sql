@@ -208,12 +208,13 @@ begin
   end if;
 
   insert into notifications (recipient_id, title, message, link)
-  values (
-    new.member_id,
-    'Claim Update',
-    msg,
-    '/claims/' || new.id
-  );
+values (
+  (select user_id from members where id = new.member_id),
+  'Claim Update',
+  msg,
+  '/claims/' || new.id
+);
+
 
   return null;
 end;
@@ -249,3 +250,6 @@ $$ language plpgsql security definer;
 create trigger send_email_trigger
 after insert on notifications
 for each row execute procedure trigger_email_on_notification();
+
+create index if not exists idx_notifications_recipient_created
+on notifications (recipient_id, created_at desc);

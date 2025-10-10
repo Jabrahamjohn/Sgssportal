@@ -3,8 +3,8 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
-        "dev.local": "vite --mode local",
-        "dev.cloud": "vite --mode cloud",
+        "dev.local": "vite --mode dev",
+        "dev.cloud": "vite --mode prod",
         "build": "vite build",
         "preview": "vite preview"
     },
@@ -33,3 +33,4 @@
         "typescript": "^5.9.3",
         "vite": "^7.1.9"
     }
+}

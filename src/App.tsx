@@ -6,6 +6,7 @@ import Header from './components/layout/Header'
 import Sidebar from './components/layout/Sidebar'
 import RoleSwitcher from './components/RoleSwitcher'
 import MockUserBanner from './components/MockUserBanner'
+import EnvironmentBadge from './components/system/EnvironmentBadge'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 
 // Member Pages
@@ -27,6 +28,8 @@ import ReimbursementScales from './pages/admin/ReimbursementScales'
 import MembershipTypes from './pages/admin/MembershipTypes'
 import ClaimsAdminPanel from './pages/admin/ClaimsAdminPanel'
 import Reports from './pages/admin/Reports'
+
+console.log('✅ Connected to Supabase:', import.meta.env.VITE_SUPABASE_URL)
 
 export default function App() {
   return (
@@ -104,6 +107,7 @@ export default function App() {
       {/* Role Switcher + Mock Banner for Development */}
       <RoleSwitcher />
       <MockUserBanner />
+      <EnvironmentBadge />
     </div>
   )
 }

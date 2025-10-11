@@ -68,19 +68,30 @@ export default function ChronicClaimForm() {
       </ClaimSection>
       
       <FileUploader onFilesSelected={setFiles} />
-      <div className="flex gap-2 justify-end">
-        <Button onClick={async () => {
-          const { data: session } = await supabase.auth.getSession()
-          if (!session?.user) { alert('Login required'); return }
-          try {
-            const created = await createClaimWithAttachments(session.user.id, 'outpatient', [...consultations, ...medicines, ...investigations, ...procedures], files)
-            alert('Claim submitted: ' + created.id)
-            // optionally redirect to claim history
-          } catch (err: any) {
-            alert('Error: ' + err.message)
-          }
-        }}>Submit Claim</Button>
-      </div>
+
+<div className="flex justify-end gap-3 mt-4">
+  <Button onClick={async () => {
+    const { data: session } = await supabase.auth.getSession()
+    const user = session?.user
+    if (!user) return alert('Please log in first.')
+
+    try {
+      const newClaim = await createClaimWithAttachments(
+        user.id,
+        'outpatient',
+        [...consultations, ...medicines, ...investigations, ...procedures],
+        files
+      )
+      alert('Claim submitted successfully!')
+      console.log(newClaim)
+    } catch (err: any) {
+      alert('Error: ' + err.message)
+    }
+  }}>
+    Submit Claim
+  </Button>
+</div>
+
 
 
       <TotalsCard title="Total Medication Cost" amount={total} />

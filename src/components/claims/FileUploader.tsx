@@ -14,11 +14,11 @@ export default function FileUploader({ onFilesSelected }: Props) {
   }
 
   return (
-    <div>
+    <div className="mt-4">
       <label className="block text-sm font-medium text-gray-700">Attachments</label>
       <input type="file" multiple onChange={handleChange} className="mt-1" />
       {selected.length > 0 && (
-        <ul className="text-sm mt-2">
+        <ul className="text-sm mt-2 list-disc ml-4">
           {selected.map((f, i) => <li key={i}>{f.name}</li>)}
         </ul>
       )}

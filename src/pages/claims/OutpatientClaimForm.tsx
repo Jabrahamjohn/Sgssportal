@@ -9,6 +9,27 @@ import ReimbursementPreview from '../../components/claims/ReimbursementPreview'
 import { createClaim } from '../../services/claimsService'
 import { supabase } from '../../services/supabaseClient'
 
+// Before submit:
+const { data: session } = await supabase.auth.getSession()
+if (!session?.user) return alert('Please login')
+
+try {
+  // basic client-side checks
+  if (consultations.length + medicines.length + investigations.length + procedures.length === 0) {
+    throw new Error('Please add at least one claim item.')
+  }
+  if (claimType === 'inpatient') {
+    const hasDischarge = files.some(f => /discharge/i.test(f.name))
+    if (!hasDischarge) throw new Error('Inpatient claims require a discharge summary attachment.')
+  }
+
+  // call service
+  const created = await createClaimWithAttachments(session.user.id, 'outpatient', [...consultations, ...medicines, ...investigations, ...procedures], files, firstVisitDate, dischargeDate)
+  toast.success('Claim submitted.')
+} catch (err:any) {
+  toast.error(err.message)
+}
+
 const handleSubmit = async () => {
   const { data: user } = await supabase.auth.getUser()
   if (!user?.user?.id) {
@@ -69,28 +90,28 @@ export default function OutpatientClaimForm() {
 
       <FileUploader onFilesSelected={setFiles} />
 
-<div className="flex justify-end gap-3 mt-4">
-  <Button onClick={async () => {
-    const { data: session } = await supabase.auth.getSession()
-    const user = session?.user
-    if (!user) return alert('Please log in first.')
+      <div className="flex justify-end gap-3 mt-4">
+        <Button onClick={async () => {
+          const { data: session } = await supabase.auth.getSession()
+          const user = session?.user
+          if (!user) return alert('Please log in first.')
 
-    try {
-      const newClaim = await createClaimWithAttachments(
-        user.id,
-        'outpatient',
-        [...consultations, ...medicines, ...investigations, ...procedures],
-        files
-      )
-      alert('Claim submitted successfully!')
-      console.log(newClaim)
-    } catch (err: any) {
-      alert('Error: ' + err.message)
-    }
-  }}>
-    Submit Claim
-  </Button>
-</div>
+          try {
+            const newClaim = await createClaimWithAttachments(
+              user.id,
+              'outpatient',
+              [...consultations, ...medicines, ...investigations, ...procedures],
+              files
+            )
+            alert('Claim submitted successfully!')
+            console.log(newClaim)
+          } catch (err: any) {
+            alert('Error: ' + err.message)
+          }
+        }}>
+          Submit Claim
+        </Button>
+      </div>
 
 
 
@@ -99,12 +120,21 @@ export default function OutpatientClaimForm() {
       <div className="flex justify-end">
         <Button onClick={calculateTotal}>Calculate Total</Button>
         <Button onClick={handleSubmit} className="bg-green-600 text-white">Submit Claim</Button>
-
       </div>
+
+      <div className="bg-yellow-50 text-sm p-3 rounded border">
+        <strong>Byelaws reminders:</strong>
+        <ul className="list-disc ml-5">
+          <li>Claims must be submitted within 90 days of the visit/discharge. (Byelaws §4.1)</li>
+          <li>Member benefits start after 60 days from membership start. (Constitution §6.3)</li>
+          <li>Attach original receipts and prescriptions. Photocopies are not acceptable. (Byelaws §4.2)</li>
+        </ul>
+      </div>
+
       <ReimbursementPreview
-  total={totals.grandTotal}
-  category="Outpatient"
-/>
+        total={totals.grandTotal}
+        category="Outpatient"
+      />
 
     </div>
   )

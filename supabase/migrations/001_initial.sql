@@ -1,5 +1,4 @@
--- 001_initial.sql
-
+-- 001_initial.sql (Fixed and verified)
 -- ======================================
 -- Core Tables for SGSS Medical Fund
 -- ======================================
@@ -13,7 +12,7 @@ create table if not exists users (
   created_at timestamptz default now()
 );
 
--- ROLES TABLE (optional reference)
+-- ROLES TABLE
 create table if not exists roles (
   id serial primary key,
   name text unique not null
@@ -41,7 +40,7 @@ on conflict (key) do nothing;
 -- MEMBERS TABLE
 create table if not exists members (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id),
+  user_id uuid references users(id) on delete cascade,
   membership_type_id int references membership_types(id),
   nhif_number text,
   photo_url text,
@@ -56,12 +55,12 @@ create table if not exists members (
 create table if not exists claims (
   id uuid primary key default gen_random_uuid(),
   member_id uuid references members(id) not null,
-  claim_type text not null, -- inpatient | outpatient | chronic
+  claim_type text not null,
   date_of_first_visit date,
   date_of_discharge date,
   total_claimed bigint default 0,
   total_payable bigint default 0,
-  status text default 'draft', -- draft | submitted | approved | paid | rejected
+  status text default 'draft',
   submitted_at timestamptz,
   processed_at timestamptz,
   approved_at timestamptz,
@@ -92,7 +91,6 @@ create table if not exists chronic_requests (
   created_at timestamptz default now()
 );
 
-
 -- REIMBURSEMENT SCALES
 create table if not exists reimbursement_scales (
   id uuid primary key default gen_random_uuid(),
@@ -119,7 +117,7 @@ create table if not exists audit_logs (
   created_at timestamptz default now()
 );
 
--- SETTINGS (Admin configurable parameters)
+-- SETTINGS
 create table if not exists settings (
   key text primary key,
   value jsonb,
@@ -135,29 +133,22 @@ on conflict (key) do update set value = excluded.value, updated_at = now();
 create index if not exists idx_claims_member on claims(member_id);
 create index if not exists idx_claims_status on claims(status);
 
-
 -- =========================================================
 -- UNIVERSAL AUDIT LOGGING SYSTEM
 -- =========================================================
-
--- 1. Audit function: captures action type and row data
 create or replace function log_audit_event()
 returns trigger as $$
 begin
   insert into audit_logs (actor_id, action, meta)
   values (
-    current_setting('request.jwt.claim.sub', true)::uuid,  -- current user id if available
-    TG_TABLE_NAME || ':' || TG_OP,                        -- e.g. claims:INSERT
-    case 
-      when TG_OP = 'DELETE' then to_jsonb(OLD)
-      else to_jsonb(NEW)
-    end
+    current_setting('request.jwt.claim.sub', true)::uuid,
+    TG_TABLE_NAME || ':' || TG_OP,
+    case when TG_OP = 'DELETE' then to_jsonb(OLD) else to_jsonb(NEW) end
   );
   return null;
 end;
 $$ language plpgsql security definer;
 
--- 2. Attach triggers to key tables
 create trigger audit_claims
 after insert or update or delete on claims
 for each row execute procedure log_audit_event();
@@ -178,11 +169,9 @@ create trigger audit_settings
 after insert or update or delete on settings
 for each row execute procedure log_audit_event();
 
-
 -- =========================================================
--- NOTIFICATIONS SYSTEM
+-- NOTIFICATIONS SYSTEM (fixed)
 -- =========================================================
-
 create table if not exists notifications (
   id uuid primary key default gen_random_uuid(),
   recipient_id uuid references users(id),
@@ -190,15 +179,22 @@ create table if not exists notifications (
   message text not null,
   link text,
   read boolean default false,
+  type text default 'system',
+  sent_email boolean default false,
+  actor_id uuid,
+  metadata jsonb,
   created_at timestamptz default now()
 );
 
--- Notification trigger for claims
 create or replace function notify_on_claim_event()
 returns trigger as $$
 declare
   msg text;
+  recipient uuid;
 begin
+  select user_id into recipient from members where id = new.member_id;
+  if recipient is null then return null; end if;
+
   if TG_OP = 'INSERT' then
     msg := 'New claim submitted with total ' || new.total_claimed;
   elsif TG_OP = 'UPDATE' and new.status != old.status then
@@ -207,15 +203,8 @@ begin
     return null;
   end if;
 
-  insert into notifications (recipient_id, title, message, link)
-values (
-  (select user_id from members where id = new.member_id),
-  'Claim Update',
-  msg,
-  '/claims/' || new.id
-);
-
-
+  insert into notifications (recipient_id, title, message, link, type, actor_id)
+  values (recipient, 'Claim Update', msg, '/claims/' || new.id, 'claim', current_setting('request.jwt.claim.sub', true)::uuid);
   return null;
 end;
 $$ language plpgsql security definer;
@@ -224,23 +213,15 @@ create trigger notify_claims
 after insert or update on claims
 for each row execute procedure notify_on_claim_event();
 
-
-alter table notifications
-add column if not exists type text default 'system', -- 'system', 'claim', 'chronic', etc.
-add column if not exists sent_email boolean default false,
-add column if not exists actor_id uuid, -- who triggered the notification
-add column if not exists metadata jsonb; -- any extra structured info
-
-
+-- Edge email trigger
 create or replace function trigger_email_on_notification()
 returns trigger as $$
 begin
-  -- Only send for specific events
-  if new.type in ('claim', 'chronic') then
+  if new.type in ('claim', 'chronic') and current_setting('app.settings.edge_url', true) is not null then
     perform net.http_post(
       url := current_setting('app.settings.edge_url') || '/functions/v1/send-notification-email',
       body := json_build_object('record', new)::text,
-      headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.settings.service_role_key'))
+      headers := jsonb_build_object('Authorization', 'Bearer ' || coalesce(current_setting('app.settings.service_role_key', true), ''))
     );
   end if;
   return new;

@@ -114,7 +114,10 @@ for each row execute procedure fn_autoflag_exclusions();
 
 
 -- 5) Update compute_claim_payable to deduct NHIF & other insurance and respect clinic 100% rule
--- (This modifies existing compute_claim_payable; keep name consistent with earlier migrations)
+-- ==========================================
+-- Function: compute_claim_payable (fixed)
+-- ==========================================
+
 create or replace function compute_claim_payable(p_claim_id uuid)
 returns void as $$
 declare
@@ -128,46 +131,57 @@ declare
   nhif_amount numeric := 0;
   other_ins_amount numeric := 0;
   clinic_outpatient_percent numeric := null;
+  yearly_spent numeric := 0;
 begin
   select * into c from claims where id = p_claim_id;
   if not found then return; end if;
+
   if c.excluded then
-    update claims set total_payable = 0, member_payable = c.total_claimed where id = p_claim_id;
+    update claims
+    set total_payable = 0, member_payable = c.total_claimed
+    where id = p_claim_id;
     return;
   end if;
 
-  -- fetch membership limits
-  select membership_type_id into membership_type_id from members where id = c.member_id;
+  select membership_type_id into membership_type_id
+  from members where id = c.member_id;
+
   if membership_type_id is not null then
-    select annual_limit into membership_lim from membership_types where id = membership_type_id;
+    select annual_limit into membership_lim
+    from membership_types where id = membership_type_id;
   end if;
 
-  -- clinic special rule: 100% outpatient at Siri Guru Nanak Clinic (Byelaws §5.7.2)
-  select (value->>'clinic_outpatient_percent')::numeric into clinic_outpatient_percent from settings where key = 'general_limits';
+  select (value->>'clinic_outpatient_percent')::numeric
+  into clinic_outpatient_percent
+  from settings where key = 'general_limits';
 
-  -- pick reimbursement scale
-  select * into scale from reimbursement_scales where lower(category) = lower(c.claim_type) limit 1;
+  select * into scale
+  from reimbursement_scales
+  where lower(category) = lower(c.claim_type)
+  limit 1;
 
-  -- fallback to settings fund_share_percent
   if not found then
-    select (value->>'fund_share_percent')::numeric as fund_share into scale from settings where key='general_limits';
+    select (value->>'fund_share_percent')::numeric as fund_share
+    into scale
+    from settings where key='general_limits';
   end if;
 
-  -- compute raw shares
-  if lower(c.claim_type) = 'outpatient' and clinic_outpatient_percent is not null and clinic_outpatient_percent = 100 and lower(coalesce(c.notes,'')) like '%siri guru nanak clinic%' then
-    fund_share_amount := c.total_claimed; -- 100%
+  if lower(c.claim_type) = 'outpatient'
+     and clinic_outpatient_percent = 100
+     and lower(coalesce(c.notes,'')) like '%siri guru nanak clinic%' then
+    fund_share_amount := c.total_claimed;
     member_share_amount := 0;
   else
     fund_share_amount := (c.total_claimed * (coalesce(scale.fund_share, 80) / 100.0));
     member_share_amount := c.total_claimed - fund_share_amount;
   end if;
 
-  ceiling := coalesce(scale.ceiling, (select (value->>'annual_limit')::numeric from settings where key='general_limits'));
+  ceiling := coalesce(
+    scale.ceiling,
+    (select (value->>'annual_limit')::numeric from settings where key='general_limits')
+  );
 
-  -- NHIF & other insurance: deduct known covered amounts BEFORE fund pays
-  -- If claim has nhif_number (or member has one), attempt estimate: for now use 'nhif_cover' field in other_insurance JSON or 0.
   if c.nhif_number is not null and c.nhif_number <> '' then
-    -- If we have NHIF line in other_insurance, use it; else default 0 (business can change)
     if c.other_insurance is not null and c.other_insurance ? 'nhif' then
       nhif_amount := (c.other_insurance->>'nhif')::numeric;
     else
@@ -179,31 +193,43 @@ begin
     other_ins_amount := (c.other_insurance->>'other')::numeric;
   end if;
 
-  -- reduce totals by third-party payments
   fund_share_amount := greatest(0, fund_share_amount - nhif_amount - other_ins_amount);
   member_share_amount := c.total_claimed - fund_share_amount - nhif_amount - other_ins_amount;
 
-  -- enforce ceiling
   if fund_share_amount > ceiling then
     fund_share_amount := ceiling;
     member_share_amount := c.total_claimed - fund_share_amount - nhif_amount - other_ins_amount;
   end if;
 
-  -- enforce membership annual limit
   if membership_lim is not null and membership_lim > 0 then
-    -- compute total paid from fund this calendar year
-    declare yearly_spent numeric;
-    select coalesce(sum(total_payable),0) into yearly_spent from claims where member_id = c.member_id and date_part('year', created_at) = date_part('year', now());
-    if (yearly_spent + fund_share_amount) > membership_lim then
-      -- cap to remaining
+    select coalesce(sum(total_payable),0)
+    into yearly_spent
+    from claims
+    where member_id = c.member_id
+      and date_part('year', created_at) = date_part('year', now());
+
+    if yearly_spent + fund_share_amount > membership_lim then
       fund_share_amount := greatest(0, membership_lim - yearly_spent);
       member_share_amount := c.total_claimed - fund_share_amount - nhif_amount - other_ins_amount;
     end if;
   end if;
 
-  update claims 
+  update claims
   set total_payable = fund_share_amount,
       member_payable = member_share_amount
   where id = p_claim_id;
+end;
+$$ language plpgsql security definer;
+-- ==========================================
+
+-- grant only admin/committee write access in policies (if using RLS), else implement auth checks in function
+create or replace function apply_discretionary_override(p_claim uuid, p_amount numeric, p_actor uuid)
+returns void as $$
+begin
+  if p_amount > 150000 then
+    raise exception 'Discretionary override cannot exceed Ksh 150,000 as per Byelaws §6.1.';
+  end if;
+  update claims set override_amount = p_amount, total_payable = coalesce(override_amount, p_amount) where id = p_claim;
+  insert into claim_reviews (claim_id, reviewer_id, role, action, note) values (p_claim, p_actor, 'committee', 'override', 'Discretionary override applied');
 end;
 $$ language plpgsql security definer;

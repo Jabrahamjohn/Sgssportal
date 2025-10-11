@@ -28,6 +28,7 @@ import ReimbursementScales from './pages/admin/ReimbursementScales'
 import MembershipTypes from './pages/admin/MembershipTypes'
 import ClaimsAdminPanel from './pages/admin/ClaimsAdminPanel'
 import Reports from './pages/admin/Reports'
+import ClaimDetailAdmin from './pages/admin/claimDetailAdmin'
 
 console.log('✅ Connected to Supabase:', import.meta.env.VITE_SUPABASE_URL)
 
@@ -94,6 +95,15 @@ export default function App() {
               element={
                 <ProtectedRoute roles={['admin', 'committee']}>
                   <Reports />
+                </ProtectedRoute>
+              }
+            />
+           
+            <Route
+              path='/admin/claims/:claimId'
+              element={
+                <ProtectedRoute roles={['admin', 'committee']}>
+                  <ClaimDetailAdmin />
                 </ProtectedRoute>
               }
             />

@@ -2,6 +2,10 @@ import React, { useState } from 'react'
 import { ClaimSection } from '../../components/claims/ClaimSection'
 import { Button } from '../../components/ui/Button'
 import TotalsCard  from '../../components/claims/TotalsCard'
+import FileUploader from '../../components/claims/FileUploader'
+import { createClaimWithAttachments } from '../../services/claimsService'
+import { supabase } from '../../services/supabaseClient'
+
 
 export default function ChronicClaimForm() {
   const [doctor, setDoctor] = useState('')
@@ -22,6 +26,8 @@ export default function ChronicClaimForm() {
     const totalAmount = medicines.reduce((a, b) => a + Number(b.cost || 0), 0)
     setTotal(totalAmount)
   }
+
+  const [files, setFiles] = useState<File[]>([])
 
   return (
     <div className="p-6 space-y-6">
@@ -60,6 +66,22 @@ export default function ChronicClaimForm() {
         </table>
         <Button className="mt-3" onClick={addMedicine}>+ Add Medicine</Button>
       </ClaimSection>
+      
+      <FileUploader onFilesSelected={setFiles} />
+      <div className="flex gap-2 justify-end">
+        <Button onClick={async () => {
+          const { data: session } = await supabase.auth.getSession()
+          if (!session?.user) { alert('Login required'); return }
+          try {
+            const created = await createClaimWithAttachments(session.user.id, 'outpatient', [...consultations, ...medicines, ...investigations, ...procedures], files)
+            alert('Claim submitted: ' + created.id)
+            // optionally redirect to claim history
+          } catch (err: any) {
+            alert('Error: ' + err.message)
+          }
+        }}>Submit Claim</Button>
+      </div>
+
 
       <TotalsCard title="Total Medication Cost" amount={total} />
 

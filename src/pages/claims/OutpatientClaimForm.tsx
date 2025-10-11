@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import FileUploader from '../../components/claims/FileUploader'
+import { createClaimWithAttachments } from '../../services/claimsService'
 import { Button } from '../../components/ui/Button'
 import { ClaimSection } from '../../components/claims/ClaimSection'
 import { ClaimItemsTable } from '../../components/claims/ClaimItemsTable'
@@ -43,6 +45,8 @@ export default function OutpatientClaimForm() {
     setTotals({ grandTotal: total })
   }
 
+  const [files, setFiles] = useState<File[]>([])
+
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-semibold text-gray-800">Outpatient Claim Form</h1>
@@ -62,6 +66,22 @@ export default function OutpatientClaimForm() {
       <ClaimSection title="Part D — Procedures">
         <ClaimItemsTable items={procedures} setItems={setProcedures} columns={['Procedure', 'Cost']} />
       </ClaimSection>
+
+      <FileUploader onFilesSelected={setFiles} />
+      <div className="flex gap-2 justify-end">
+        <Button onClick={async () => {
+          const { data: session } = await supabase.auth.getSession()
+          if (!session?.user) { alert('Login required'); return }
+          try {
+            const created = await createClaimWithAttachments(session.user.id, 'outpatient', [...consultations, ...medicines, ...investigations, ...procedures], files)
+            alert('Claim submitted: ' + created.id)
+            // optionally redirect to claim history
+          } catch (err: any) {
+            alert('Error: ' + err.message)
+          }
+        }}>Submit Claim</Button>
+      </div>
+
 
       <TotalsCard title="Outpatient Total" amount={totals.grandTotal} />
 

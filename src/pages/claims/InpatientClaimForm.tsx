@@ -1,3 +1,4 @@
+// src/pages/claims/InpatientClaimForm.tsx
 import React, { useState } from 'react'
 import { ClaimSection } from '../../components/claims/ClaimSection'
 import { ClaimItemsTable } from '../../components/claims/ClaimItemsTable'

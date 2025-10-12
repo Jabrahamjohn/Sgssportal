@@ -1,3 +1,4 @@
+// OutpatientClaimForm.tsx
 import React, { useState } from 'react'
 import FileUploader from '../../components/claims/FileUploader'
 import { createClaimWithAttachments } from '../../services/claimsService'

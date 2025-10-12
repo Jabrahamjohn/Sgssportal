@@ -1,11 +1,23 @@
 // src/pages/auth/LoginPage.tsx
 import React, { useState } from 'react'
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../services/supabaseClient'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const { user } = useAuth()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (user) {
+      navigate('/')
+    }
+  }, [user, navigate])
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

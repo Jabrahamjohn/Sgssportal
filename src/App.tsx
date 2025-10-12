@@ -13,7 +13,6 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage'
-
 // Member Pages
 import Dashboard from './pages/dashboard/Dashboard'
 import MembersList from './pages/members/MembersList'
@@ -51,15 +50,31 @@ export default function App() {
 
   // If no user, show login page
   if (!user) {
-    return <LoginPage />
+    return (
+  <Routes>
+    <Route path="/login" element={<LoginPage />} />
+    <Route
+      path="/*"
+      element={
+        user ? (
+          <AuthenticatedLayout /> // extracted below
+        ) : (
+          <Navigate to="/login" replace />
+        )
+      }
+    />
+  </Routes>
+    )
+
   }
 
   // Authenticated layout
-  return (
-    <div className="min-h-screen flex bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <Header />
+  function AuthenticatedLayout() {
+    return (
+      <div className="min-h-screen flex bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <Header />
         <main className="p-6 flex-1 overflow-y-auto">
           <Routes>
             {/* Member routes */}
@@ -133,7 +148,9 @@ export default function App() {
       <RoleSwitcher />
       <MockUserBanner />
       <EnvironmentBadge />
-    </div>
-  )
+      </div>
+    
+    )
+  }
 }
 // End of App.tsx

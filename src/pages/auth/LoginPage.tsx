@@ -1,6 +1,5 @@
 // src/pages/auth/LoginPage.tsx
-import React, { useState } from 'react'
-import { useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../services/supabaseClient'
@@ -18,7 +17,6 @@ export default function LoginPage() {
     }
   }, [user, navigate])
 
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -34,23 +32,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white px-4">
+      {/* Branded Header */}
+      <header className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-blue-700">SGSS Medical Fund</h1>
+        <p className="text-gray-600 mt-1">Member & Claims Portal</p>
+      </header>
+
+      {/* Login Form */}
       <form
         onSubmit={handleLogin}
-        className="bg-white shadow-md rounded-lg p-8 w-full max-w-md border border-gray-200"
+        className="bg-white shadow-lg rounded-xl p-8 w-full max-w-md border border-gray-200"
       >
-        <h2 className="text-2xl font-semibold text-center mb-6 text-blue-700">
-          SGSS Medical Fund Portal
+        <h2 className="text-xl font-semibold text-center mb-6 text-blue-700">
+          Member Login
         </h2>
-        <p className="text-sm text-gray-500 text-center mb-4">
-          Enter your email to receive a login link.
-        </p>
         <input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
+          placeholder="Enter your registered email"
           className="w-full border rounded-md p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
@@ -64,6 +66,10 @@ export default function LoginPage() {
           <p className="text-center mt-4 text-sm text-gray-600">{message}</p>
         )}
       </form>
+
+      <footer className="text-xs text-gray-500 mt-6">
+        © {new Date().getFullYear()} Siri Guru Singh Sabha – Medical Fund
+      </footer>
     </div>
   )
 }

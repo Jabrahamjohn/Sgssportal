@@ -62,6 +62,16 @@ export default function LoginPage() {
         >
           {loading ? 'Sending link...' : 'Send Magic Link'}
         </button>
+        <button
+          onClick={() => {
+            localStorage.setItem('dev_user', JSON.stringify({ email: 'test@sgss.com', role: 'admin' }))
+            window.location.reload()
+          }}
+          className="mt-3 text-sm underline text-gray-500"
+        >
+          Dev Login (bypass magic link)
+        </button>
+
         {message && (
           <p className="text-center mt-4 text-sm text-gray-600">{message}</p>
         )}

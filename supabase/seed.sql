@@ -127,7 +127,7 @@ values
 on conflict (category) do update
 set fund_share = excluded.fund_share,
     member_share = excluded.member_share,
-    ceiling = excluded.ceiling;
+    
 
 -- ================================================================
 -- SETTINGS

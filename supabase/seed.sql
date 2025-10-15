@@ -1,15 +1,25 @@
 -- ================================================================
--- SGSS MEDICAL FUND — LOCAL SEED DATA (v3)
--- Includes: Member, Committee, Admin, Settings, Claims, and Policies
+-- SGSS MEDICAL FUND — LOCAL SEED DATA (v3, FIXED)
 -- ================================================================
 
--- USERS ------------------------------------------------------------
-insert into users (id, email, full_name, role)
+-- AUTH USERS ------------------------------------------------------
+-- The auth schema only accepts 'id' and 'email'
+insert into auth.users (id, email)
+values
+  ('00000000-0000-0000-0000-000000000001', 'member@sgss.com'),
+  ('00000000-0000-0000-0000-000000000002', 'admin@sgss.com'),
+  ('00000000-0000-0000-0000-000000000003', 'committee@sgss.com')
+on conflict (id) do nothing;
+
+-- APP USERS -------------------------------------------------------
+-- Your custom table that stores role and full name
+insert into public.users (id, email, full_name, role)
 values
   ('00000000-0000-0000-0000-000000000001', 'member@sgss.com', 'Test Member', 'member'),
   ('00000000-0000-0000-0000-000000000002', 'admin@sgss.com', 'Admin User', 'admin'),
   ('00000000-0000-0000-0000-000000000003', 'committee@sgss.com', 'Committee Reviewer', 'committee')
 on conflict (id) do nothing;
+
 
 -- ROLES ------------------------------------------------------------
 insert into roles (name)
@@ -159,3 +169,5 @@ select compute_claim_payable('20000000-0000-0000-0000-000000000001');
 --   ('00000000-0000-0000-0000-000000000002','admin'),
 --   ('00000000-0000-0000-0000-000000000003','committee')
 -- on conflict do nothing;
+
+select u.id, a.email from users u left join auth.users a on a.id = u.id;

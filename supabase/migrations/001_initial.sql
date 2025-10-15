@@ -5,12 +5,13 @@
 
 -- USERS TABLE
 create table if not exists users (
-  id uuid primary key default gen_random_uuid(),
+  id uuid primary key references auth.users(id) on delete cascade,
   email text unique not null,
   full_name text,
   role text default 'member',
   created_at timestamptz default now()
 );
+
 
 -- ROLES TABLE
 create table if not exists roles (

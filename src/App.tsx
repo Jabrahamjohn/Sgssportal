@@ -49,7 +49,7 @@ export default function App() {
   }
 
   // If no user, show login page
-  if (!user) {
+  if (!loading && !user) {
     return (
   <Routes>
     <Route path="/login" element={<LoginPage />} />

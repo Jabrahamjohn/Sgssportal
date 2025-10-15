@@ -6,9 +6,9 @@
 -- USERS ------------------------------------------------------------
 insert into users (id, email, full_name, role)
 values
-  ('00000000-0000-0000-0000-000000000001', 'member1@example.com', 'Test Member', 'member'),
-  ('00000000-0000-0000-0000-000000000002', 'admin1@example.com', 'Admin User', 'admin'),
-  ('00000000-0000-0000-0000-000000000003', 'committee1@example.com', 'Committee Reviewer', 'committee')
+  ('00000000-0000-0000-0000-000000000001', 'member@sgss.com', 'Test Member', 'member'),
+  ('00000000-0000-0000-0000-000000000002', 'admin@sgss.com', 'Admin User', 'admin'),
+  ('00000000-0000-0000-0000-000000000003', 'committee@sgss.com', 'Committee Reviewer', 'committee')
 on conflict (id) do nothing;
 
 -- ROLES ------------------------------------------------------------

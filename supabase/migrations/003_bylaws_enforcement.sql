@@ -158,8 +158,8 @@ begin
     return;
   end if;
 
-  select membership_type_id into membership_type_id
-  from members where id = c.member_id;
+  select m.membership_type_id into membership_type_id
+  from members m where id = c.member_id;
 
   if membership_type_id is not null then
     select annual_limit into membership_lim

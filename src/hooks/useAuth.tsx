@@ -39,22 +39,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const loadProfile = async (userId: string) => {
-      try {
-        const { data: profile, error } = await supabase
-          .from('users')
-          .select('id, email, full_name, role')
-          .eq('id', userId)
-          .single()
+  try {
+    const { data: profile, error } = await supabase
+      .from('users')
+      .select('id, email, full_name, role')
+      .eq('id', userId)
+      .single()
 
-        if (error && error.code !== 'PGRST116') console.error(error)
-
-        setUser(profile || { id: userId, role: 'member' })
-      } catch (e) {
-        console.error('Error loading profile:', e)
-      } finally {
-        setLoading(false)
-      }
+    if (error) {
+      console.warn('⚠️ Failed to fetch user profile, using default:', error.message)
+      setUser({ id: userId, email: '', full_name: '', role: 'member' })
+    } else {
+      setUser(profile)
     }
+  } catch (e) {
+    console.error('Error loading profile:', e)
+    setUser({ id: userId, email: '', full_name: '', role: 'member' })
+  } finally {
+    setLoading(false)
+  }
+}
+
 
     init()
   }, [])

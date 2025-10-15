@@ -1,9 +1,22 @@
 -- ================================================================
--- SGSS MEDICAL FUND — LOCAL SEED DATA (v3, FIXED)
+-- SGSS MEDICAL FUND — LOCAL SEED DATA (v4, FINAL)
 -- ================================================================
 
--- AUTH USERS ------------------------------------------------------
--- The auth schema only accepts 'id' and 'email'
+-- 🧱 Ensure schema consistency -----------------------------------
+-- Add ceiling column if it doesn't exist (for reimbursement_scales)
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns 
+    where table_name = 'reimbursement_scales' and column_name = 'ceiling'
+  ) then
+    alter table reimbursement_scales add column ceiling numeric default 0;
+  end if;
+end $$;
+
+-- ================================================================
+-- AUTH USERS (for Supabase magic link login)
+-- ================================================================
 insert into auth.users (id, email)
 values
   ('00000000-0000-0000-0000-000000000001', 'member@sgss.com'),
@@ -11,29 +24,39 @@ values
   ('00000000-0000-0000-0000-000000000003', 'committee@sgss.com')
 on conflict (id) do nothing;
 
--- APP USERS -------------------------------------------------------
--- Your custom table that stores role and full name
+-- ================================================================
+-- APP USERS (linked with auth.users)
+-- ================================================================
 insert into public.users (id, email, full_name, role)
 values
   ('00000000-0000-0000-0000-000000000001', 'member@sgss.com', 'Test Member', 'member'),
   ('00000000-0000-0000-0000-000000000002', 'admin@sgss.com', 'Admin User', 'admin'),
   ('00000000-0000-0000-0000-000000000003', 'committee@sgss.com', 'Committee Reviewer', 'committee')
-on conflict (id) do nothing;
+on conflict (id) do update
+set email = excluded.email,
+    full_name = excluded.full_name,
+    role = excluded.role;
 
-
--- ROLES ------------------------------------------------------------
+-- ================================================================
+-- ROLES
+-- ================================================================
 insert into roles (name)
 values ('member'), ('committee'), ('admin')
 on conflict (name) do nothing;
 
--- MEMBERSHIP TYPES ------------------------------------------------
+-- ================================================================
+-- MEMBERSHIP TYPES
+-- ================================================================
 insert into membership_types (key, name, annual_limit)
 values
   ('single', 'Single', 250000),
   ('family', 'Family', 500000)
-on conflict (key) do nothing;
+on conflict (key) do update
+set name = excluded.name, annual_limit = excluded.annual_limit;
 
--- MEMBERS ----------------------------------------------------------
+-- ================================================================
+-- MEMBERS
+-- ================================================================
 insert into members (id, user_id, membership_type_id, nhif_number, valid_from, valid_to)
 values
   (
@@ -44,9 +67,12 @@ values
     current_date - interval '90 days',
     current_date + interval '2 years'
   )
-on conflict (id) do nothing;
+on conflict (id) do update
+set valid_to = excluded.valid_to;
 
--- CLAIMS -----------------------------------------------------------
+-- ================================================================
+-- CLAIMS
+-- ================================================================
 insert into claims (
   id, member_id, claim_type, date_of_first_visit, total_claimed, status, notes, nhif_number, other_insurance
 )
@@ -62,16 +88,21 @@ values
     'NHIF123',
     '{"nhif": 500, "other": 0}'::jsonb
   )
-on conflict (id) do nothing;
+on conflict (id) do update
+set status = excluded.status;
 
--- CLAIM ITEMS ------------------------------------------------------
+-- ================================================================
+-- CLAIM ITEMS
+-- ================================================================
 insert into claim_items (id, claim_id, category, description, amount, quantity)
 values
   (gen_random_uuid(), '20000000-0000-0000-0000-000000000001', 'consultation', 'Doctor consultation', 2000, 1),
   (gen_random_uuid(), '20000000-0000-0000-0000-000000000001', 'medicine', 'Pain relief tablets', 2000, 1)
 on conflict (id) do nothing;
 
--- CHRONIC REQUESTS -------------------------------------------------
+-- ================================================================
+-- CHRONIC REQUESTS
+-- ================================================================
 insert into chronic_requests (id, member_id, doctor_name, medicines, total_amount, member_payable, status)
 values
   (
@@ -85,7 +116,9 @@ values
   )
 on conflict (id) do nothing;
 
--- REIMBURSEMENT SCALES --------------------------------------------
+-- ================================================================
+-- REIMBURSEMENT SCALES
+-- ================================================================
 insert into reimbursement_scales (category, fund_share, member_share, ceiling)
 values
   ('Outpatient', 80, 20, 50000),
@@ -96,7 +129,9 @@ set fund_share = excluded.fund_share,
     member_share = excluded.member_share,
     ceiling = excluded.ceiling;
 
--- SETTINGS ---------------------------------------------------------
+-- ================================================================
+-- SETTINGS
+-- ================================================================
 insert into settings (key, value)
 values
   ('general_limits', '{"annual_limit":250000,"critical_addon":200000,"fund_share_percent":80,"clinic_outpatient_percent":100}'::jsonb),
@@ -108,7 +143,9 @@ values
 on conflict (key)
 do update set value = excluded.value, updated_at = now();
 
--- NOTIFICATIONS ----------------------------------------------------
+-- ================================================================
+-- NOTIFICATIONS
+-- ================================================================
 insert into notifications (recipient_id, title, message, link, type)
 values
   (
@@ -127,7 +164,9 @@ values
   )
 on conflict do nothing;
 
--- CLAIM REVIEWS ----------------------------------------------------
+-- ================================================================
+-- CLAIM REVIEWS
+-- ================================================================
 insert into claim_reviews (claim_id, reviewer_id, role, action, note)
 values
   (
@@ -139,7 +178,9 @@ values
   )
 on conflict do nothing;
 
--- AUDIT LOG --------------------------------------------------------
+-- ================================================================
+-- AUDIT LOG
+-- ================================================================
 insert into audit_logs (actor_id, action, meta)
 values
   (
@@ -150,24 +191,17 @@ values
 on conflict do nothing;
 
 -- ================================================================
--- AUTO-COMPUTE PAYABLE FOR SEEDED CLAIM
+-- AUTO COMPUTE PAYABLE FOR SEEDED CLAIM
 -- ================================================================
 select compute_claim_payable('20000000-0000-0000-0000-000000000001');
 
 -- ================================================================
--- ROLE MAPPINGS (For testing role-based access)
+-- VERIFICATION QUERY
 -- ================================================================
--- Example pseudo-table if you want to enforce RLS (optional)
--- create table if not exists user_roles (
---   user_id uuid references users(id) on delete cascade,
---   role text not null check (role in ('member', 'committee', 'admin')),
---   primary key (user_id, role)
--- );
--- insert into user_roles (user_id, role)
--- values
---   ('00000000-0000-0000-0000-000000000001','member'),
---   ('00000000-0000-0000-0000-000000000002','admin'),
---   ('00000000-0000-0000-0000-000000000003','committee')
--- on conflict do nothing;
-
-select u.id, a.email from users u left join auth.users a on a.id = u.id;
+select 
+  u.id, 
+  u.full_name, 
+  u.role, 
+  a.email 
+from users u 
+left join auth.users a on a.id = u.id;

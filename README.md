@@ -1,411 +1,247 @@
+
+
+
 # SGSS Portal - Medical Fund Management System
 
-A comprehensive medical fund management system built with React, TypeScript, and Supabase for managing members, claims, and reimbursements.
+A comprehensive medical fund management system built with React, TypeScript, and Supabase for managing members, claims, reimbursements, and fund administration.
+
+---
 
 ## 🌟 Overview
 
-The SGSS Portal is a modern, full-featured medical fund management system designed to streamline the entire claims process from submission to payment. Built with cutting-edge technologies, it provides a secure, scalable, and user-friendly platform for managing medical reimbursements.
+The *SGSS Portal* is a modern, full-featured *medical fund management system* designed to streamline the entire claims process — from submission to approval and reimbursement.  
+
+Built with cutting-edge technologies, it ensures *security, **scalability, and **ease of use* for both members and administrators.
+
+---
 
 ## ✨ Key Features
 
 ### 👥 Member Management
-
-- **Multi-tier Membership**: Life, Patron, Vice Patron, Family, Joint, Single memberships
-- **NHIF Integration**: Seamless NHIF number validation and tracking
-- **Profile Management**: Comprehensive member profiles with photo uploads
-- **Membership Validation**: Automated validity period tracking
+- *Multi-tier Membership*: Life, Patron, Vice Patron, Family, Joint, and Single memberships  
+- *NHIF Integration*: Seamless NHIF number validation  
+- *Profile Management*: Editable profiles with photo uploads  
+- *Membership Validation*: Automated validity tracking  
 
 ### 📋 Claims Processing
-
-- **Multiple Claim Types**:
-  - Outpatient treatments
-  - Inpatient procedures
-  - Chronic illness management
-  - Emergency services
-- **Smart Status Tracking**: Draft → Submitted → Processed → Approved → Paid
-- **Automated Calculations**: Real-time reimbursement calculation based on fund bylaws
-- **Document Management**: Secure receipt and medical document uploads
-- **Bulk Processing**: Handle multiple claims efficiently
+- *Multiple Claim Types*:
+  - Outpatient
+  - Inpatient
+  - Chronic Illness
+  - Emergency Services  
+- *Status Workflow*: Draft → Submitted → Processed → Approved → Paid  
+- *Automated Calculations*: In line with fund bylaws  
+- *Document Uploads*: Secure receipts and medical file handling  
+- *Bulk Claim Management*: Process multiple claims efficiently  
 
 ### 🔐 Administration & Security
-
-- **Role-Based Access Control**: 5-tier permission system
-- **Advanced Settings**: Configurable reimbursement scales and limits
-- **Comprehensive Reporting**: Real-time analytics and financial reports
-- **Audit Trail**: Complete activity logging and compliance tracking
-- **Data Security**: Row-level security with Supabase
+- *Role-Based Access Control* (RBAC): Member, Committee, Admin, Trustee, Claims Officer  
+- *Advanced Settings*: Reimbursement scales, annual limits, bylaws configuration  
+- *Comprehensive Reporting*: Real-time analytics  
+- *Audit Logging*: Tracks every action for compliance  
+- *Row-Level Security (RLS)* for fine-grained data protection  
 
 ### ⚡ Technical Excellence
+- Real-time synchronization  
+- PDF export for reports and claims  
+- Mobile-first responsive design  
+- 100% TypeScript for reliability  
+- Progressive Web App (PWA) ready  
 
-- **Real-time Updates**: Live data synchronization across all users
-- **PDF Generation**: Professional claims and reports export
-- **Responsive Design**: Optimized for desktop, tablet, and mobile
-- **Type Safety**: 100% TypeScript implementation
-- **Progressive Web App**: Offline capabilities and app-like experience
+---
 
-## 🛠️ Technology Stack
+## 🛠 Technology Stack
 
 ### Frontend
+- *React 18* – Modern hooks and concurrent rendering  
+- *TypeScript* – Type safety for large-scale code  
+- *Vite* – Fast build and hot reload  
+- *Tailwind CSS* – Utility-first styling  
+- *Lucide React* – Clean, lightweight icons  
 
-- **React 18** - Modern React with hooks and concurrent features
-- **TypeScript** - Full type safety and developer experience
-- **Vite** - Lightning-fast build tool and dev server
-- **Tailwind CSS** - Utility-first CSS framework
-- **Lucide React** - Beautiful, customizable icons
+### Backend
+- *Supabase* – PostgreSQL, Authentication, Storage, Functions  
+- *PostgreSQL* – Relational database with triggers and views  
+- *Edge Functions* – For automated emails and audits  
 
-### Backend & Database
+### Libraries
+- *Zustand* – Lightweight state management  
+- *React Query* – API data caching and revalidation  
+- *React Hook Form* + *Zod* – Validation and forms  
+- *jsPDF* – PDF generation  
+- *Date-fns* – Date utilities  
 
-- **Supabase** - Complete backend-as-a-service
-  - PostgreSQL database with real-time subscriptions
-  - Authentication and authorization
-  - File storage and CDN
-  - Edge functions
-
-### State & Data Management
-
-- **Zustand** - Lightweight state management
-- **React Hook Form** - Performant forms with validation
-- **Zod** - Schema validation and type inference
-- **React Query** - Server state management
-
-### Additional Libraries
-
-- **React Router DOM** - Client-side routing
-- **React Hot Toast** - Beautiful notifications
-- **jsPDF** - PDF generation
-- **Date-fns** - Date manipulation utilities
+---
 
 ## 📋 Prerequisites
 
-Before you begin, ensure you have the following installed:
+You’ll need:
+- Node.js v18+
+- npm v8+ or yarn v1.22+
+- Supabase CLI
+- Git (latest)
 
-- **Node.js** (v18.0.0 or later)
-- **npm** (v8.0.0 or later) or **yarn** (v1.22.0 or later)
-- **Git** (latest version)
-- **Supabase Account** (free tier available)
+---
 
 ## 🚀 Installation & Setup
 
-### 1. Clone the Repository
-
+### 1️⃣ Clone Repository
 ```bash
 git clone https://github.com/Jabrahamjohn/Sgssportal.git
 cd Sgssportal
-```
 
-### 2. Install Dependencies
+2️⃣ Install Dependencies
 
-```bash
-# Using npm
 npm install
-
-# Using yarn
+# or
 yarn install
-```
 
-### 3. Environment Configuration
+3️⃣ Environment Variables
 
-Create a `.env` file in the root directory:
+Create a .env file in your project root:
 
-```env
-# Supabase Configuration
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# Optional: Analytics and Monitoring
-VITE_ANALYTICS_ID=your_analytics_id
-VITE_SENTRY_DSN=your_sentry_dsn
-```
+4️⃣ Database Setup (Local)
 
-### 4. Database Setup
-
-#### Using Supabase CLI (Recommended)
-
-```bash
-# Install Supabase CLI
-npm install -g @supabase/cli
-
-# Initialize Supabase
-npx supabase init
-
-# Start local Supabase (optional for local development)
+npm install -g supabase
 npx supabase start
-
-# Apply database migrations
 npx supabase db push
-
-# Seed initial data
 npx supabase db reset --seed
-```
 
-#### Manual Setup
+5️⃣ Run Development Server
 
-1. Create a new project in [Supabase Dashboard](https://supabase.com/dashboard)
-2. Copy the project URL and anon key to your `.env` file
-3. Run the SQL scripts from `supabase/migrations/` in your Supabase SQL editor
-
-### 5. Start Development Server
-
-```bash
-# Local development with Supabase local instance
-npm run dev.local
-
-# Development with Supabase cloud
-npm run dev.cloud
-
-# Default development mode
 npm run dev
-```
 
-The application will be available at `http://localhost:5173`
+Open ➡ http://localhost:5173
 
-## 🗄️ Database Architecture
+⸻
 
-### Core Tables
+🗄 Database Architecture
 
-| Table              | Purpose                          | Key Features                            |
-| ------------------ | -------------------------------- | --------------------------------------- |
-| `users`            | Authentication & basic user info | Supabase Auth integration               |
-| `roles`            | System permission levels         | RBAC implementation                     |
-| `membership_types` | Membership categories & pricing  | Configurable membership tiers           |
-| `members`          | Member profiles & medical info   | NHIF integration, validity tracking     |
-| `claims`           | Medical claims & reimbursements  | Status workflow, automated calculations |
-| `claim_items`      | Individual claim line items      | Detailed procedure tracking             |
-| `chronic_requests` | Chronic illness applications     | Specialized workflow                    |
-| `settings`         | System configuration             | Dynamic reimbursement rules             |
+Table	Description
+users	Basic user info & roles
+members	Linked member profiles
+membership_types	Membership category & limits
+claims	Claim data and processing status
+claim_items	Detailed line items per claim
+chronic_requests	Chronic illness medication tracking
+settings	Fund rules, tiers, reimbursement scales
+notifications	Alerts, system messages, claim updates
+audit_logs	Historical user activity
+roles	Role definitions for RBAC
 
-### Security Features
 
-- **Row Level Security (RLS)**: Every table protected by role-based policies
-- **Audit Logging**: Comprehensive activity tracking
-- **Data Encryption**: All sensitive data encrypted at rest and in transit
-- **API Rate Limiting**: Protection against abuse
+⸻
 
-## 📁 Project Structure
+🔐 Security
+	•	Supabase Auth (email/magic link login)
+	•	Row-Level Security (RLS) on all tables
+	•	Role-based policies for each table
+	•	Audit Logs for system traceability
 
-```
+⸻
+
+📁 Project Structure
+
 src/
-├── components/              # Reusable UI components
-│   ├── admin/              # Administrative interfaces
-│   │   ├── MemberManagement.tsx
-│   │   ├── SystemSettings.tsx
-│   │   └── ReportsAnalytics.tsx
-│   ├── auth/               # Authentication components
-│   │   ├── LoginForm.tsx
-│   │   └── ProtectedRoute.tsx
-│   ├── claims/             # Claims processing UI
-│   │   ├── ClaimForm.tsx
-│   │   ├── ClaimsList.tsx
-│   │   └── ClaimDetails.tsx
-│   ├── layout/             # Application layout
-│   │   ├── Header.tsx
-│   │   ├── Sidebar.tsx
-│   │   └── Footer.tsx
-│   ├── members/            # Member management
-│   │   ├── MemberProfile.tsx
-│   │   └── MembershipCard.tsx
-│   ├── system/             # System components
-│   │   ├── LoadingSpinner.tsx
-│   │   └── ErrorBoundary.tsx
-│   └── ui/                 # Base UI components
-│       ├── Button.tsx
-│       ├── Modal.tsx
-│       └── Table.tsx
-├── contexts/               # React contexts
-│   ├── AuthContext.tsx
-│   └── ThemeContext.tsx
-├── hooks/                  # Custom React hooks
-│   ├── useAuth.ts
-│   ├── useClaims.ts
-│   └── useMembers.ts
-├── pages/                  # Application pages
-│   ├── admin/              # Admin dashboard
-│   ├── auth/               # Authentication pages
-│   ├── claims/             # Claims management
-│   ├── dashboard/          # Main dashboard
-│   └── members/            # Member pages
-├── services/               # API and business logic
-│   ├── supabase.ts
-│   ├── auth.ts
-│   ├── claims.ts
-│   └── members.ts
-├── types/                  # TypeScript definitions
-│   ├── database.ts
-│   ├── auth.ts
-│   └── claims.ts
-├── utils/                  # Utility functions
-│   ├── calculations.ts
-│   ├── validation.ts
-│   └── formatting.ts
-└── styles/                 # Global styles
-    └── globals.css
-```
+├── components/
+│   ├── admin/
+│   ├── auth/
+│   ├── claims/
+│   ├── layout/
+│   ├── members/
+│   ├── system/
+│   └── ui/
+├── hooks/
+├── pages/
+├── services/
+├── types/
+├── utils/
+└── styles/
 
-## 🔧 Available Scripts
 
-| Script       | Description                     | Usage                |
-| ------------ | ------------------------------- | -------------------- |
-| `dev.local`  | Development with local Supabase | `npm run dev.local`  |
-| `dev.cloud`  | Development with Supabase cloud | `npm run dev.cloud`  |
-| `dev`        | Default development mode        | `npm run dev`        |
-| `build`      | Production build                | `npm run build`      |
-| `preview`    | Preview production build        | `npm run preview`    |
-| `lint`       | Run ESLint                      | `npm run lint`       |
-| `type-check` | TypeScript type checking        | `npm run type-check` |
-| `test`       | Run tests                       | `npm run test`       |
+⸻
 
-## 👥 User Roles & Permissions
+👥 User Roles & Permissions
 
-### 🏥 Member
+Role	Description	Permissions
+Member	Registered fund member	Submit & track claims
+Committee	Claim reviewers	Review & recommend claims
+Admin	System administrator	Full access
+Trustee	Oversight role	View analytics, approve limits
+Claims Officer	Processor	Validate and compute reimbursements
 
-- ✅ View personal profile and membership details
-- ✅ Submit new medical claims
-- ✅ Track claim status and history
-- ✅ Update personal information
-- ✅ Download claim receipts and reports
 
-### 📝 Claims Officer
+⸻
 
-- ✅ Process submitted claims
-- ✅ Update claim statuses and add notes
-- ✅ Validate claim documentation
-- ✅ Calculate reimbursement amounts
-- ✅ Generate processing reports
+💰 Reimbursement Framework
 
-### ✅ Approver
+Tier	Annual Limit	Coverage	Example
+Minor	30,000	100%	Consultations, meds
+Medium	35,000	100%	Diagnostic tests
+Major	50,000	100%	Surgeries
+Regional	90,000	80%	Specialized treatment
+Special	70,000	80%	Emergency, ICU
 
-- ✅ Review and approve processed claims
-- ✅ Handle high-value claim approvals
-- ✅ Generate approval reports
-- ✅ Override system calculations when necessary
 
-### 🏛️ Trustee
+⸻
 
-- ✅ Access comprehensive financial reports
-- ✅ View system-wide analytics
-- ✅ Approve policy and limit changes
-- ✅ Monitor fund performance
+🔄 Claims Workflow
 
-### ⚙️ Administrator
-
-- ✅ Complete system access and control
-- ✅ User and role management
-- ✅ System configuration and settings
-- ✅ Database management and backups
-- ✅ Security and audit management
-
-## 💰 Reimbursement Framework
-
-### Procedure Classification
-
-| Tier         | Annual Limit | Coverage | Examples                            |
-| ------------ | ------------ | -------- | ----------------------------------- |
-| **Minor**    | ₦30,000      | 100%     | Consultations, basic medications    |
-| **Medium**   | ₦35,000      | 100%     | Diagnostic tests, minor procedures  |
-| **Major**    | ₦50,000      | 100%     | Surgeries, specialist treatments    |
-| **Regional** | ₦90,000      | 80%      | Advanced procedures, long-term care |
-| **Special**  | ₦70,000      | 80%      | Emergency services, intensive care  |
-
-### Coverage Limits
-
-- **Annual Member Limit**: ₦250,000
-- **Critical Care Add-on**: ₦200,000 (additional)
-- **Clinic Fund Coverage**: 100%
-- **External Provider Coverage**: 80%
-- **Chronic Illness**: Separate allocation
-- **Emergency Override**: Trustee approval required
-
-## 🔄 Claims Workflow
-
-```mermaid
 graph TD
-    A[Member Creates Draft] --> B[Submit for Processing]
-    B --> C[Claims Officer Review]
-    C --> D{Documentation Complete?}
-    D -->|No| E[Request Additional Info]
-    E --> C
-    D -->|Yes| F[Calculate Reimbursement]
-    F --> G[Approver Review]
-    G --> H{Approved?}
-    H -->|No| I[Return with Comments]
-    I --> C
-    H -->|Yes| J[Mark as Paid]
-    J --> K[Generate Payment Report]
-```
+A[Member Creates Draft] --> B[Submit for Review]
+B --> C[Claims Officer Review]
+C --> D{Docs Complete?}
+D -->|No| E[Request Info]
+E --> C
+D -->|Yes| F[Calculate Reimbursement]
+F --> G[Committee Approval]
+G --> H{Approved?}
+H -->|No| I[Return with Comments]
+H -->|Yes| J[Mark as Paid]
+J --> K[Generate Payment Report]
 
-## 📊 Analytics & Reporting
 
-### Member Analytics
+⸻
 
-- Enrollment trends and demographics
-- Membership type distribution
-- Activity and engagement metrics
+🧩 Development Scripts
 
-### Claims Analytics
+Command	Description
+npm run dev	Start dev server
+npm run build	Production build
+npm run preview	Test production build
+npm run lint	Lint code
+npm run test	Run test suites
+npx supabase db reset	Reset database
 
-- Processing time analysis
-- Approval rates by category
-- Reimbursement trends
-- Popular procedure types
 
-### Financial Reports
+⸻
 
-- Fund balance and projections
-- Monthly/quarterly statements
-- Cost per member analysis
-- Risk assessment reports
+🧪 Testing
 
-## 🧪 Testing
-
-```bash
-# Run all tests
 npm run test
-
-# Run tests in watch mode
 npm run test:watch
-
-# Run tests with coverage
 npm run test:coverage
 
-# Run specific test suite
-npm run test -- --grep "Claims"
-```
 
-## 📦 Deployment
+⸻
 
-### Production Build
+📦 Deployment
 
-```bash
-# Create production build
-npm run build
+Vercel
 
-# Test production build locally
-npm run preview
-```
-
-### Deployment Options
-
-#### Vercel (Recommended)
-
-```bash
-# Install Vercel CLI
 npm install -g vercel
-
-# Deploy
 vercel --prod
-```
 
-#### Netlify
+Netlify
 
-```bash
-# Build and deploy
 npm run build
-# Upload dist folder to Netlify
-```
+# then upload /dist
 
-#### Docker
+Docker
 
-```dockerfile
 FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
@@ -413,79 +249,320 @@ RUN npm ci --only=production
 COPY dist ./dist
 EXPOSE 3000
 CMD ["npx", "serve", "-s", "dist", "-l", "3000"]
-```
 
-### Environment Variables (Production)
 
-```env
-VITE_SUPABASE_URL=your_production_supabase_url
-VITE_SUPABASE_ANON_KEY=your_production_anon_key
-VITE_APP_ENV=production
-```
+⸻
 
-## 🤝 Contributing
+🤝 Contributing
 
-We welcome contributions! Please follow these steps:
+Steps:
+	1.	Fork repo
+	2.	Create branch: git checkout -b feature/new-feature
+	3.	Commit: git commit -m "Added new feature"
+	4.	Push: git push origin feature/new-feature
+	5.	Open Pull Request
 
-### Getting Started
+⸻
 
-1. **Fork** the repository
-2. **Clone** your fork: `git clone https://github.com/yourusername/Sgssportal.git`
-3. **Create** a feature branch: `git checkout -b feature/amazing-feature`
-4. **Install** dependencies: `npm install`
-5. **Start** development server: `npm run dev`
+📄 License
 
-### Development Guidelines
+Licensed under the MIT License.
+See the LICENSE file for details.
 
-- Follow TypeScript best practices
-- Write meaningful commit messages
-- Add tests for new features
-- Update documentation as needed
-- Follow the existing code style
+⸻
 
-### Pull Request Process
+🆘 Support
 
-1. Update README if needed
-2. Ensure all tests pass
-3. Update version numbers if applicable
-4. Create detailed PR description
-5. Request review from maintainers
+📧 Email: support@sgssportal.com
+🌐 Website: https://sgssportal.com
+📱 WhatsApp: +254-XXX-XXX-XXX
 
-## 📄 License
+⸻
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+🙏 Acknowledgments
 
-## 🆘 Support & Help
+Built with ❤ by Abraham John and contributors for the SGSS Medical Fund community.
+Powered by Supabase & Vercel.
 
-### Documentation
+⸻
 
-- 📚 [Wiki](https://github.com/Jabrahamjohn/Sgssportal/wiki)
-- 🐛 [Issues](https://github.com/Jabrahamjohn/Sgssportal/issues)
-- 💬 [Discussions](https://github.com/Jabrahamjohn/Sgssportal/discussions)
+🧭 Appendix A — Local Developer Guide
 
-### Contact
+🧩 Database Lifecycle Commands
 
-- 📧 **Email**: support@sgssportal.com
-- 🌐 **Website**: [sgssportal.com](https://sgssportal.com)
-- 📱 **WhatsApp**: +234-xxx-xxx-xxxx
+Command	Purpose
+npx supabase db push	Apply migrations
+npx supabase db reset	Reset database (drops + seeds)
+npx supabase start	Start local Supabase instance
+npx supabase stop	Stop local Supabase
+npx supabase functions serve	Serve edge functions locally
 
-### FAQ
+⚙ Local Mail Testing (Mailpit)
 
-**Q: How do I reset my password?**
-A: Use the "Forgot Password" link on the login page.
+When running npx supabase start, Supabase sets up Mailpit for local email capture.
+Visit http://localhost:8025 to see magic links and password reset emails.
 
-**Q: What file formats are supported for receipts?**
-A: PDF, JPG, PNG, and JPEG files up to 5MB each.
+🧱 Troubleshooting Common Errors
 
-**Q: How long does claim processing take?**
-A: Typically 3-5 business days for standard claims.
+Issue	Solution
+there is no unique or exclusion constraint matching the ON CONFLICT specification	Ensure your seed inserts use ON CONFLICT (key) or correct primary key constraints
+trigger does not exist, skipping	Safe to ignore — Supabase skips missing triggers automatically
+Login magic link works but blank screen	Ensure .env VITE_SUPABASE_URL matches local instance URL (e.g., http://127.0.0.1:54321)
+Seed fails midway	Drop schema manually: npx supabase db reset --force
 
-## 🙏 Acknowledgments
+🔑 Default Seed Accounts
 
-- Built with ❤️ for the SGSS Medical Fund community
-- Special thanks to all contributors and beta testers
-- Powered by [Supabase](https://supabase.com) and [Vercel](https://vercel.com)
+Role	Email	Password	Description
+Admin	admin@sgss.com	Magic Link Only	Full control
+Committee	committee@sgss.com	Magic Link Only	Approvals
+Member	member@sgss.com	Magic Link Only	Claims submission
+
+
+## 🧭 Appendix B — Database Schema & Relationships (ERD)
+
+### 🧩 Entity Relationship Overview
+Below is a high-level diagram showing how all SGSS Medical Fund tables connect.
+
+```mermaid
+erDiagram
+    AUTH_USERS ||--o{ USERS : "linked via id"
+    USERS ||--o{ MEMBERS : "each member belongs to one user"
+    MEMBERS ||--o{ CLAIMS : "one member can file many claims"
+    CLAIMS ||--o{ CLAIM_ITEMS : "detailed claim line items"
+    MEMBERS ||--o{ CHRONIC_REQUESTS : "long-term medication"
+    USERS ||--o{ NOTIFICATIONS : "system alerts and messages"
+    USERS ||--o{ AUDIT_LOGS : "activity tracking"
+    ROLES ||--o{ USERS : "role assignment"
+    MEMBERSHIP_TYPES ||--o{ MEMBERS : "membership category"
+    SETTINGS ||--o{ REIMBURSEMENT_SCALES : "configurable fund rules"
+
+🗂 Table Relationships in Detail
+
+Table	Key Columns	Description	Related To
+auth.users	id, email	Managed by Supabase Auth	→ public.users
+public.users	id, email, role	App-level users	→ members, notifications, audit_logs
+roles	id, name	Defines user roles	→ users
+membership_types	id, key, annual_limit	Configurable tiers	→ members
+members	id, user_id, membership_type_id	Member profiles	→ claims, chronic_requests
+claims	id, member_id, status, total_claimed	Medical claims	→ claim_items, notifications
+claim_items	id, claim_id, amount	Detailed cost lines	→ claims
+chronic_requests	id, member_id, doctor_name	Chronic illness requests	→ members
+reimbursement_scales	id, category, fund_share, member_share, ceiling	Reimbursement logic	—
+settings	key, value	Global configuration	—
+notifications	id, recipient_id, message, type	System alerts	→ users
+audit_logs	id, actor_id, action, meta	History and traceability	→ users
+
+
+⸻
+
+⚙ Triggers & Functions Summary
+
+Trigger / Function	Table	Purpose
+handle_new_user()	auth.users	Auto-create entry in public.users when new user signs up
+log_audit_event()	multiple tables	Inserts record into audit_logs on insert/update/delete
+notify_on_claim_event()	claims	Generates notification when claim submitted or status changes
+trigger_email_on_notification()	notifications	Sends email via Edge function after new notification
+compute_claim_payable()	claims	Calculates reimbursement payable amount (based on fund rules)
+
+
+⸻
+
+🔐 Row Level Security Policies
+
+Table	Policy	Access Granted To
+users	self-read/update	current authenticated user
+members	same user or admin	members + admins
+claims	owner (member) or committee/admin	claim visibility
+claim_items	follows parent claim	same RLS as claims
+chronic_requests	owner (member) or committee	restricted by role
+notifications	recipient only	secure user notifications
+audit_logs	admin/trustee only	compliance records
+settings, reimbursement_scales	admin/trustee	configuration control
+
+
+⸻
+
+🧮 Automatic Processes
+	1.	New User Signup → Inserts into public.users
+	2.	New Claim → Creates notification + audit log
+	3.	Claim Update → Sends notification email
+	4.	Database Reset (Development) → Seeds default users and test claims
+
+⸻
+
+🧰 Developer Notes
+	•	Run npx supabase db push after every migration update.
+	•	Keep supabase/seed.sql in sync with current schema.
+	•	Always verify RLS policies after schema changes.
+	•	For quick debugging, use Supabase Studio → SQL Editor → SELECT * FROM audit_logs ORDER BY created_at DESC;
+
+⸻
+
+End of Appendix B
+(Schema Diagram & Database Reference — v2.0.0 | October 2025)
+
+---
+⸻
+
+
+## ⚙ Appendix C — Supabase Edge Functions & Automation Guide
+
+### 🌐 Overview
+
+Supabase Edge Functions provide secure, server-side logic that runs close to the database.
+They are used in *SGSS Portal* to send notifications, manage automated jobs,
+and perform administrative tasks such as email dispatch and scheduled claim reviews.
 
 ---
 
-**Version**: 2.0.0 | **Last Updated**: October 2024 | **Status**: Active Development
+### 📨 Core Functions
+
+| Function Name | Path | Trigger | Description |
+|---------------|------|----------|--------------|
+| **send-notification-email** | /functions/v1/send-notification-email | Trigger: notifications → AFTER INSERT | Sends transactional emails for claim updates and system alerts |
+| **daily-claim-summary** | /functions/v1/daily-claim-summary | Cron (24 h) | Compiles a summary of new claims and status changes for committee members |
+| **cleanup-temp-files** | /functions/v1/cleanup-temp-files | Cron (weekly) | Removes unused or expired attachments from Supabase Storage to save space |
+| **recalculate-claims** | /functions/v1/recalculate-claims | Manual (Admin Panel) | Forces re-evaluation of claim payables when fund rules change |
+| **sync-settings-cache** | /functions/v1/sync-settings-cache | Trigger: settings → AFTER UPDATE | Keeps Edge Function cache in sync with database configuration changes |
+
+---
+
+### 📬 Function Example — send-notification-email
+
+```ts
+// supabase/functions/send-notification-email/index.ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
+serve(async (req) => {
+  const payload = await req.json()
+  const record = payload.record
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  )
+
+  // Fetch recipient email
+  const { data: user } = await supabase
+    .from("users")
+    .select("email")
+    .eq("id", record.recipient_id)
+    .single()
+
+  if (!user) return new Response("User not found", { status: 404 })
+
+  // Compose email
+  const subject = [SGSS Portal] ${record.title}
+  const body = `
+    Hello,
+    \n${record.message}
+    \n\nView details → ${record.link}
+    \n\n— SGSS Medical Fund System
+  `
+
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": Bearer ${Deno.env.get("RESEND_API_KEY")},
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: "SGSS Portal <noreply@sgssportal.com>",
+      to: user.email,
+      subject,
+      text: body
+    })
+  })
+
+  return new Response("Notification email sent", { status: 200 })
+})
+
+
+⸻
+
+🕓 Scheduled Tasks (Cron)
+
+Supabase supports cron jobs
+for recurring automation:
+
+Function	Schedule	Purpose
+daily-claim-summary	0 6 * * * → 06:00 EAT daily	Sends morning claim digest to committee email list
+cleanup-temp-files	0 3 * * SUN → Sunday 3 AM	Weekly cleanup of attachments and old logs
+
+Deployment command:
+
+npx supabase functions deploy daily-claim-summary --project-ref your_project_ref
+
+
+⸻
+
+🧠 Environment Variables (for Edge Functions)
+
+Store these securely under Project → Functions → Environment Variables:
+
+Variable	Description
+SUPABASE_URL	Base URL of your Supabase project
+SUPABASE_SERVICE_ROLE_KEY	Service key for server-side operations
+RESEND_API_KEY	API key for sending emails via Resend
+SYSTEM_EMAIL_FROM	Default “from” address for outbound emails
+CRON_AUTH_SECRET	Optional token to authenticate scheduled jobs
+
+
+⸻
+
+🔐 Security Considerations
+	•	Never expose SUPABASE_SERVICE_ROLE_KEY in frontend code.
+	•	Use RLS and Edge Functions for privileged operations only.
+	•	Validate payloads using Zod or Deno’s standard validators.
+	•	Log function execution to audit_logs for transparency.
+	•	Rotate API keys and secrets regularly.
+
+⸻
+
+🧰 Local Development Tips
+	1.	Run Supabase locally:
+
+npx supabase start
+
+
+	2.	Start Edge Functions emulator:
+
+npx supabase functions serve send-notification-email
+
+
+	3.	Trigger test event:
+
+curl -X POST http://localhost:54321/functions/v1/send-notification-email \
+-H "Content-Type: application/json" \
+-d '{"record":{"recipient_id":"00000000-0000-0000-0000-000000000001","title":"Test Email","message":"Hello from local dev!","link":"/dashboard"}}'
+
+
+	4.	View logs in:
+
+supabase/logs/functions/send-notification-email.log
+
+
+
+⸻
+
+🧩 Best Practices for Edge Functions
+	•	Keep each function small and single-purpose.
+	•	Use environment variables for credentials and URLs.
+	•	Deploy frequently (npx supabase functions deploy <name>).
+	•	Version control Edge Functions under supabase/functions/.
+	•	Add error handling and response codes for frontend integration.
+
+⸻
+
+End of Appendix C
+(Edge Functions & Automation Guide — v2.0.0 | October 2025)
+
+---
+⸻
+
+Version: 2.0.0
+Last Updated: October 2025
+Status: Active Development 🚀
+
+---

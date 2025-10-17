@@ -1,7 +1,11 @@
--- ================================================================
--- SGSS MEDICAL FUND — INITIAL MIGRATION (v5, FINAL)
+-- =====================================================================
+-- SGSS MEDICAL FUND — INITIAL MIGRATION (v5.1 FINAL)
 -- Author: Abraham John
--- ================================================================
+-- Date: 2025-10-17
+-- Description:
+--   Full schema definition for the SGSS Medical Fund portal
+--   Safe triggers for seed and production
+-- =====================================================================
 
 -- ================================================================
 -- 1️⃣ USERS & ROLES
@@ -160,16 +164,20 @@ create table if not exists audit_logs (
   created_at timestamptz default now()
 );
 
+drop function if exists log_audit_event();
 create or replace function log_audit_event()
 returns trigger as $$
 begin
   insert into audit_logs (actor_id, action, meta)
   values (
-    current_setting('request.jwt.claim.sub', true)::uuid,
+    nullif(current_setting('request.jwt.claim.sub', true), '')::uuid,
     TG_TABLE_NAME || ':' || TG_OP,
     case when TG_OP = 'DELETE' then to_jsonb(OLD) else to_jsonb(NEW) end
   );
   return null;
+exception
+  when others then
+    return null;
 end;
 $$ language plpgsql security definer;
 
@@ -179,51 +187,53 @@ create trigger audit_chronic_requests after insert or update or delete on chroni
 create trigger audit_reimbursement after insert or update or delete on reimbursement_scales for each row execute procedure log_audit_event();
 
 -- ================================================================
--- 9️⃣ NOTIFICATIONS
+-- 9️⃣ NOTIFICATIONS (SAFE VERSION)
 -- ================================================================
-create table if not exists notifications (
-  id uuid primary key default gen_random_uuid(),
-  recipient_id uuid references users(id),
-  title text not null,
-  message text not null,
-  link text,
-  read boolean default false,
-  type text default 'system',
-  sent_email boolean default false,
-  actor_id uuid,
-  metadata jsonb,
-  created_at timestamptz default now()
-);
+drop function if exists notify_on_claim_event();
+drop trigger if exists notify_claims on claims;
 
--- Claim event → Notification
 create or replace function notify_on_claim_event()
 returns trigger as $$
 declare
   msg text;
   recipient uuid;
+  actor uuid;
 begin
+  -- Safely handle missing auth context
+  begin
+    actor := nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+  exception when others then
+    actor := null;
+  end;
+
   select user_id into recipient from members where id = new.member_id;
   if recipient is null then return null; end if;
 
   if TG_OP = 'INSERT' then
-    msg := 'New claim submitted (total ' || new.total_claimed || ')';
-  elsif TG_OP = 'UPDATE' and new.status != old.status then
-    msg := 'Your claim status changed to ' || new.status;
+    msg := 'New claim submitted (total ' || coalesce(new.total_claimed, 0) || ')';
+  elsif TG_OP = 'UPDATE' and old.status is distinct from new.status then
+    msg := 'Your claim status changed to ' || coalesce(new.status, 'unknown');
   else
     return null;
   end if;
 
   insert into notifications (recipient_id, title, message, link, type, actor_id)
-  values (recipient, 'Claim Update', msg, '/claims/' || new.id, 'claim', current_setting('request.jwt.claim.sub', true)::uuid);
+  values (recipient, 'Claim Update', msg, '/claims/' || new.id, 'claim', actor);
+
   return null;
 end;
 $$ language plpgsql security definer;
 
-create trigger notify_claims after insert or update on claims for each row execute procedure notify_on_claim_event();
+create trigger notify_claims
+after insert or update on claims
+for each row execute procedure notify_on_claim_event();
 
 -- ================================================================
 -- 🔟 USER AUTO CREATION FROM AUTH
 -- ================================================================
+drop function if exists handle_new_user();
+drop trigger if exists on_auth_user_created on auth.users;
+
 create or replace function handle_new_user()
 returns trigger as $$
 begin
@@ -234,24 +244,36 @@ begin
 end;
 $$ language plpgsql security definer;
 
-drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function handle_new_user();
 
 -- ================================================================
--- 1️⃣1️⃣ ROLE ENFORCEMENT TRIGGER
+-- 1️⃣1️⃣ SAFE REVIEW STATUS TRIGGER
 -- ================================================================
+drop function if exists enforce_claim_review_status();
+drop trigger if exists trg_auto_update_claim_status on claim_reviews;
+
 create or replace function enforce_claim_review_status()
 returns trigger as $$
+declare
+  exists_claim boolean;
 begin
-  if new.action = 'approved' then
-    update claims set status = 'approved', approved_at = now() where id = new.claim_id;
-  elsif new.action = 'rejected' then
-    update claims set status = 'rejected' where id = new.claim_id;
-  else
-    update claims set status = 'reviewed' where id = new.claim_id;
+  select exists(select 1 from claims where id = new.claim_id) into exists_claim;
+  if not exists_claim then
+    raise notice 'Skipping claim status update — claim_id % not found', new.claim_id;
+    return new;
   end if;
+
+  case new.action
+    when 'approved' then
+      update claims set status = 'approved', approved_at = now() where id = new.claim_id;
+    when 'rejected' then
+      update claims set status = 'rejected' where id = new.claim_id;
+    else
+      update claims set status = 'reviewed' where id = new.claim_id;
+  end case;
+
   return new;
 end;
 $$ language plpgsql security definer;

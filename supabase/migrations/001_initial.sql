@@ -189,6 +189,22 @@ create trigger audit_reimbursement after insert or update or delete on reimburse
 -- ================================================================
 -- 9️⃣ NOTIFICATIONS (SAFE VERSION)
 -- ================================================================
+create table if not exists notifications (
+  id uuid primary key default gen_random_uuid(),
+  recipient_id uuid references users(id) on delete cascade,
+  title text not null,
+  message text not null,
+  link text,
+  read boolean default false,
+  type text default 'system',
+  sent_email boolean default false,
+  actor_id uuid,
+  metadata jsonb,
+  created_at timestamptz default now()
+);
+-- ================================================================
+-- 9️⃣ NOTIFICATIONS TRIGGER FOR CLAIM EVENTS
+-- ================================================================
 drop function if exists notify_on_claim_event();
 drop trigger if exists notify_claims on claims;
 

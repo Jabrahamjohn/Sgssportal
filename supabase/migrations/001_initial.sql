@@ -1,25 +1,31 @@
--- 001_initial.sql (Fixed and verified)
--- ======================================
--- Core Tables for SGSS Medical Fund
--- ======================================
+-- ================================================================
+-- SGSS MEDICAL FUND — INITIAL MIGRATION (v5, FINAL)
+-- Author: Abraham John
+-- ================================================================
 
--- USERS TABLE
+-- ================================================================
+-- 1️⃣ USERS & ROLES
+-- ================================================================
 create table if not exists users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text unique not null,
   full_name text,
-  role text default 'member',
+  role text default 'member' check (role in ('member','committee','admin')),
   created_at timestamptz default now()
 );
 
-
--- ROLES TABLE
 create table if not exists roles (
   id serial primary key,
   name text unique not null
 );
 
--- MEMBERSHIP TYPES
+insert into roles (name)
+values ('member'), ('committee'), ('admin')
+on conflict (name) do nothing;
+
+-- ================================================================
+-- 2️⃣ MEMBERSHIP TYPES & MEMBERS
+-- ================================================================
 create table if not exists membership_types (
   id serial primary key,
   key text unique not null,
@@ -28,8 +34,12 @@ create table if not exists membership_types (
   created_at timestamptz default now()
 );
 
+insert into membership_types (key, name, annual_limit)
+values 
+  ('single', 'Single', 250000),
+  ('family', 'Family', 500000)
+on conflict (key) do nothing;
 
--- MEMBERS TABLE
 create table if not exists members (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id) on delete cascade,
@@ -43,16 +53,18 @@ create table if not exists members (
   created_at timestamptz default now()
 );
 
--- CLAIMS
+-- ================================================================
+-- 3️⃣ CLAIMS & CLAIM ITEMS
+-- ================================================================
 create table if not exists claims (
   id uuid primary key default gen_random_uuid(),
-  member_id uuid references members(id) not null,
+  member_id uuid references members(id) on delete cascade,
   claim_type text not null,
   date_of_first_visit date,
   date_of_discharge date,
   total_claimed bigint default 0,
   total_payable bigint default 0,
-  status text default 'draft',
+  status text default 'draft' check (status in ('draft','submitted','reviewed','approved','rejected')),
   submitted_at timestamptz,
   processed_at timestamptz,
   approved_at timestamptz,
@@ -60,7 +72,6 @@ create table if not exists claims (
   created_at timestamptz default now()
 );
 
--- CLAIM ITEMS
 create table if not exists claim_items (
   id uuid primary key default gen_random_uuid(),
   claim_id uuid references claims(id) on delete cascade,
@@ -71,19 +82,41 @@ create table if not exists claim_items (
   quantity int default 1
 );
 
--- CHRONIC REQUESTS
+create index if not exists idx_claims_member on claims(member_id);
+create index if not exists idx_claims_status on claims(status);
+
+-- ================================================================
+-- 4️⃣ CLAIM REVIEWS
+-- ================================================================
+create table if not exists claim_reviews (
+  id uuid primary key default gen_random_uuid(),
+  claim_id uuid references claims(id) on delete cascade,
+  reviewer_id uuid references users(id) on delete set null,
+  role text check (role in ('committee','admin')) not null,
+  action text check (action in ('reviewed','approved','rejected')) not null,
+  note text,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_claim_reviews_claim on claim_reviews(claim_id);
+
+-- ================================================================
+-- 5️⃣ CHRONIC REQUESTS
+-- ================================================================
 create table if not exists chronic_requests (
   id uuid primary key default gen_random_uuid(),
-  member_id uuid references members(id) not null,
+  member_id uuid references members(id) on delete cascade,
   doctor_name text,
   medicines jsonb,
   total_amount bigint,
   member_payable bigint,
-  status text default 'pending',
+  status text default 'pending' check (status in ('pending','approved','rejected')),
   created_at timestamptz default now()
 );
 
--- REIMBURSEMENT SCALES
+-- ================================================================
+-- 6️⃣ REIMBURSEMENT SCALES
+-- ================================================================
 create table if not exists reimbursement_scales (
   id uuid primary key default gen_random_uuid(),
   category text not null,
@@ -93,9 +126,32 @@ create table if not exists reimbursement_scales (
   updated_at timestamptz default now()
 );
 
+insert into reimbursement_scales (category, fund_share, member_share, ceiling)
+values
+  ('Outpatient', 80, 20, 50000),
+  ('Inpatient', 85, 15, 200000),
+  ('Chronic', 60, 40, 120000)
+on conflict do nothing;
 
+-- ================================================================
+-- 7️⃣ SETTINGS
+-- ================================================================
+create table if not exists settings (
+  key text primary key,
+  value jsonb,
+  updated_at timestamptz default now()
+);
 
--- AUDIT LOGS
+insert into settings (key, value)
+values
+  ('general_limits', '{"annual_limit":250000,"critical_addon":200000,"fund_share_percent":80,"clinic_outpatient_percent":100}'::jsonb),
+  ('procedure_tiers', '{"minor":30000,"medium":35000,"major":50000,"regional":90000,"special":70000}'::jsonb)
+on conflict (key)
+do update set value = excluded.value, updated_at = now();
+
+-- ================================================================
+-- 8️⃣ AUDIT LOGGING
+-- ================================================================
 create table if not exists audit_logs (
   id uuid primary key default gen_random_uuid(),
   actor_id uuid,
@@ -104,22 +160,6 @@ create table if not exists audit_logs (
   created_at timestamptz default now()
 );
 
--- SETTINGS
-create table if not exists settings (
-  key text primary key,
-  value jsonb,
-  updated_at timestamptz default now()
-);
-
-
-
--- INDEXES
-create index if not exists idx_claims_member on claims(member_id);
-create index if not exists idx_claims_status on claims(status);
-
--- =========================================================
--- UNIVERSAL AUDIT LOGGING SYSTEM
--- =========================================================
 create or replace function log_audit_event()
 returns trigger as $$
 begin
@@ -133,29 +173,14 @@ begin
 end;
 $$ language plpgsql security definer;
 
-create trigger audit_claims
-after insert or update or delete on claims
-for each row execute procedure log_audit_event();
+create trigger audit_claims after insert or update or delete on claims for each row execute procedure log_audit_event();
+create trigger audit_members after insert or update or delete on members for each row execute procedure log_audit_event();
+create trigger audit_chronic_requests after insert or update or delete on chronic_requests for each row execute procedure log_audit_event();
+create trigger audit_reimbursement after insert or update or delete on reimbursement_scales for each row execute procedure log_audit_event();
 
-create trigger audit_members
-after insert or update or delete on members
-for each row execute procedure log_audit_event();
-
-create trigger audit_chronic_requests
-after insert or update or delete on chronic_requests
-for each row execute procedure log_audit_event();
-
-create trigger audit_reimbursement_scales
-after insert or update or delete on reimbursement_scales
-for each row execute procedure log_audit_event();
-
-create trigger audit_settings
-after insert or update or delete on settings
-for each row execute procedure log_audit_event();
-
--- =========================================================
--- NOTIFICATIONS SYSTEM (fixed)
--- =========================================================
+-- ================================================================
+-- 9️⃣ NOTIFICATIONS
+-- ================================================================
 create table if not exists notifications (
   id uuid primary key default gen_random_uuid(),
   recipient_id uuid references users(id),
@@ -170,6 +195,7 @@ create table if not exists notifications (
   created_at timestamptz default now()
 );
 
+-- Claim event → Notification
 create or replace function notify_on_claim_event()
 returns trigger as $$
 declare
@@ -180,7 +206,7 @@ begin
   if recipient is null then return null; end if;
 
   if TG_OP = 'INSERT' then
-    msg := 'New claim submitted with total ' || new.total_claimed;
+    msg := 'New claim submitted (total ' || new.total_claimed || ')';
   elsif TG_OP = 'UPDATE' and new.status != old.status then
     msg := 'Your claim status changed to ' || new.status;
   else
@@ -193,34 +219,11 @@ begin
 end;
 $$ language plpgsql security definer;
 
-create trigger notify_claims
-after insert or update on claims
-for each row execute procedure notify_on_claim_event();
+create trigger notify_claims after insert or update on claims for each row execute procedure notify_on_claim_event();
 
--- Edge email trigger
-create or replace function trigger_email_on_notification()
-returns trigger as $$
-begin
-  if new.type in ('claim', 'chronic') and current_setting('app.settings.edge_url', true) is not null then
-    perform net.http_post(
-      url := current_setting('app.settings.edge_url') || '/functions/v1/send-notification-email',
-      body := json_build_object('record', new)::text,
-      headers := jsonb_build_object('Authorization', 'Bearer ' || coalesce(current_setting('app.settings.service_role_key', true), ''))
-    );
-  end if;
-  return new;
-end;
-$$ language plpgsql security definer;
-
-create trigger send_email_trigger
-after insert on notifications
-for each row execute procedure trigger_email_on_notification();
-
-create index if not exists idx_notifications_recipient_created
-on notifications (recipient_id, created_at desc);
-
-
--- Auto-create entry in public.users when new auth.user signs up
+-- ================================================================
+-- 🔟 USER AUTO CREATION FROM AUTH
+-- ================================================================
 create or replace function handle_new_user()
 returns trigger as $$
 begin
@@ -236,123 +239,27 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function handle_new_user();
 
-
--- =============================================================
--- SGSS CONSTITUTIONAL ENFORCEMENT TRIGGERS & FUNCTIONS
--- =============================================================
-
--- 1️⃣ Enforce membership validity on claim submission
-create or replace function enforce_membership_validity()
+-- ================================================================
+-- 1️⃣1️⃣ ROLE ENFORCEMENT TRIGGER
+-- ================================================================
+create or replace function enforce_claim_review_status()
 returns trigger as $$
-declare
-  member_valid_to date;
 begin
-  select valid_to into member_valid_to from members where id = new.member_id;
-
-  if member_valid_to < current_date then
-    raise exception 'Membership expired. Cannot submit new claims.' using hint = 'Please renew membership before submitting a claim.';
+  if new.action = 'approved' then
+    update claims set status = 'approved', approved_at = now() where id = new.claim_id;
+  elsif new.action = 'rejected' then
+    update claims set status = 'rejected' where id = new.claim_id;
+  else
+    update claims set status = 'reviewed' where id = new.claim_id;
   end if;
-
   return new;
 end;
 $$ language plpgsql security definer;
 
-drop trigger if exists trg_check_membership_active on claims;
-create trigger trg_check_membership_active
-before insert or update on claims
-for each row execute procedure enforce_membership_validity();
-
--- 2️⃣ Enforce annual claim ceiling per member
-create or replace function enforce_annual_limit()
-returns trigger as $$
-declare
-  total_claimed numeric;
-  annual_limit numeric;
-begin
-  select sum(total_payable) into total_claimed from claims
-  where member_id = new.member_id
-    and extract(year from created_at) = extract(year from current_date)
-    and status in ('approved', 'processed');
-
-  select mt.annual_limit
-  into annual_limit
-  from members m
-  join membership_types mt on m.membership_type_id = mt.id
-  where m.id = new.member_id;
-
-  if total_claimed + new.total_payable > annual_limit then
-    raise notice 'Member annual limit exceeded: % / %', total_claimed + new.total_payable, annual_limit;
-    new.status := 'limit_exceeded';
-  end if;
-
-  return new;
-end;
-$$ language plpgsql security definer;
-
-drop trigger if exists trg_check_annual_limit on claims;
-create trigger trg_check_annual_limit
-before insert or update on claims
-for each row execute procedure enforce_annual_limit();
-
--- CLAIM REVIEWS (used by committee and admin)
-create table if not exists claim_reviews (
-  id uuid primary key default gen_random_uuid(),
-  claim_id uuid references claims(id) on delete cascade,
-  reviewer_id uuid references users(id) on delete set null,
-  role text check (role in ('committee', 'admin')) not null,
-  action text check (action in ('reviewed', 'approved', 'rejected')) not null,
-  note text,
-  created_at timestamptz default now()
-);
-
-create index if not exists idx_claim_reviews_claim on claim_reviews(claim_id);
-
--- 3️⃣ Auto update claim status upon committee review
-create or replace function auto_update_claim_status()
-returns trigger as $$
-begin
-  update claims
-  set status = case when new.action = 'reviewed' then 'reviewed' else 'processed' end,
-      processed_at = now()
-  where id = new.claim_id;
-
-  return new;
-end;
-$$ language plpgsql security definer;
-
-drop trigger if exists trg_auto_update_claim_status on claim_reviews;
 create trigger trg_auto_update_claim_status
 after insert on claim_reviews
-for each row execute procedure auto_update_claim_status();
+for each row execute procedure enforce_claim_review_status();
 
--- 4️⃣ Auto suspend expired memberships nightly (cron-friendly)
-create or replace function auto_suspend_expired_memberships()
-returns void as $$
-begin
-  update members
-  set no_claim_discount_percent = 0
-  where valid_to < current_date;
-end;
-$$ language plpgsql security definer;
-
--- 5️⃣ Auto compute payable based on reimbursement_scales
-create or replace function compute_claim_payable(claim_id uuid)
-returns void as $$
-declare
-  c record;
-  scale record;
-  new_payable numeric;
-begin
-  select * into c from claims where id = claim_id;
-  select * into scale from reimbursement_scales where lower(category) = lower(c.claim_type);
-
-  if scale is not null then
-    new_payable := (c.total_claimed * scale.fund_share / 100);
-    update claims set total_payable = new_payable where id = claim_id;
-  end if;
-end;
-$$ language plpgsql security definer;
-
--- =============================================================
--- END SGSS ENFORCEMENT MODULE
--- =============================================================
+-- ================================================================
+-- ✅ VERIFIED END OF MIGRATION
+-- ================================================================

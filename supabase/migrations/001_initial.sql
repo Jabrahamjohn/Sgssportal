@@ -19,10 +19,6 @@ create table if not exists roles (
   name text unique not null
 );
 
-insert into roles (name)
-values ('member'), ('committee'), ('admin')
-on conflict (name) do nothing;
-
 -- MEMBERSHIP TYPES
 create table if not exists membership_types (
   id serial primary key,
@@ -32,11 +28,6 @@ create table if not exists membership_types (
   created_at timestamptz default now()
 );
 
-insert into membership_types (key, name, annual_limit)
-values 
-('single', 'Single', 250000),
-('family', 'Family', 500000)
-on conflict (key) do nothing;
 
 -- MEMBERS TABLE
 create table if not exists members (
@@ -102,12 +93,7 @@ create table if not exists reimbursement_scales (
   updated_at timestamptz default now()
 );
 
-insert into reimbursement_scales (category, fund_share, member_share, ceiling)
-values
-('Outpatient', 80, 20, 50000),
-('Inpatient', 85, 15, 200000),
-('Chronic', 60, 40, 120000)
-on conflict do nothing;
+
 
 -- AUDIT LOGS
 create table if not exists audit_logs (
@@ -125,10 +111,7 @@ create table if not exists settings (
   updated_at timestamptz default now()
 );
 
-insert into settings (key, value) values
-('procedure_tiers', '{"minor":30000, "medium":35000, "major":50000, "regional":90000, "special":70000}'),
-('general_limits', '{"annual_limit":250000, "critical_addon":200000, "fund_share_percent":80, "clinic_outpatient_percent":100}')
-on conflict (key) do update set value = excluded.value, updated_at = now();
+
 
 -- INDEXES
 create index if not exists idx_claims_member on claims(member_id);

@@ -235,3 +235,20 @@ for each row execute procedure trigger_email_on_notification();
 
 create index if not exists idx_notifications_recipient_created
 on notifications (recipient_id, created_at desc);
+
+
+-- Auto-create entry in public.users when new auth.user signs up
+create or replace function handle_new_user()
+returns trigger as $$
+begin
+  insert into public.users (id, email, role)
+  values (new.id, new.email, 'member')
+  on conflict (id) do nothing;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function handle_new_user();

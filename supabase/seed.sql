@@ -149,3 +149,8 @@ select compute_claim_payable('20000000-0000-0000-0000-000000000001');
 
 -- VERIFY -----------------------------------------------------------
 select u.id, u.email, u.role from public.users u order by role;
+
+
+update public.users set role = 'admin' where email = 'admin@sgss.com';
+update public.users set role = 'committee' where email = 'committee@sgss.com';
+update public.users set role = 'member' where email = 'member@sgss.com';

@@ -235,3 +235,124 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function handle_new_user();
+
+
+-- =============================================================
+-- SGSS CONSTITUTIONAL ENFORCEMENT TRIGGERS & FUNCTIONS
+-- =============================================================
+
+-- 1️⃣ Enforce membership validity on claim submission
+create or replace function enforce_membership_validity()
+returns trigger as $$
+declare
+  member_valid_to date;
+begin
+  select valid_to into member_valid_to from members where id = new.member_id;
+
+  if member_valid_to < current_date then
+    raise exception 'Membership expired. Cannot submit new claims.' using hint = 'Please renew membership before submitting a claim.';
+  end if;
+
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists trg_check_membership_active on claims;
+create trigger trg_check_membership_active
+before insert or update on claims
+for each row execute procedure enforce_membership_validity();
+
+-- 2️⃣ Enforce annual claim ceiling per member
+create or replace function enforce_annual_limit()
+returns trigger as $$
+declare
+  total_claimed numeric;
+  annual_limit numeric;
+begin
+  select sum(total_payable) into total_claimed from claims
+  where member_id = new.member_id
+    and extract(year from created_at) = extract(year from current_date)
+    and status in ('approved', 'processed');
+
+  select mt.annual_limit
+  into annual_limit
+  from members m
+  join membership_types mt on m.membership_type_id = mt.id
+  where m.id = new.member_id;
+
+  if total_claimed + new.total_payable > annual_limit then
+    raise notice 'Member annual limit exceeded: % / %', total_claimed + new.total_payable, annual_limit;
+    new.status := 'limit_exceeded';
+  end if;
+
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists trg_check_annual_limit on claims;
+create trigger trg_check_annual_limit
+before insert or update on claims
+for each row execute procedure enforce_annual_limit();
+
+-- CLAIM REVIEWS (used by committee and admin)
+create table if not exists claim_reviews (
+  id uuid primary key default gen_random_uuid(),
+  claim_id uuid references claims(id) on delete cascade,
+  reviewer_id uuid references users(id) on delete set null,
+  role text check (role in ('committee', 'admin')) not null,
+  action text check (action in ('reviewed', 'approved', 'rejected')) not null,
+  note text,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_claim_reviews_claim on claim_reviews(claim_id);
+
+-- 3️⃣ Auto update claim status upon committee review
+create or replace function auto_update_claim_status()
+returns trigger as $$
+begin
+  update claims
+  set status = case when new.action = 'reviewed' then 'reviewed' else 'processed' end,
+      processed_at = now()
+  where id = new.claim_id;
+
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists trg_auto_update_claim_status on claim_reviews;
+create trigger trg_auto_update_claim_status
+after insert on claim_reviews
+for each row execute procedure auto_update_claim_status();
+
+-- 4️⃣ Auto suspend expired memberships nightly (cron-friendly)
+create or replace function auto_suspend_expired_memberships()
+returns void as $$
+begin
+  update members
+  set no_claim_discount_percent = 0
+  where valid_to < current_date;
+end;
+$$ language plpgsql security definer;
+
+-- 5️⃣ Auto compute payable based on reimbursement_scales
+create or replace function compute_claim_payable(claim_id uuid)
+returns void as $$
+declare
+  c record;
+  scale record;
+  new_payable numeric;
+begin
+  select * into c from claims where id = claim_id;
+  select * into scale from reimbursement_scales where lower(category) = lower(c.claim_type);
+
+  if scale is not null then
+    new_payable := (c.total_claimed * scale.fund_share / 100);
+    update claims set total_payable = new_payable where id = claim_id;
+  end if;
+end;
+$$ language plpgsql security definer;
+
+-- =============================================================
+-- END SGSS ENFORCEMENT MODULE
+-- =============================================================

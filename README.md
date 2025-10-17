@@ -7,6 +7,7 @@ Last updated: 2025-10-17
 ---
 
 ## Table of Contents
+
 - Overview
 - Features
 - Tech Stack
@@ -28,6 +29,7 @@ Last updated: 2025-10-17
 ---
 
 ## Overview
+
 The SGSS Portal streamlines the entire claim lifecycle: member onboarding, claim submission, review, approval or rejection, and automated reimbursement calculation with audit logs, notifications, and role-based access control. It enforces constitution and byelaws such as waiting periods, submission windows, exclusions, and per-membership annual limits.
 
 ---
@@ -35,11 +37,13 @@ The SGSS Portal streamlines the entire claim lifecycle: member onboarding, claim
 ## Features
 
 ### Member Management
+
 - Membership types (Single, Family, etc.) with annual limits.
 - Member profile: NHIF number, photo, validity windows (valid_from/valid_to).
 - No-claim discount tracking (no_claim_discount_percent).
 
 ### Claims
+
 - Claim types supported: Outpatient, Inpatient, Chronic.
 - Claim items (category, amount, quantity) with automatic totals.
 - Attachments (receipts, docs) stored via Supabase Storage.
@@ -48,12 +52,14 @@ The SGSS Portal streamlines the entire claim lifecycle: member onboarding, claim
 - In-app notifications on submission and status changes.
 
 ### Administration
+
 - Settings for general limits and procedure tiers (stored in settings).
 - Reimbursement scales per category (fund and member share, ceiling).
 - Reports and admin panels for claims, membership types, scales, and analytics.
 - Audit logging across key tables.
 
 ### UX & DevX
+
 - Responsive UI with Tailwind.
 - Typed end-to-end (TypeScript).
 - React Router pages for members, claims, admin flows.
@@ -63,6 +69,7 @@ The SGSS Portal streamlines the entire claim lifecycle: member onboarding, claim
 ---
 
 ## Tech Stack
+
 - Frontend: React 18, TypeScript, Vite, Tailwind CSS, Lucide React
 - State/Data: Zustand, React Query
 - Forms/Validation: React Hook Form, Zod
@@ -72,6 +79,7 @@ The SGSS Portal streamlines the entire claim lifecycle: member onboarding, claim
 ---
 
 ## Prerequisites
+
 - Node.js v18+
 - npm v8+ (or Yarn v1.22+)
 - Git
@@ -82,23 +90,26 @@ The SGSS Portal streamlines the entire claim lifecycle: member onboarding, claim
 
 ## Getting Started
 
-1) Clone
+1. Clone
+
 ```bash
 git clone https://github.com/Jabrahamjohn/Sgssportal.git
 cd Sgssportal
 ```
 
-2) Install
+2. Install
+
 ```bash
 npm install
 # or
 yarn install
 ```
 
-3) Environment
-Create a .env file (see Environment Variables below).
+3. Environment
+   Create a .env file (see Environment Variables below).
 
-4) Supabase (local, optional)
+4. Supabase (local, optional)
+
 ```bash
 npm i -g @supabase/cli
 npx supabase init
@@ -108,22 +119,27 @@ npx supabase db push
 npx supabase db reset --seed
 ```
 
-5) Run
+5. Run
+
 ```bash
 npm run dev
 ```
+
 Open http://localhost:5173
 
 ---
 
 ## Environment Variables
+
 Create a .env in project root:
+
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 Production:
+
 ```env
 VITE_SUPABASE_URL=your_production_supabase_url
 VITE_SUPABASE_ANON_KEY=your_production_supabase_anon_key
@@ -133,6 +149,7 @@ VITE_APP_ENV=production
 ---
 
 ## Project Structure
+
 ```
 src/
 ├─ App.tsx, main.tsx, index.css
@@ -159,6 +176,7 @@ src/
 ```
 
 Supabase project files:
+
 ```
 supabase/
 ├─ config.toml
@@ -184,6 +202,7 @@ supabase/
 ## Database Architecture
 
 Core tables
+
 - users: id (auth.users ref), email, full_name, role (member|committee|admin)
 - roles: seed of available roles
 - membership_types: key, name, annual_limit
@@ -199,10 +218,12 @@ Core tables
 - audit_logs: action trail (actor_id, action, meta)
 
 Indexes
+
 - claims: member_id, status
 - claim_reviews: claim_id
 
 Triggers and functions
+
 - Audit: log_audit_event() on claims, members, chronic_requests, reimbursement_scales
 - Notifications: notify_on_claim_event() on claims (insert and status change)
 - Auto user: handle_new_user() to mirror auth.users to public.users
@@ -221,6 +242,7 @@ Triggers and functions
 ## Business & Calculation Rules
 
 Reimbursement logic (compute_claim_payable)
+
 - Fund vs member share from reimbursement_scales[category] or general_limits fallback.
 - Ceiling per category; also enforces membership annual_limit per year.
 - NHIF/other insurance amounts reduce fund share.
@@ -229,11 +251,13 @@ Reimbursement logic (compute_claim_payable)
 - Totals auto-recompute when claim or items change.
 
 Byelaws enforcement
+
 - Submission window: Outpatient within 90 days of first visit; Inpatient within 90 days of discharge.
 - Waiting period: 60 days after membership start before benefits.
 - Discretionary override: Committee can override up to Ksh 150,000.
 
 Statuses
+
 - draft → submitted → reviewed → approved → rejected
 
 ---
@@ -243,16 +267,19 @@ Statuses
 Row Level Security enabled on: users, members, claims, claim_items, claim_attachments, chronic_requests, claim_reviews, notifications, settings, reimbursement_scales, audit_logs.
 
 Policies (high level)
+
 - Members: can manage their own members/claims/items/attachments/chronic and read claim reviews of their claims.
 - Committee/Admin: can view all relevant records; committee/admin can update claims status/notes, review claims; admin has full access to settings/reimbursement_scales/audit_logs.
 - Notifications: members read their own; committee/admin can read all.
 
 Auth and user mirroring
+
 - New auth.users rows mirrored into public.users with default role=member.
 
 ---
 
 ## Edge Functions (Supabase)
+
 - calc_claim: server-side claim computations (e.g., validation/calc consolidation)
 - create_sso_token / verify_sso_token: SSO flow helpers
 - get_profile: fetch user profile securely
@@ -264,7 +291,9 @@ Note: Configure function secrets and service role keys in Supabase Dashboard for
 ---
 
 ## Scripts
+
 Common:
+
 - npm run dev — start Vite dev server
 - npm run build — build for production
 - npm run preview — preview built app
@@ -272,6 +301,7 @@ Common:
 - npm run test — run tests (see utils/reimbursement.test.ts)
 
 Supabase:
+
 - npx supabase db push — apply migrations
 - npx supabase db reset --seed — reset and seed local DB
 - npx supabase start | stop — manage local stack
@@ -279,10 +309,12 @@ Supabase:
 ---
 
 ## Testing
+
 - Unit tests focus on reimbursement and calc utilities (utils/reimbursement.test.ts).
 - Suggested: add integration tests for claims workflow and RLS with supabase-js.
 
 Run:
+
 ```bash
 npm run test
 # optional
@@ -295,15 +327,18 @@ npm run test:coverage
 ## Deployment
 
 Vercel (recommended)
+
 - Set env vars (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).
 - Build command: npm run build
 - Output dir: dist
 
 Netlify
+
 - Build: npm run build
 - Publish: dist
 
 Docker (static serve)
+
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app
@@ -319,6 +354,7 @@ CMD ["npx", "serve", "-s", "dist", "-l", "3000"]
 ## Troubleshooting
 
 “failed to send batch: ERROR: record ‘old’ has no field ‘claim_id’ (SQLSTATE 42703)”)”
+
 - Cause: A trigger referencing OLD.claim_id fired during seed/reset when the row or column context didn’t match.
 - Fixes:
   - Ensure claim_items has column claim_id (it does in 001_initial.sql).
@@ -335,12 +371,14 @@ CMD ["npx", "serve", "-s", "dist", "-l", "3000"]
   - Seed in smaller batches or disable/re-enable the item trigger around seed.
 
 Other common issues
+
 - RLS blocking writes: test with service role key or add missing policies.
 - Missing users mirror: ensure handle_new_user trigger exists and auth.users insert events fire.
 
 ---
 
 ## Contributing
+
 - Branch: feature/your-feature
 - Code style: strict TypeScript, small typed components, shared hooks/ui
 - Add/extend tests for calc and workflows
@@ -350,4 +388,5 @@ Other common issues
 ---
 
 ## License
+
 MIT — see LICENSE.

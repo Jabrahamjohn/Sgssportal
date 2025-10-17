@@ -119,7 +119,7 @@ create table if not exists chronic_requests (
 -- ================================================================
 create table if not exists reimbursement_scales (
   id uuid primary key default gen_random_uuid(),
-  category text not null,
+  category text unique not null,
   fund_share numeric not null,
   member_share numeric not null,
   ceiling numeric not null,

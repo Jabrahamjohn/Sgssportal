@@ -1,19 +1,18 @@
-SGSS Medical Fund - Django REST Starter (v1)
-This single-file contains a scaffold you can copy into a project folder.
+# SGSS Medical Fund Backend (Django REST Framework v1)
 
+## Setup
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # (on Windows: venv\Scripts\activate)
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
 
-Quick start:
-1. Create virtualenv: python -m venv .venv && source .venv/bin/activate
-2. Install: pip install -r requirements.txt
-3. Create project: django-admin startproject sgss_project .
-4. Create app: python manage.py startapp medical
-5. Replace files with contents from this scaffold (see sections below).
-6. Set DATABASE_URL in .env, then python manage.py migrate && python manage.py runserver
+Deployment notes:
+- Use environment variable DATABASE_URL pointing to your Postgres instance (Supabase or elsewhere).
+- If using Supabase for auth, consider syncing auth.users with Django users or use JWT flow.
+- Move business logic from SQL triggers to Django model methods or Celery tasks (we ported compute_payable to model method).
+- Add tests for constitutional rules: 90-day claim window, 60-day membership waiting period, ceilings and exclusions.
 
-
-Requirements (requirements.txt):
-Django>=4.2
-djangorestframework
-psycopg2-binary
-python-dotenv
-django-environ

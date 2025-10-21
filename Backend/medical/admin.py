@@ -1,30 +1,20 @@
-# admin.py
-
 from django.contrib import admin
-from .models import Member, MembershipType, Claim, ClaimItem, ClaimReview
+from .models import MembershipType, Member, Claim
 
 
 @admin.register(MembershipType)
 class MembershipTypeAdmin(admin.ModelAdmin):
-list_display = ('key','name','annual_limit')
+    list_display = ('key', 'name', 'annual_limit', 'fund_share_percent')
 
 
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
-list_display = ('id','user','membership_type','valid_from','valid_to')
-
-
-class ClaimItemInline(admin.TabularInline):
-model = ClaimItem
-extra = 0
+    list_display = ('user', 'membership_type', 'nhif_number', 'valid_from', 'valid_to')
+    search_fields = ('user__email', 'nhif_number')
 
 
 @admin.register(Claim)
 class ClaimAdmin(admin.ModelAdmin):
-list_display = ('id','member','claim_type','total_claimed','total_payable','status','created_at')
-inlines = [ClaimItemInline]
-
-
-@admin.register(ClaimReview)
-class ClaimReviewAdmin(admin.ModelAdmin):
-list_display = ('id','claim','reviewer','action','created_at')
+    list_display = ('member', 'claim_type', 'status', 'total_claimed', 'total_payable', 'created_at')
+    list_filter = ('status', 'claim_type')
+    search_fields = ('member__user__email',)

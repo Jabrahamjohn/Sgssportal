@@ -13,6 +13,13 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 import dj_database_url
+import environ
+
+#initializing Environmet variables
+env = environ.Env(
+    DEBUG=(bool, False),
+)
+environ.Env.read_env(os.path.join(Path(__file__).resolve().parent.parent, '.env'))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,10 +32,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-t1o5o)6bxvu1)!$o4yw7vlweb(p7u@2q-6!b^q*%b6q@w^a@&e'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-
+DEBUG = env('DEBUG', default=False)
+SECRET_KEY = env('SECRET_KEY', default=SECRET_KEY)
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
+TIME_ZONE = env('TIME_ZONE', default='UTC')
 
 # Application definition
 
@@ -39,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'medical'
 ]
@@ -46,6 +54,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -53,6 +62,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True
 ROOT_URLCONF = 'sgss_medical_fund.urls'
 
 TEMPLATES = [
@@ -77,17 +87,19 @@ WSGI_APPLICATION = 'sgss_medical_fund.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL', 'postgresql://postgres:Netsj@kma3108j@db.fbouoobwualsynjrmkos.supabase.co:5432/postgres'),
-        conn_max_age=600
+    'default': env.db(
+        'DATABASE_URL',
+        default='postgres://postgres:km@3108j@localhost:5432/Sgss_medical_fund'
     )
 }
 
+# AUTH_USER_MODEL
 AUTH_USER_MODEL = 'auth.user'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',

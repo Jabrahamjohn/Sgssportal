@@ -1,0 +1,105 @@
+.ant-image {
+  height: 100%;
+  width: 100%;
+}
+
+.ant-image img {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.ant-modal-root.transparent-bg div.ant-modal div.ant-modal-content {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+.ant-modal-content {
+  padding: 0 !important;
+}
+.ant-modal-content-with-padding .ant-modal-content {
+  padding: 20px 24px !important;
+}
+.ant-otp {
+  width: 100%;
+}
+.ant-otp-input {
+  border-radius: 8px;
+}
+.dropdown-remove-padding .ant-dropdown-menu {
+  padding: 0 !important;
+}
+.ant-upload-wrapper .ant-upload-drag {
+  background-color: transparent;
+}
+
+.ant-picker-time-panel-cell.ant-picker-time-panel-cell-selected {
+  display: flex;
+  justify-content: center;
+}
+
+.ant-picker-time-panel-cell.ant-picker-time-panel-cell-selected .ant-picker-time-panel-cell-inner {
+  @apply !text-white;
+
+  background-color: var(--secondary-color) !important;
+  height: 26px !important;
+  padding-inline-start: 0px !important;
+  text-align: center;
+  width: 28px !important;
+}
+
+.ant-btn-variant-solid.ant-btn-primary {
+  @apply text-white hover:text-white;
+}
+.ant-btn-variant-solid.ant-btn-primary:hover {
+  @apply text-white hover:text-white;
+}
+
+.ant-btn-variant-solid.ant-btn-primary:disabled,
+.ant-btn-variant-solid.ant-btn-disabled.ant-btn-primary {
+  background: var(--primary-color);
+  opacity: 40%;
+}
+
+.ant-tabs-top > .ant-tabs-nav {
+  margin-bottom: 0;
+}
+
+.ant-message {
+  bottom: 24px;
+  top: auto;
+}
+
+.ant-tag {
+  margin-inline-end: 0;
+}
+
+.custom-ant-message .ant-message-notice-content {
+  @apply px-8 py-4;
+}
+
+.custom-multiple-select .ant-select-selection-overflow {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.ant-form-item-explain-error {
+  @apply !text-red-600;
+  @apply text-xs mt-1 ml-0.5;
+}
+
+.large-otp-input input {
+  @apply !h-12 !text-xl;
+}
+
+.form-field-item.ant-input-disabled {
+  @apply cursor-not-allowed;
+}
+
+.carousel-gap-10 .slick-slide > div {
+  margin: 0 10px;
+}
+.carousel-gap-10 .slick-list {
+  margin: 0 -10px;
+}

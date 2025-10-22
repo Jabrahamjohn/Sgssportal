@@ -1,0 +1,24 @@
+# netlify.toml
+
+[build]
+  command = "npm run build"
+  publish = "dist" 
+  functions = "netlify/functions"
+
+[dev]
+  command = "npm run preview"
+  targetPort = 4173 # The port your Vite dev server runs on
+  # port = 8888 # The port Netlify Dev will run on (default 8888)
+
+# Rule 1: Redirect API requests to your serverless function
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/serverless/:splat"
+  status = 200
+  force = true
+
+# Rule 2: Redirect all other non-file routes to index.html for your SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

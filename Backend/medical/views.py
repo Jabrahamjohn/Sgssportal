@@ -1,6 +1,7 @@
 # Backend/medical/views.py
 from rest_framework import viewsets, mixins, permissions, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db import transaction
 from django.utils import timezone
@@ -200,3 +201,15 @@ class ReimbursementScaleViewSet(viewsets.ModelViewSet):
     queryset = ReimbursementScale.objects.all().order_by("category")
     serializer_class = ReimbursementScaleSerializer
     permission_classes = [permissions.IsAuthenticated, IsCommittee]
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me(request):
+    user = request.user
+    return Response({
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "groups": list(user.groups.values_list('name', flat=True))
+    })

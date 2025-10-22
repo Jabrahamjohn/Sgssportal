@@ -5,7 +5,7 @@ from .views import (
     MemberViewSet, MembershipTypeViewSet,
     ClaimViewSet, ClaimItemViewSet, ClaimReviewViewSet,
     ClaimAttachmentViewSet, ChronicRequestViewSet,
-    NotificationViewSet, SettingViewSet, ReimbursementScaleViewSet
+    NotificationViewSet, SettingViewSet, ReimbursementScaleViewSet, me
 )
 
 router = DefaultRouter()
@@ -22,4 +22,5 @@ router.register(r'reimbursement-scales', ReimbursementScaleViewSet, basename='re
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('me/', me, name='me'),
 ]

@@ -268,7 +268,3 @@ The **Frontend Developer’s primary goals** are:
 3. Enable **file uploads**, **form validation**, and **notifications**.
 4. Maintain **clean modular structure** — you’ll define your own boilerplate.
 5. Ensure the **system’s workflow mirrors real SGSS operations** as above.
-
----
-
-Would you like me to generate this same documentation as a **Markdown file (`FRONTEND_WORKFLOW.md`)** that you can drop into your repo for your collaborator to read directly on GitHub?

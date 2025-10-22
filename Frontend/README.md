@@ -1,270 +1,186 @@
-# 🧭 SGSS MEDICAL FUND SYSTEM — WORKFLOW & FRONTEND BUILD OVERVIEW
+# 🧭 SGSS MEDICAL FUND SYSTEM — FRONTEND BUILD & WORKFLOW DOCUMENTATION
 
-## 🏗️ System Summary
+## 💧 System Summary
 
-The **SGSS Medical Fund Portal** digitizes all operations of the Siri Guru Singh Sabha Medical Fund.
-It handles **member management**, **medical claims**, **chronic illness requests**, **claim reviews**, and **fund governance** as per the Constitution (2015) and Bylaws (2024).
+The **SGSS Medical Fund Portal** digitizes operations for the Siri Guru Singh Sabha Medical Fund. It handles membership, medical claims, chronic illness requests, claim reviews, and notifications according to the SGSS Constitution (2015) and Medical Fund Bylaws (2024).
 
-The backend (Django REST Framework) exposes structured APIs for the frontend (React/Vite) to interact with.
+Backend is powered by **Django REST Framework**, and the frontend (React/Vite) consumes REST APIs to provide a modern, responsive web experience.
 
 ---
 
 ## ⚙️ System Architecture Overview
 
-| Layer             | Technology                              | Purpose                                     |
-| ----------------- | --------------------------------------- | ------------------------------------------- |
-| **Frontend**      | React + TypeScript + Tailwind (Planned) | Web UI for Members, Committee, and Admins   |
-| **Backend**       | Django + DRF                            | REST API, business logic, rules enforcement |
-| **Database**      | PostgreSQL                              | Persistent data storage                     |
-| **Media Storage** | Local `/media/` (S3 in production)      | Claim attachments and supporting documents  |
-| **Auth & Roles**  | Django Groups & Permissions             | Role-based system access                    |
-| **Deployment**    | Local (Dev) / Supabase / VPS            | Backend hosting                             |
-| **Integration**   | REST over HTTPS                         | JSON-based communication                    |
+| Layer             | Technology                         | Purpose                               |
+| ----------------- | ---------------------------------- | ------------------------------------- |
+| **Frontend**      | React + TypeScript + Tailwind      | Web UI for Members, Committee, Admins |
+| **Backend**       | Django REST Framework              | REST API, validation, business logic  |
+| **Database**      | PostgreSQL                         | Persistent data storage               |
+| **Media Storage** | Local `/media/` (S3 in production) | Claim attachments                     |
+| **Auth & Roles**  | Django Groups                      | Role-based access control             |
+| **Deployment**    | Local (dev) / VPS / Supabase       | Hosting & production-ready setup      |
 
 ---
 
-## 👥 User Roles & Permissions
+## 👥 User Roles & Responsibilities
 
-| Role          | Description                              | Key Capabilities                                                                                                                                                                                  |
-| ------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Member**    | Registered SGSS Medical Fund beneficiary | - View personal details<br>- Submit medical claims<br>- Upload claim attachments<br>- Request chronic illness medication<br>- View claim status<br>- View notifications                           |
-| **Committee** | Fund review committee                    | - View all submitted claims<br>- Review and approve/reject claims<br>- Add claim reviews/notes<br>- Manage reimbursement scales<br>- Approve chronic requests<br>- Access reports and analytics   |
-| **Admin**     | Fund administrators and SGSS leadership  | - Manage users and membership types<br>- Configure global settings (limits, ceilings, shares)<br>- Manage reimbursement scales<br>- Access and export audit logs<br>- Oversee all data operations |
-
----
-
-## 🧩 Core Functional Modules (System Flow)
-
-### 1️⃣ **Membership Management**
-
-**Purpose:** Register and maintain fund members and their coverage types.
-
-**Data Flow:**
-
-* Admin adds or updates **Membership Types** (e.g., Single, Family, Senior).
-* Admin creates or approves **Member** profiles → assigns membership type, NHIF number, and validity period.
-* Backend ensures **60-day waiting period** before a member becomes eligible for claims.
-
-**Frontend Tasks:**
-
-* Member registration form (Admin view)
-* Member dashboard showing membership status, expiry, and limits
+| Role          | Description            | Capabilities                                                                |
+| ------------- | ---------------------- | --------------------------------------------------------------------------- |
+| **Member**    | Registered beneficiary | Submit/view claims, chronic requests, attachments, notifications            |
+| **Committee** | Fund reviewers         | Approve/reject claims, review chronic requests, manage reimbursement scales |
+| **Admin**     | Fund administrator     | Manage users, settings, ceilings, audit logs                                |
 
 ---
 
-### 2️⃣ **Claims Processing**
+## 🛠️ Core Functional Modules
 
-**Purpose:** Members request medical reimbursement according to fund rules.
+### 1. Membership Management
 
-**Workflow:**
+* Admin registers members, assigns membership type (Single/Family).
+* Backend enforces **60-day waiting period**.
+* Member can view membership validity & annual limits.
 
-1. **Member creates claim** → selects type (`Inpatient`, `Outpatient`, `Chronic`).
-2. Adds **claim items** (consultation, drugs, procedures, etc.).
-3. Uploads **attachments** (receipts, NHIF slips, doctor report).
-4. Submits → claim status = `submitted`.
-5. **Committee reviews:**
+**Frontend:** Dashboard card showing membership status and expiry.
 
-   * May set status to `reviewed`, `approved`, `rejected`, or `paid`.
-   * May enter discretionary override if necessary (≤ Ksh 150,000).
-6. Claim undergoes **auto-computation**:
+### 2. Claims Processing
 
-   * Fund share = 80%
-   * Member share = 20%
-   * NHIF/other insurance amounts deducted
-   * Ceilings and annual limits enforced
-7. **Member gets notifications** of each update.
+**Flow:**
 
-**Frontend Tasks:**
+1. Member creates claim → selects `Inpatient` / `Outpatient` / `Chronic`.
+2. Adds claim items and uploads receipts.
+3. Submits → status = `submitted`.
+4. Committee reviews → updates to `reviewed`, `approved`, or `rejected`.
+5. System auto-computes payable vs member share.
+6. Notifications sent to member.
 
-* Claim submission form (multi-step)
-* Claim detail view with itemized charges
-* Upload section for documents
-* Real-time status updates (via notifications)
-* Review dashboard (Committee view)
+**Frontend:** Multi-step claim form, claim history table, claim detail view, upload section.
 
----
+### 3. Chronic Illness Requests
 
-### 3️⃣ **Chronic Illness Requests**
+* Member submits recurring medicine details.
+* Committee approves/rejects.
+* Member tracks medication request status.
 
-**Purpose:** For members with recurring medical conditions requiring monthly drug support.
+**Frontend:** Chronic medication page with request form and approval history.
 
-**Workflow:**
+### 4. Reimbursement & Settings
 
-1. Member submits chronic medication list (JSON-style: name, strength, dosage, duration).
-2. Request reviewed by committee.
-3. Committee updates status: `pending` → `approved` or `rejected`.
-4. Member receives notification and can view approved medicines.
+* Admin configures annual limits, ceilings, fund share percentages.
+* Committee can adjust category-based reimbursement scales.
 
-**Frontend Tasks:**
+**Frontend:** Settings dashboard (Admin view) + scales management table.
 
-* Chronic request form
-* Chronic medicine tracker (status timeline)
-* Admin/Committee chronic list management
+### 5. Notifications & Audit Trail
 
----
+* Automatic alerts for all role-related actions.
+* Committee/admin actions logged for transparency.
 
-### 4️⃣ **Reimbursement & Settings**
+**Frontend:** Notification dropdown, mark-as-read feature, audit page (admin only).
 
-**Purpose:** Define global financial limits, rules, and ceilings.
+### 6. File Attachments
 
-**Managed By:** Admins & Committee.
+* Members upload claim documents (PDF/JPG/PNG).
+* Stored in `/media/claim_attachments/`.
 
-**Data Flow:**
-
-* `Settings` model holds key configurations:
-
-  * Annual benefit limits (Ksh 250,000)
-  * Critical illness top-up (Ksh 200,000)
-  * Fund share percentage (80%)
-* `Reimbursement Scales` define category-based limits.
-
-**Frontend Tasks:**
-
-* Admin dashboard: configurable fields for ceilings & fund shares
-* Committee view: adjustable reimbursement scales table
+**Frontend:** File upload input with preview & delete functionality.
 
 ---
 
-### 5️⃣ **Notifications & Audit Trail**
+## 🔐 Authentication & Access Flow
 
-**Purpose:** Track every system action and notify relevant users.
+* Session-based authentication via Django.
+* Frontend stores session cookie; backend identifies user role.
 
-**Events Trigger Notifications:**
-
-* Claim submission, approval, or rejection
-* Chronic request updates
-* Admin changes or overrides
-
-**Frontend Tasks:**
-
-* Notification panel for all roles
-* “Mark as read” interaction
-* Audit log page (Admin only)
+| Role      | Redirect               | Default Dashboard        |
+| --------- | ---------------------- | ------------------------ |
+| Member    | `/dashboard/member`    | Claims, Chronic Requests |
+| Committee | `/dashboard/committee` | Reviews, Approvals       |
+| Admin     | `/dashboard/admin`     | Members, Settings        |
 
 ---
 
-### 6️⃣ **Attachments (File Uploads)**
+## 📊 Data Lifecycle Example (Outpatient Claim)
 
-**Purpose:** Store supporting claim documents.
-
-**Data Flow:**
-
-* Member uploads claim files (PDFs, images)
-* Stored in `/media/claim_attachments/`
-* Linked to claim via `ClaimAttachment` model
-* Downloadable via API
-
-**Frontend Tasks:**
-
-* File upload component (drag & drop)
-* File preview/download link per claim
+| Step | Actor     | Description                                     |
+| ---- | --------- | ----------------------------------------------- |
+| 1    | Member    | Submits new claim with receipts                 |
+| 2    | Backend   | Validates submission window & membership status |
+| 3    | Committee | Reviews and approves/rejects                    |
+| 4    | Backend   | Recalculates payable & logs event               |
+| 5    | System    | Sends notification to member                    |
+| 6    | Admin     | Marks claim as paid if approved                 |
+| 7    | System    | Updates audit logs                              |
 
 ---
 
-## 🔐 7️⃣ Authentication & Access Flow
+## 💡 Backend Rules Enforced
 
-**Auth Framework:** Django session-based authentication (cookie stored).
-
-**Frontend Behavior:**
-
-* On login, session cookie stored in browser
-* Axios/Fetch automatically sends cookie on every request
-* Backend identifies user role via Django Groups
-
-**Frontend Routing Example:**
-
-| Role      | Default Route          | Redirects  |
-| --------- | ---------------------- | ---------- |
-| Member    | `/dashboard/member`    | `/claims`  |
-| Committee | `/dashboard/committee` | `/reviews` |
-| Admin     | `/dashboard/admin`     | `/members` |
+* **Waiting Period:** 60 days post-membership start.
+* **Submission Window:** Within 90 days of treatment.
+* **Annual Benefit Cap:** 250,000 KES.
+* **Critical Illness Add-on:** +200,000 KES.
+* **Fund Share:** 80% fund / 20% member.
+* **Override Limit:** Up to 150,000 KES.
+* **Automatic Notifications:** All major actions trigger alerts.
 
 ---
 
-## 🔄 8️⃣ Data Lifecycle Example
+## 🛪️ Frontend Developer Responsibilities
 
-**Claim Example (Outpatient):**
-
-| Step | Action                                           | Responsible | Status                  |
-| ---- | ------------------------------------------------ | ----------- | ----------------------- |
-| 1    | Submit new claim with items & attachments        | Member      | `submitted`             |
-| 2    | Auto-validation (waiting period, NHIF, ceilings) | Backend     | -                       |
-| 3    | Review claim                                     | Committee   | `reviewed`              |
-| 4    | Approve or reject                                | Committee   | `approved` / `rejected` |
-| 5    | Update payable calculations                      | Backend     |                         |
-| 6    | Notify member                                    | System      | Notification sent       |
-| 7    | Pay claim                                        | Admin       | `paid`                  |
-| 8    | Log event                                        | System      | Audit log entry         |
+| Area               | Task                                          | Notes                                    |
+| ------------------ | --------------------------------------------- | ---------------------------------------- |
+| **Authentication** | Implement login/logout & role-based redirects | Session auth with Django cookies         |
+| **Routing**        | Setup protected routes for each role          | Use React Router 6                       |
+| **Forms**          | Build claim & chronic request forms           | Include validation and multi-step wizard |
+| **File Uploads**   | Connect to `/api/claim-attachments/`          | Support multiple uploads                 |
+| **Data Fetching**  | Create centralized Axios/Fetch API client     | Handle errors and timeouts               |
+| **UI State**       | Manage global state                           | React Context or Zustand                 |
+| **Design**         | Use Tailwind or ShadCN                        | SGSS theme (blue/gold/white)             |
+| **Testing**        | Verify all workflows using seeded data        | Focus on claim logic and review flows    |
 
 ---
 
-## 🧮 9️⃣ Key Backend Rules Enforced by API
+## 📂 Collaboration & Workflow
 
-| Rule                        | Description                                         |
-| --------------------------- | --------------------------------------------------- |
-| **Waiting Period**          | 60 days before first claim eligibility              |
-| **Claim Submission Window** | Must be submitted within 90 days of discharge/visit |
-| **Annual Benefit Cap**      | Max 250,000 per member/year                         |
-| **Critical Illness Top-up** | +200,000 for qualifying critical conditions         |
-| **Fund Share Ratio**        | 80% fund / 20% member (varies by category)          |
-| **Discretionary Override**  | Up to 150,000, by committee                         |
-| **Exclusions**              | Cosmetic, infertility, etc. (manually flagged)      |
-| **Notifications**           | Sent automatically on every claim status change     |
+| Step | Role         | Action                                     |
+| ---- | ------------ | ------------------------------------------ |
+| 1    | Abraham      | Maintains backend and endpoint definitions |
+| 2    | Frontend Dev | Builds UI and integrates APIs              |
+| 3    | Both         | Test claim flows end-to-end locally        |
+| 4    | Abraham      | Handles backend deployment                 |
+| 5    | Frontend Dev | Deploys React app to Vercel or Netlify     |
 
----
+**Branches:**
 
-## 🧠 10️⃣ Frontend Developer Focus Points
-
-| Area                    | Responsibility                                      | Notes                                          |
-| ----------------------- | --------------------------------------------------- | ---------------------------------------------- |
-| **Authentication Flow** | Build login, logout, session persistence            | Backend uses session-based cookies             |
-| **Role Detection**      | Identify role from `/api/members/` or user endpoint | Redirect dashboard accordingly                 |
-| **Forms**               | Build modular claim and chronic request forms       | Validation & dynamic lists (e.g., claim items) |
-| **File Uploads**        | Connect to `/api/claim-attachments/`                | Support multiple files                         |
-| **Data Fetching**       | Centralized Axios API handler                       | Handle 401 → redirect to login                 |
-| **UI State**            | Use React Context or Zustand                        | For notifications & current user               |
-| **Routing**             | React Router 6                                      | Protect routes by role                         |
-| **Design**              | Use Tailwind or ShadCN                              | Match SGSS theme (blue/gold/white)             |
-| **Error Handling**      | Surface Django validation errors cleanly            | e.g. 400 messages on claim form                |
+* `main` – Stable version
+* `dev` – Active development
+* `feature/*` – Feature branches for new modules
 
 ---
 
-## 🧑‍💻 11️⃣ Team Collaboration Workflow
+## 🚀 Deployment Notes
 
-| Step | Who          | Description                                           |
-| ---- | ------------ | ----------------------------------------------------- |
-| 1    | Abraham      | Maintains backend API, data logic, and endpoint specs |
-| 2    | Frontend Dev | Builds UI, integrates REST endpoints                  |
-| 3    | Both         | Test flows together in dev environment                |
-| 4    | Abraham      | Approves PRs or merges after backend sync             |
-| 5    | Both         | QA: ensure claims and notifications flow end-to-end   |
-| 6    | Abraham      | Handles deployment of backend and frontend builds     |
-
----
-
-## 🚀 12️⃣ Build & Deployment Notes
-
-**Local Development**
+**Local:**
 
 * Backend: `python manage.py runserver`
 * Frontend: `npm run dev`
-* Access API via: `http://localhost:8000/api/`
-* Access frontend via: `http://localhost:5173/`
+* API: `http://localhost:8000/api/`
+* UI: `http://localhost:5173/`
 
-**Production Plan**
+**Production:**
 
-* Backend: deploy to VPS or Render/Supabase
-* Frontend: deploy to Vercel or Netlify
-* Media storage: migrate `/media/` → AWS S3 or Supabase Storage
+* Backend → VPS/Supabase
+* Frontend → Vercel/Netlify
+* Storage → AWS S3 or Supabase Storage
 
 ---
 
-## ✅ Final Recap
+## ✅ Summary for Frontend Collaborator
 
-The **Frontend Developer’s primary goals** are:
+1. Understand the **roles and workflows** (Member, Committee, Admin).
+2. Base the frontend on REST endpoints from Django.
+3. Build dashboards and forms according to user journeys.
+4. Use session cookies for auth.
+5. Keep all actions transactional and user-role scoped.
+6. Work in feature branches and test against backend seed data.
 
-1. Implement **role-based dashboards**.
-2. Build **data-driven components** consuming REST APIs.
-3. Enable **file uploads**, **form validation**, and **notifications**.
-4. Maintain **clean modular structure** — you’ll define your own boilerplate.
-5. Ensure the **system’s workflow mirrors real SGSS operations** as above.
+This ensures the SGSS portal runs smoothly, respecting both the technical and governance logic of the Medical Fund.

@@ -1,392 +1,274 @@
-# SGSS Portal — Medical Fund Management System
+# 🧭 SGSS MEDICAL FUND SYSTEM — WORKFLOW & FRONTEND BUILD OVERVIEW
 
-A modern portal for managing members, medical claims, reimbursements, and fund administration. Built with React, TypeScript, Vite, Tailwind CSS, and Supabase (Postgres, Auth, Storage, Edge Functions).
+## 🏗️ System Summary
 
-Last updated: 2025-10-17
+The **SGSS Medical Fund Portal** digitizes all operations of the Siri Guru Singh Sabha Medical Fund.
+It handles **member management**, **medical claims**, **chronic illness requests**, **claim reviews**, and **fund governance** as per the Constitution (2015) and Bylaws (2024).
 
----
-
-## Table of Contents
-
-- Overview
-- Features
-- Tech Stack
-- Prerequisites
-- Getting Started
-- Environment Variables
-- Project Structure
-- Database Architecture
-- Business & Calculation Rules
-- Security (RLS) and Access Control
-- Edge Functions (Supabase)
-- Scripts
-- Testing
-- Deployment
-- Troubleshooting
-- Contributing
-- License
+The backend (Django REST Framework) exposes structured APIs for the frontend (React/Vite) to interact with.
 
 ---
 
-## Overview
+## ⚙️ System Architecture Overview
 
-The SGSS Portal streamlines the entire claim lifecycle: member onboarding, claim submission, review, approval or rejection, and automated reimbursement calculation with audit logs, notifications, and role-based access control. It enforces constitution and byelaws such as waiting periods, submission windows, exclusions, and per-membership annual limits.
-
----
-
-## Features
-
-### Member Management
-
-- Membership types (Single, Family, etc.) with annual limits.
-- Member profile: NHIF number, photo, validity windows (valid_from/valid_to).
-- No-claim discount tracking (no_claim_discount_percent).
-
-### Claims
-
-- Claim types supported: Outpatient, Inpatient, Chronic.
-- Claim items (category, amount, quantity) with automatic totals.
-- Attachments (receipts, docs) stored via Supabase Storage.
-- Status workflow: draft → submitted → reviewed → approved → rejected.
-- Claim reviews with role and actions (committee/admin).
-- In-app notifications on submission and status changes.
-
-### Administration
-
-- Settings for general limits and procedure tiers (stored in settings).
-- Reimbursement scales per category (fund and member share, ceiling).
-- Reports and admin panels for claims, membership types, scales, and analytics.
-- Audit logging across key tables.
-
-### UX & DevX
-
-- Responsive UI with Tailwind.
-- Typed end-to-end (TypeScript).
-- React Router pages for members, claims, admin flows.
-- Real-time updates via Supabase.
-- Edge Functions for secure server-side logic.
+| Layer             | Technology                              | Purpose                                     |
+| ----------------- | --------------------------------------- | ------------------------------------------- |
+| **Frontend**      | React + TypeScript + Tailwind (Planned) | Web UI for Members, Committee, and Admins   |
+| **Backend**       | Django + DRF                            | REST API, business logic, rules enforcement |
+| **Database**      | PostgreSQL                              | Persistent data storage                     |
+| **Media Storage** | Local `/media/` (S3 in production)      | Claim attachments and supporting documents  |
+| **Auth & Roles**  | Django Groups & Permissions             | Role-based system access                    |
+| **Deployment**    | Local (Dev) / Supabase / VPS            | Backend hosting                             |
+| **Integration**   | REST over HTTPS                         | JSON-based communication                    |
 
 ---
 
-## Tech Stack
+## 👥 User Roles & Permissions
 
-- Frontend: React 18, TypeScript, Vite, Tailwind CSS, Lucide React
-- State/Data: Zustand, React Query
-- Forms/Validation: React Hook Form, Zod
-- Utilities: date-fns, jsPDF
-- Backend: Supabase (PostgreSQL, Auth, Storage, Edge Functions)
-
----
-
-## Prerequisites
-
-- Node.js v18+
-- npm v8+ (or Yarn v1.22+)
-- Git
-- Supabase account
-- Supabase CLI (for local dev)
+| Role          | Description                              | Key Capabilities                                                                                                                                                                                  |
+| ------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Member**    | Registered SGSS Medical Fund beneficiary | - View personal details<br>- Submit medical claims<br>- Upload claim attachments<br>- Request chronic illness medication<br>- View claim status<br>- View notifications                           |
+| **Committee** | Fund review committee                    | - View all submitted claims<br>- Review and approve/reject claims<br>- Add claim reviews/notes<br>- Manage reimbursement scales<br>- Approve chronic requests<br>- Access reports and analytics   |
+| **Admin**     | Fund administrators and SGSS leadership  | - Manage users and membership types<br>- Configure global settings (limits, ceilings, shares)<br>- Manage reimbursement scales<br>- Access and export audit logs<br>- Oversee all data operations |
 
 ---
 
-## Getting Started
+## 🧩 Core Functional Modules (System Flow)
 
-1. Clone
+### 1️⃣ **Membership Management**
 
-```bash
-git clone https://github.com/Jabrahamjohn/Sgssportal.git
-cd Sgssportal
-```
+**Purpose:** Register and maintain fund members and their coverage types.
 
-2. Install
+**Data Flow:**
 
-```bash
-npm install
-# or
-yarn install
-```
+* Admin adds or updates **Membership Types** (e.g., Single, Family, Senior).
+* Admin creates or approves **Member** profiles → assigns membership type, NHIF number, and validity period.
+* Backend ensures **60-day waiting period** before a member becomes eligible for claims.
 
-3. Environment
-   Create a .env file (see Environment Variables below).
+**Frontend Tasks:**
 
-4. Supabase (local, optional)
-
-```bash
-npm i -g @supabase/cli
-npx supabase init
-npx supabase start
-npx supabase db push
-# optional seed/reset:
-npx supabase db reset --seed
-```
-
-5. Run
-
-```bash
-npm run dev
-```
-
-Open http://localhost:5173
+* Member registration form (Admin view)
+* Member dashboard showing membership status, expiry, and limits
 
 ---
 
-## Environment Variables
+### 2️⃣ **Claims Processing**
 
-Create a .env in project root:
+**Purpose:** Members request medical reimbursement according to fund rules.
 
-```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+**Workflow:**
 
-Production:
+1. **Member creates claim** → selects type (`Inpatient`, `Outpatient`, `Chronic`).
+2. Adds **claim items** (consultation, drugs, procedures, etc.).
+3. Uploads **attachments** (receipts, NHIF slips, doctor report).
+4. Submits → claim status = `submitted`.
+5. **Committee reviews:**
 
-```env
-VITE_SUPABASE_URL=your_production_supabase_url
-VITE_SUPABASE_ANON_KEY=your_production_supabase_anon_key
-VITE_APP_ENV=production
-```
+   * May set status to `reviewed`, `approved`, `rejected`, or `paid`.
+   * May enter discretionary override if necessary (≤ Ksh 150,000).
+6. Claim undergoes **auto-computation**:
 
----
+   * Fund share = 80%
+   * Member share = 20%
+   * NHIF/other insurance amounts deducted
+   * Ceilings and annual limits enforced
+7. **Member gets notifications** of each update.
 
-## Project Structure
+**Frontend Tasks:**
 
-```
-src/
-├─ App.tsx, main.tsx, index.css
-├─ components/
-│  ├─ admin/ (EditableTable, SettingsCard)
-│  ├─ auth/ (ProtectedRoute)
-│  ├─ claims/ (ClaimInput, ClaimItemsTable, FileUploader, ReimbursementPreview, TotalsCard)
-│  ├─ layout/ (Header, Sidebar)
-│  ├─ members/ (MemberCard, MemberForm, MemberTable)
-│  ├─ system/ (EnvironmentBadge)
-│  └─ ui/ (Button, Card, Input, Modal, Select)
-├─ contexts/ (AuthContext)
-├─ hooks/ (useAuth, useMembers, useNotifications)
-├─ pages/
-│  ├─ admin/ (AdminDashboard, ClaimsAdminPanel, ReimbursementScales, Reports, MembershipTypes, claimDetailAdmin)
-│  ├─ auth/ (LoginPage, SsoLogin)
-│  ├─ claims/ (OutpatientClaimForm, InpatientClaimForm, ChronicClaimForm, ClaimsDashboard, ClaimHistory, ClaimSummary, ClaimItemsTable)
-│  ├─ dashboard/ (Dashboard)
-│  └─ members/ (MembersList, MemberDetail, NewMemberForm)
-├─ services/ (supabaseClient, membersService, claimsService, reimbursementService, adminService, adminClaimsService, reportService)
-├─ types/ (index.ts)
-├─ utils/ (calc, reimbursement, reimbursement.server, reimbursement.test, supabase, classnames)
-└─ styles/
-```
-
-Supabase project files:
-
-```
-supabase/
-├─ config.toml
-├─ seed.sql
-├─ migrations/
-│  ├─ 001_initial.sql
-│  ├─ 002_attachments_and_calc.sql
-│  ├─ 003_bylaws_enforcement.sql
-│  ├─ 004_rls_policies.sql
-│  └─ 20251017021649_remote_schema.sql
-└─ functions/
-   ├─ calc_claim/
-   ├─ create_sso_token/
-   ├─ get_profile/
-   ├─ get_settings/
-   ├─ send-notification-email/
-   ├─ update_settings/
-   └─ verify_sso_token/
-```
+* Claim submission form (multi-step)
+* Claim detail view with itemized charges
+* Upload section for documents
+* Real-time status updates (via notifications)
+* Review dashboard (Committee view)
 
 ---
 
-## Database Architecture
+### 3️⃣ **Chronic Illness Requests**
 
-Core tables
+**Purpose:** For members with recurring medical conditions requiring monthly drug support.
 
-- users: id (auth.users ref), email, full_name, role (member|committee|admin)
-- roles: seed of available roles
-- membership_types: key, name, annual_limit
-- members: user_id, membership_type_id, nhif_number, photo_url, valid_from/to, no_claim_discount_percent
-- claims: member_id, claim_type (Outpatient|Inpatient|Chronic), dates, totals, member_payable, status (draft|submitted|reviewed|approved|rejected), timestamps, notes
-- claim_items: claim_id, category, description, amount, quantity, retail_price
-- claim_attachments: claim_id, storage_path/url, file metadata
-- claim_reviews: claim_id, reviewer_id, role (committee|admin), action (reviewed|approved|rejected), note
-- reimbursement_scales: category, fund_share, member_share, ceiling
-- settings: key/value JSON (general_limits, procedure_tiers)
-- chronic_requests: chronic benefits requests (member_id, medicines JSON, totals, status)
-- notifications: in-app notifications (recipient_id, title, message, link, type)
-- audit_logs: action trail (actor_id, action, meta)
+**Workflow:**
 
-Indexes
+1. Member submits chronic medication list (JSON-style: name, strength, dosage, duration).
+2. Request reviewed by committee.
+3. Committee updates status: `pending` → `approved` or `rejected`.
+4. Member receives notification and can view approved medicines.
 
-- claims: member_id, status
-- claim_reviews: claim_id
+**Frontend Tasks:**
 
-Triggers and functions
-
-- Audit: log_audit_event() on claims, members, chronic_requests, reimbursement_scales
-- Notifications: notify_on_claim_event() on claims (insert and status change)
-- Auto user: handle_new_user() to mirror auth.users to public.users
-- Claim compute:
-  - compute_claim_payable(p_claim_id)
-  - trigger_compute_claim_payable() on claims (recalculate)
-  - recalc_claim_total_on_items() on claim_items (maintain total_claimed and total_payable)
-- Byelaws enforcement:
-  - fn_check_submission_window() (≤90 days from visit/discharge)
-  - fn_check_membership_active() (60-day waiting, not expired)
-  - fn_autoflag_exclusions() (cosmetic, transport, mortuary, infertility)
-  - apply_discretionary_override(p_claim, p_amount, p_actor) with cap check
+* Chronic request form
+* Chronic medicine tracker (status timeline)
+* Admin/Committee chronic list management
 
 ---
 
-## Business & Calculation Rules
+### 4️⃣ **Reimbursement & Settings**
 
-Reimbursement logic (compute_claim_payable)
+**Purpose:** Define global financial limits, rules, and ceilings.
 
-- Fund vs member share from reimbursement_scales[category] or general_limits fallback.
-- Ceiling per category; also enforces membership annual_limit per year.
-- NHIF/other insurance amounts reduce fund share.
-- Clinic 100% rule: If Outpatient at “Siri Guru Nanak Clinic” (matched in notes) and clinic_outpatient_percent = 100, fund covers 100%.
-- Exclusions flagged: excluded claims pay 0 fund_share (member pays full).
-- Totals auto-recompute when claim or items change.
+**Managed By:** Admins & Committee.
 
-Byelaws enforcement
+**Data Flow:**
 
-- Submission window: Outpatient within 90 days of first visit; Inpatient within 90 days of discharge.
-- Waiting period: 60 days after membership start before benefits.
-- Discretionary override: Committee can override up to Ksh 150,000.
+* `Settings` model holds key configurations:
 
-Statuses
+  * Annual benefit limits (Ksh 250,000)
+  * Critical illness top-up (Ksh 200,000)
+  * Fund share percentage (80%)
+* `Reimbursement Scales` define category-based limits.
 
-- draft → submitted → reviewed → approved → rejected
+**Frontend Tasks:**
 
----
-
-## Security (RLS) and Access Control
-
-Row Level Security enabled on: users, members, claims, claim_items, claim_attachments, chronic_requests, claim_reviews, notifications, settings, reimbursement_scales, audit_logs.
-
-Policies (high level)
-
-- Members: can manage their own members/claims/items/attachments/chronic and read claim reviews of their claims.
-- Committee/Admin: can view all relevant records; committee/admin can update claims status/notes, review claims; admin has full access to settings/reimbursement_scales/audit_logs.
-- Notifications: members read their own; committee/admin can read all.
-
-Auth and user mirroring
-
-- New auth.users rows mirrored into public.users with default role=member.
+* Admin dashboard: configurable fields for ceilings & fund shares
+* Committee view: adjustable reimbursement scales table
 
 ---
 
-## Edge Functions (Supabase)
+### 5️⃣ **Notifications & Audit Trail**
 
-- calc_claim: server-side claim computations (e.g., validation/calc consolidation)
-- create_sso_token / verify_sso_token: SSO flow helpers
-- get_profile: fetch user profile securely
-- get_settings / update_settings: read/write portal settings
-- send-notification-email: email delivery for notifications
+**Purpose:** Track every system action and notify relevant users.
 
-Note: Configure function secrets and service role keys in Supabase Dashboard for production.
+**Events Trigger Notifications:**
 
----
+* Claim submission, approval, or rejection
+* Chronic request updates
+* Admin changes or overrides
 
-## Scripts
+**Frontend Tasks:**
 
-Common:
-
-- npm run dev — start Vite dev server
-- npm run build — build for production
-- npm run preview — preview built app
-- npm run lint — lint codebase
-- npm run test — run tests (see utils/reimbursement.test.ts)
-
-Supabase:
-
-- npx supabase db push — apply migrations
-- npx supabase db reset --seed — reset and seed local DB
-- npx supabase start | stop — manage local stack
+* Notification panel for all roles
+* “Mark as read” interaction
+* Audit log page (Admin only)
 
 ---
 
-## Testing
+### 6️⃣ **Attachments (File Uploads)**
 
-- Unit tests focus on reimbursement and calc utilities (utils/reimbursement.test.ts).
-- Suggested: add integration tests for claims workflow and RLS with supabase-js.
+**Purpose:** Store supporting claim documents.
 
-Run:
+**Data Flow:**
 
-```bash
-npm run test
-# optional
-npm run test:watch
-npm run test:coverage
-```
+* Member uploads claim files (PDFs, images)
+* Stored in `/media/claim_attachments/`
+* Linked to claim via `ClaimAttachment` model
+* Downloadable via API
 
----
+**Frontend Tasks:**
 
-## Deployment
-
-Vercel (recommended)
-
-- Set env vars (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).
-- Build command: npm run build
-- Output dir: dist
-
-Netlify
-
-- Build: npm run build
-- Publish: dist
-
-Docker (static serve)
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY dist ./dist
-EXPOSE 3000
-CMD ["npx", "serve", "-s", "dist", "-l", "3000"]
-```
+* File upload component (drag & drop)
+* File preview/download link per claim
 
 ---
 
-## Troubleshooting
+## 🔐 7️⃣ Authentication & Access Flow
 
-“failed to send batch: ERROR: record ‘old’ has no field ‘claim_id’ (SQLSTATE 42703)”)”
+**Auth Framework:** Django session-based authentication (cookie stored).
 
-- Cause: A trigger referencing OLD.claim_id fired during seed/reset when the row or column context didn’t match.
-- Fixes:
-  - Ensure claim_items has column claim_id (it does in 001_initial.sql).
-  - Recreate claim item trigger to defensively guard:
-    - 002_attachments_and_calc.sql defines recalc_claim_total_on_items; confirm it uses IF TG_OP checks and references NEW/OLD only in their branch (already done).
-  - If seed.sql performs operations that conflict with triggers, temporarily disable triggers during seeding:
-    - Wrap seed with: alter table claim_items disable trigger recalc_claim_total_after_ins_upd_del; and re-enable after.
-  - Rerun with debug to see failing statement:
-    ```bash
-    npx supabase db reset --debug
-    ```
-- Quick workaround during local dev:
-  - Run migrations first: npx supabase db reset
-  - Seed in smaller batches or disable/re-enable the item trigger around seed.
+**Frontend Behavior:**
 
-Other common issues
+* On login, session cookie stored in browser
+* Axios/Fetch automatically sends cookie on every request
+* Backend identifies user role via Django Groups
 
-- RLS blocking writes: test with service role key or add missing policies.
-- Missing users mirror: ensure handle_new_user trigger exists and auth.users insert events fire.
+**Frontend Routing Example:**
+
+| Role      | Default Route          | Redirects  |
+| --------- | ---------------------- | ---------- |
+| Member    | `/dashboard/member`    | `/claims`  |
+| Committee | `/dashboard/committee` | `/reviews` |
+| Admin     | `/dashboard/admin`     | `/members` |
 
 ---
 
-## Contributing
+## 🔄 8️⃣ Data Lifecycle Example
 
-- Branch: feature/your-feature
-- Code style: strict TypeScript, small typed components, shared hooks/ui
-- Add/extend tests for calc and workflows
-- Update documentation for schema or settings changes
-- Open PR with clear description and screenshots where applicable
+**Claim Example (Outpatient):**
+
+| Step | Action                                           | Responsible | Status                  |
+| ---- | ------------------------------------------------ | ----------- | ----------------------- |
+| 1    | Submit new claim with items & attachments        | Member      | `submitted`             |
+| 2    | Auto-validation (waiting period, NHIF, ceilings) | Backend     | -                       |
+| 3    | Review claim                                     | Committee   | `reviewed`              |
+| 4    | Approve or reject                                | Committee   | `approved` / `rejected` |
+| 5    | Update payable calculations                      | Backend     |                         |
+| 6    | Notify member                                    | System      | Notification sent       |
+| 7    | Pay claim                                        | Admin       | `paid`                  |
+| 8    | Log event                                        | System      | Audit log entry         |
 
 ---
 
-## License
+## 🧮 9️⃣ Key Backend Rules Enforced by API
 
-MIT — see LICENSE.
+| Rule                        | Description                                         |
+| --------------------------- | --------------------------------------------------- |
+| **Waiting Period**          | 60 days before first claim eligibility              |
+| **Claim Submission Window** | Must be submitted within 90 days of discharge/visit |
+| **Annual Benefit Cap**      | Max 250,000 per member/year                         |
+| **Critical Illness Top-up** | +200,000 for qualifying critical conditions         |
+| **Fund Share Ratio**        | 80% fund / 20% member (varies by category)          |
+| **Discretionary Override**  | Up to 150,000, by committee                         |
+| **Exclusions**              | Cosmetic, infertility, etc. (manually flagged)      |
+| **Notifications**           | Sent automatically on every claim status change     |
+
+---
+
+## 🧠 10️⃣ Frontend Developer Focus Points
+
+| Area                    | Responsibility                                      | Notes                                          |
+| ----------------------- | --------------------------------------------------- | ---------------------------------------------- |
+| **Authentication Flow** | Build login, logout, session persistence            | Backend uses session-based cookies             |
+| **Role Detection**      | Identify role from `/api/members/` or user endpoint | Redirect dashboard accordingly                 |
+| **Forms**               | Build modular claim and chronic request forms       | Validation & dynamic lists (e.g., claim items) |
+| **File Uploads**        | Connect to `/api/claim-attachments/`                | Support multiple files                         |
+| **Data Fetching**       | Centralized Axios API handler                       | Handle 401 → redirect to login                 |
+| **UI State**            | Use React Context or Zustand                        | For notifications & current user               |
+| **Routing**             | React Router 6                                      | Protect routes by role                         |
+| **Design**              | Use Tailwind or ShadCN                              | Match SGSS theme (blue/gold/white)             |
+| **Error Handling**      | Surface Django validation errors cleanly            | e.g. 400 messages on claim form                |
+
+---
+
+## 🧑‍💻 11️⃣ Team Collaboration Workflow
+
+| Step | Who          | Description                                           |
+| ---- | ------------ | ----------------------------------------------------- |
+| 1    | Abraham      | Maintains backend API, data logic, and endpoint specs |
+| 2    | Frontend Dev | Builds UI, integrates REST endpoints                  |
+| 3    | Both         | Test flows together in dev environment                |
+| 4    | Abraham      | Approves PRs or merges after backend sync             |
+| 5    | Both         | QA: ensure claims and notifications flow end-to-end   |
+| 6    | Abraham      | Handles deployment of backend and frontend builds     |
+
+---
+
+## 🚀 12️⃣ Build & Deployment Notes
+
+**Local Development**
+
+* Backend: `python manage.py runserver`
+* Frontend: `npm run dev`
+* Access API via: `http://localhost:8000/api/`
+* Access frontend via: `http://localhost:5173/`
+
+**Production Plan**
+
+* Backend: deploy to VPS or Render/Supabase
+* Frontend: deploy to Vercel or Netlify
+* Media storage: migrate `/media/` → AWS S3 or Supabase Storage
+
+---
+
+## ✅ Final Recap
+
+The **Frontend Developer’s primary goals** are:
+
+1. Implement **role-based dashboards**.
+2. Build **data-driven components** consuming REST APIs.
+3. Enable **file uploads**, **form validation**, and **notifications**.
+4. Maintain **clean modular structure** — you’ll define your own boilerplate.
+5. Ensure the **system’s workflow mirrors real SGSS operations** as above.
+
+---
+
+Would you like me to generate this same documentation as a **Markdown file (`FRONTEND_WORKFLOW.md`)** that you can drop into your repo for your collaborator to read directly on GitHub?

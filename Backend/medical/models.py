@@ -1,6 +1,6 @@
 # medical/models.py
 from __future__ import annotations
-from django.db import models
+from django.db import models,transaction
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -134,94 +134,84 @@ class Claim(models.Model):
         if self.member and not self.member.is_active_for_claims():
             raise ValidationError("Membership waiting period (60 days) not satisfied or membership expired.")
 
+    @transaction.atomic
     def recalc_total(self):
+        """Safely recompute claim total."""
         total = (
             self.items.aggregate(sum=models.Sum(models.F('amount') * models.F('quantity')))['sum']
             or 0
         )
         self.total_claimed = total
-        self.save(update_fields=['total_claimed'])
+        super().save(update_fields=['total_claimed'])
 
-    def compute_payable(self):
-        """
-        Python port of your SQL compute_claim_payable with:
-        - reimbursement scale detection
-        - clinic outpatient 100% rule for 'Siri Guru Nanak Clinic'
-        - NHIF/other insurance deductions
-        - ceiling & annual membership limit enforcement
-        - discretionary override
-        """
-        # Discretionary override wins
+    @transaction.atomic
+    def compute_payable(self, skip_save=False):
+        """Fully transaction-safe computation for claims."""
+        from .models import ReimbursementScale, Setting  # safe local import
+
+        # If override exists
         if self.override_amount is not None:
             self.total_payable = self.override_amount
             self.member_payable = max(0, float(self.total_claimed) - float(self.override_amount))
-            self.save(update_fields=['total_payable', 'member_payable'])
+            if not skip_save:
+                super().save(update_fields=['total_payable', 'member_payable'])
             return
 
         # Exclusions — full amount to member
         if self.excluded:
             self.total_payable = 0
             self.member_payable = self.total_claimed
-            self.save(update_fields=['total_payable', 'member_payable'])
+            if not skip_save:
+                super().save(update_fields=['total_payable', 'member_payable'])
             return
 
-        # Settings and scales
         general = Setting.get('general_limits', {
             "annual_limit": 250000,
             "critical_addon": 200000,
             "fund_share_percent": 80,
             "clinic_outpatient_percent": 100
         })
-        scales_qs = ReimbursementScale.objects.all()
-        scale = None
-        for s in scales_qs:
-            if s.category.lower() == (self.claim_type or '').lower():
-                scale = s
-                break
 
+        scale = ReimbursementScale.objects.filter(category__iexact=self.claim_type).first()
         fund_share_percent = float(scale.fund_share) if scale else float(general.get('fund_share_percent', 80))
         ceiling = float(scale.ceiling) if scale else float(general.get('annual_limit', 50000))
 
-        # 100% clinic rule
+        # 100% outpatient rule
         clinic_percent = float(general.get('clinic_outpatient_percent', 100))
-        notes_lower = (self.notes or '').lower()
-        if (self.claim_type or '').lower() == 'outpatient' and clinic_percent == 100 and 'siri guru nanak clinic' in notes_lower:
-            fund_share_amount = float(self.total_claimed)
+        if self.claim_type.lower() == 'outpatient' and 'siri guru nanak clinic' in (self.notes or '').lower():
+            fund_share_amount = float(self.total_claimed) * (clinic_percent / 100)
         else:
             fund_share_amount = float(self.total_claimed) * (fund_share_percent / 100.0)
 
-        nhif_amount = 0.0
-        other_ins = 0.0
-        if self.nhif_number:
-            nhif_amount = float((self.other_insurance or {}).get('nhif', 0))
+        nhif_amount = float((self.other_insurance or {}).get('nhif', 0))
         other_ins = float((self.other_insurance or {}).get('other', 0))
 
-        fund_share_amount = max(0.0, fund_share_amount - nhif_amount - other_ins)
+        fund_share_amount = max(0, fund_share_amount - nhif_amount - other_ins)
         member_share_amount = float(self.total_claimed) - fund_share_amount - nhif_amount - other_ins
 
-        # ceiling enforcement
+        # Apply ceilings
         if fund_share_amount > ceiling:
             fund_share_amount = ceiling
             member_share_amount = float(self.total_claimed) - fund_share_amount - nhif_amount - other_ins
 
-        # annual membership limit enforcement
-        membership_limit = None
-        if self.member and self.member.membership_type:
-            membership_limit = float(self.member.membership_type.annual_limit or 0)
-
-        if membership_limit and membership_limit > 0:
-            year = timezone.now().year
-            spent = (Claim.objects
-                     .filter(member=self.member, created_at__year=year)
-                     .aggregate(sum=models.Sum('total_payable'))['sum'] or 0.0)
-            spent = float(spent)
-            if spent + fund_share_amount > membership_limit:
-                fund_share_amount = max(0.0, membership_limit - spent)
-                member_share_amount = float(self.total_claimed) - fund_share_amount - nhif_amount - other_ins
+        # Annual membership limit
+        membership_limit = float(self.member.membership_type.annual_limit or 0)
+        year = timezone.now().year
+        spent = (
+            Claim.objects.filter(member=self.member, created_at__year=year)
+            .exclude(pk=self.pk)
+            .aggregate(sum=models.Sum('total_payable'))['sum'] or 0
+        )
+        spent = float(spent)
+        if spent + fund_share_amount > membership_limit:
+            fund_share_amount = max(0, membership_limit - spent)
+            member_share_amount = float(self.total_claimed) - fund_share_amount - nhif_amount - other_ins
 
         self.total_payable = fund_share_amount
         self.member_payable = member_share_amount
-        self.save(update_fields=['total_payable', 'member_payable'])
+
+        if not skip_save:
+            super().save(update_fields=['total_payable', 'member_payable'])
 
     def __str__(self):
         return f"Claim {self.id} ({self.status})"
@@ -289,3 +279,25 @@ class AuditLog(models.Model):
     action = models.CharField(max_length=100)  # e.g. "claims:INSERT"
     meta = models.JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class ChronicRequest(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='chronic_requests')
+    doctor_name = models.CharField(max_length=150)
+    medicines = models.JSONField(default=list)  # [{"name":"Metformin","strength":"500mg","dosage":"2x daily","duration":"30 days"}]
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    member_payable = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, default='pending', choices=[
+        ('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')
+    ])
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class ClaimAttachment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    claim = models.ForeignKey(Claim, on_delete=models.CASCADE, related_name='attachments')
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    file = models.FileField(upload_to='claim_attachments/')
+    content_type = models.CharField(max_length=100, blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)

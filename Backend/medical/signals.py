@@ -3,6 +3,7 @@ from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from .models import Claim, ClaimItem, ClaimReview, Notification, AuditLog, Member
+from django.contrib.auth.models import Group
 
 User = get_user_model()
 
@@ -28,41 +29,44 @@ def item_changed(sender, instance, **kwargs):
     _audit(None, 'claim_items:UPSERT/DELETE', {'claim_id': str(claim.id)})
 
 
-# --- Claim save: auto-submitted_at + payable recompute + exclusions from notes/categories
-@receiver(pre_save, sender=Claim)
-def claim_pre_save(sender, instance: Claim, **kwargs):
-    # If moving to submitted, set submitted_at
-    if instance.status == 'submitted' and instance.submitted_at is None:
-        from django.utils import timezone
-        instance.submitted_at = timezone.now()
-
-    # Autoflag exclusions from notes/items
-    notes = (instance.notes or '').lower()
-    exclusion_terms = ['cosmetic', 'infertility', 'nature cure']
-    excluded = any(term in notes for term in exclusion_terms)
-
-    # Also check items (after save signal we recompute again, but pre-save flag is fine)
-    if instance.pk:
-        for it in instance.items.all():
-            if (it.category or '').lower() in ('cosmetic', 'transport', 'mortuary', 'infertility'):
-                excluded = True
-                break
-    instance.excluded = excluded
-
+# --- Claim save: auto-submitted_at + payable recompute + notifications ---
+from django.db.models.signals import post_save
+from django.db import connection
 
 @receiver(post_save, sender=Claim)
 def claim_saved(sender, instance: Claim, created, **kwargs):
-    # Recompute payable
-    instance.compute_payable()
+    """
+    Handles recalculation and notifications safely, avoiding recursion.
+    """
+    # Prevent recursion by temporarily disabling this signal
+    post_save.disconnect(claim_saved, sender=Claim)
+    try:
+        # Compute totals without re-triggering the signal
+        instance.compute_payable()
 
-    # Notify member on submit/status change
-    member_user = instance.member.user if instance.member else None
-    if created and instance.status == 'submitted' and member_user:
-        _notify(member_user, 'Claim Submitted', f'Your claim {instance.id} has been submitted.', f'/claims/{instance.id}', 'claim')
-    elif not created and member_user:
-        _notify(member_user, 'Claim Update', f'Your claim {instance.id} is now {instance.status}.', f'/claims/{instance.id}', 'claim')
+        # Notify member on creation/status change
+        member_user = instance.member.user if instance.member else None
+        if created and instance.status == 'submitted' and member_user:
+            _notify(
+                member_user,
+                'Claim Submitted',
+                f'Your claim {instance.id} has been submitted.',
+                f'/claims/{instance.id}',
+                'claim'
+            )
+        elif not created and member_user:
+            _notify(
+                member_user,
+                'Claim Update',
+                f'Your claim {instance.id} is now {instance.status}.',
+                f'/claims/{instance.id}',
+                'claim'
+            )
 
-    _audit(None, 'claims:UPSERT', {'id': str(instance.id), 'status': instance.status})
+        _audit(None, 'claims:UPSERT', {'id': str(instance.id), 'status': instance.status})
+    finally:
+        # Always reconnect after execution
+        post_save.connect(claim_saved, sender=Claim)
 
 
 # --- Claim reviews -> update claim status + notifications + audit
@@ -88,3 +92,13 @@ def review_saved(sender, instance: ClaimReview, created, **kwargs):
         _notify(member_user, 'Claim Reviewed', f'Your claim {claim.id} was {instance.action}.', f'/claims/{claim.id}', 'claim', instance.reviewer)
 
     _audit(instance.reviewer, 'claim_reviews:INSERT', {'claim_id': str(claim.id), 'action': instance.action})
+
+
+@receiver(post_save, sender=User)
+def ensure_user_groups(sender, instance, created, **kwargs):
+    if not created:
+        return
+    if instance.is_superuser:
+        instance.groups.add(Group.objects.get_or_create(name='Admin')[0])
+    else:
+        instance.groups.add(Group.objects.get_or_create(name='Member')[0])

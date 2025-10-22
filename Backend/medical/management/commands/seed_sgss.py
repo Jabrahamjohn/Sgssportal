@@ -16,7 +16,7 @@ class Command(BaseCommand):
             Group.objects.get_or_create(name=g)
 
         # users
-        admin, _ = User.objects.get_or_create(username="admin@sgss.com", defaults={"email":"admin@sgss.com"})
+        admin, _ = User.objects.get_or_create(username="admin@sgss.com" , defaults={"email":"admin@sgss.com"})
         committee, _ = User.objects.get_or_create(username="committee@sgss.com", defaults={"email":"committee@sgss.com"})
         member_user, _ = User.objects.get_or_create(username="member@sgss.com", defaults={"email":"member@sgss.com"})
 

@@ -1,10 +1,3 @@
-Perfect move, Abraham 🙌 — a **developer-friendly README.md** is exactly what your backend needs before handing it to teammates, auditors, or committee reviewers.
-
-Here’s your **ready-to-paste, production-grade README** for
-📁 `SGSSPORTAL/Backend/README.md` 👇
-
----
-
 # 🏥 SGSS Medical Fund — Backend (Django REST Framework)
 
 A secure, bylaws-compliant backend API for the **Siri Guru Singh Sabha Medical Fund (SGSS Mombasa)**.
@@ -185,13 +178,8 @@ Default Users:
 
 ## 👨‍💻 Maintainer
 
-**Abraham John**
-Software Engineer, Fullstack Developer, Security Analyst
-📍 Mombasa, Kenya
-📧 [jabrahamjohns@gmail.com](mailto:jabrahamjohns@gmail.com)
+**Abraham John**  
+Software Engineer, Fullstack Developer, Security Analyst  
+📍 Mombasa, Kenya  
+📧 [jabrahamjohns@gmail.com](mailto:jabrahamjohns@gmail.com)  
 🔗 [LinkedIn](https://www.linkedin.com/in/jabrahamjohns)
-
----
-
-Would you like me to also generate a **`requirements.txt`** file (pinned with exact package versions from your environment) to complete the setup docs?
-That’ll make deployment or CI/CD seamless.

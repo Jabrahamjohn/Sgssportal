@@ -2,9 +2,9 @@ name: SGSS Backend CI
 
 on:
   push:
-    branches: [ main, backend ]
+    branches: [ main, Backend ]
   pull_request:
-    branches: [ main, backend ]
+    branches: [ main, Backend ]
 
 jobs:
   build:
@@ -40,15 +40,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd backend
+          cd Backend
           pip install -r requirements.txt
 
       - name: Run migrations
         run: |
-          cd backend
+          cd Backend
           python manage.py migrate
 
       - name: Run tests
         run: |
-          cd backend
+          cd Backend
           python manage.py test

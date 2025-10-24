@@ -1,53 +1,58 @@
-import { Button, Form, Input, InputPassword } from '~/components/controls';
-import { useAuthContext } from '~/store/contexts';
-import { useLoginMutation } from '~/store/queries/auth';
-import type { FormRule } from '~/types';
-import { handleAllErrors } from '~/utils/errors';
-
-const defaultRules = [{ required: true, message: 'This field is required.' }];
-const rules: Record<string, FormRule[]> = {
-  email: [...defaultRules, { type: 'email', message: 'Email address is invalid.' }],
-  password: [...defaultRules],
-};
+import React, { useState } from 'react';
+import { useAuth } from '../../store/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
-  const { login } = useAuthContext();
+  const { login } = useAuth();
+  const nav = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
 
-  const [form] = Form.useForm();
-
-  const {
-    mutate: onSubmit,
-    error: loginError,
-    isPending: loading,
-  } = useLoginMutation({
-    onSuccess(response) {
-      login(response.data);
-    },
-  });
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr('');
+    setBusy(true);
+    try {
+      await login(email, password);
+      nav('/'); // guard will redirect by role
+    } catch (e: any) {
+      setErr(e?.response?.data?.detail || 'Login failed');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
-    <Form
-      error={handleAllErrors(loginError)?.data}
-      form={form}
-      name="login-form"
-      onFinish={(values) => (onSubmit ? onSubmit(values) : undefined)}
-      className="space-y-3 p-4 max-w-md mx-auto pt-20"
-      disabled={loading}
-    >
-      <h1>Login</h1>
-      <Form.Item name="email" rules={rules.email}>
-        <Input placeholder="Enter your email" size="large" />
-      </Form.Item>
-
-      <Form.Item name="password" rules={rules.password}>
-        <InputPassword placeholder="Enter your password" size="large" />
-      </Form.Item>
-
-      <div className="pt-3">
-        <Button block loading={loading} size="large" type="primary">
-          {loading ? 'Signing in...' : 'Login'}
-        </Button>
-      </div>
-    </Form>
+    <div className="min-h-screen grid place-items-center">
+      <form onSubmit={onSubmit} className="w-full max-w-sm p-6 border rounded-lg bg-white">
+        <h1 className="text-xl font-semibold mb-4">Sign in</h1>
+        <div className="space-y-3">
+          <input
+            className="w-full border rounded px-3 py-2"
+            placeholder="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            className="w-full border rounded px-3 py-2"
+            placeholder="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {err && <div className="text-red-600 text-sm">{err}</div>}
+          <button
+            type="submit"
+            className="w-full py-2 rounded bg-black text-white disabled:opacity-50"
+            disabled={busy}
+          >
+            {busy ? 'Signing in…' : 'Sign in'}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

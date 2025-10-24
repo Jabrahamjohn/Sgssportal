@@ -1,74 +1,74 @@
-import {
-  createBrowserRouter,
-  ScrollRestoration,
-  Outlet,
-  type RouteObject,
-} from 'react-router-dom';
-
-import * as pageRoutes from './config/routes';
-
-// External
-import HomePage from './pages/external';
-
-// Onboarding and Registration
-
-// Dashboard
-import DashboardPage from './pages/dashboard';
-
-// Others
-import ErrorPage from './pages/error';
-import NotFoundPage from './pages/404';
-
-// Protections
-import CheckAuth from './layout/protections/check-auth';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Unauthenticated from './layout/protections/unauthenticated';
 import Authenticated from './layout/protections/authenticated';
-import NotAuthenticated from './layout/protections/unauthenticated';
 
-const routes: RouteObject[] = [
-  {
-    element: (
-      <>
-        <CheckAuth>
-          <Outlet />
-        </CheckAuth>
-        <ScrollRestoration />
-      </>
-    ),
-    errorElement: <ErrorPage />,
-    children: [
-      {
-        element: (
-          <NotAuthenticated>
-            <Outlet />
-          </NotAuthenticated>
-        ),
-        children: [
-          // External Pages
-          { path: pageRoutes.HOME_PAGE, element: <HomePage /> },
-          // Onboarding and Registration
-        ],
-      },
-      {
-        element: (
-          <Authenticated>
-            <Outlet />
-          </Authenticated>
-        ),
-        children: [
-          {
-            path: pageRoutes.DASHBOARD_PAGE,
-            element: <DashboardPage />,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    path: '*',
-    element: <NotFoundPage />,
-  },
-];
+import Login from './containers/auth/login';
+import AppLayout from './layout';
+import MemberDashboard from './pages/dashboard/member';
+import ClaimsList from './pages/dashboard/member/claims';
+import NewClaim from './pages/dashboard/member/claims-new';
+import ChronicPage from './pages/dashboard/member/chronic';
+import CommitteeDashboard from './pages/dashboard/committee';
+import AdminDashboard from './pages/dashboard/admin';
+import AdminSettings from './pages/dashboard/admin/settings';
+import NotFound from './pages/404';
 
-const router = createBrowserRouter(routes);
+export default function AppRouter() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            <Unauthenticated>
+              <Login />
+            </Unauthenticated>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <Authenticated>
+              <AppLayout />
+            </Authenticated>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard/member" replace />} />
+          <Route path="dashboard/member" element={<MemberDashboard />} />
+          <Route path="dashboard/member/claims" element={<ClaimsList />} />
+          <Route path="dashboard/member/claims/new" element={<NewClaim />} />
+          <Route path="dashboard/member/chronic" element={<ChronicPage />} />
 
-export default router;
+          <Route
+            path="dashboard/committee"
+            element={
+              <Authenticated roles={['committee', 'admin']}>
+                <CommitteeDashboard />
+              </Authenticated>
+            }
+          />
+
+          <Route
+            path="dashboard/admin"
+            element={
+              <Authenticated roles={['admin']}>
+                <AdminDashboard />
+              </Authenticated>
+            }
+          />
+          <Route
+            path="dashboard/admin/settings"
+            element={
+              <Authenticated roles={['admin']}>
+                <AdminSettings />
+              </Authenticated>
+            }
+          />
+        </Route>
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}

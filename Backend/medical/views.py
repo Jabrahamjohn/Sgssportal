@@ -202,14 +202,32 @@ class ReimbursementScaleViewSet(viewsets.ModelViewSet):
     serializer_class = ReimbursementScaleSerializer
     permission_classes = [permissions.IsAuthenticated, IsCommittee]
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me(request):
+    """Return basic info for logged-in user"""
     user = request.user
     return Response({
         "id": user.id,
-        "username": user.username,
         "email": user.email,
-        "groups": list(user.groups.values_list('name', flat=True))
+        "role": getattr(user, "role", "member"),
+        "groups": list(user.groups.values_list("name", flat=True)),
+        "full_name": f"{user.first_name} {user.last_name}".strip() or user.username,
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_member(request):
+    """Return the current user's membership info"""
+    try:
+        member = Member.objects.get(user=request.user)
+        return Response({
+            "id": member.id,
+            "nhif_number": member.nhif_number,
+            "membership_type": member.membership_type.name if member.membership_type else None,
+            "valid_from": member.valid_from,
+            "valid_to": member.valid_to,
+        })
+    except Member.DoesNotExist:
+        return Response({"detail": "Not registered as member."}, status=404)

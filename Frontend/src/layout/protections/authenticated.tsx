@@ -1,12 +1,11 @@
 import React from 'react';
-
+import { useAuth } from '~/store/contexts/AuthContext';
 import Layout from '../index';
-import { useAuthContext } from '../../store/contexts';
 import Dynamic from '../../utils/components/dynamic';
 import SplashScreen from '../../utils/components/splash-screen';
 
 const Authenticated = ({ children }: { children: React.ReactNode }) => {
-	const { auth: isAuthenticated, loading: isLoading } = useAuthContext();
+	const { auth: isAuthenticated, loading: isLoading } = useAuth();
 
 	if (isLoading === false && isAuthenticated)
 		return (

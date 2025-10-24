@@ -1,7 +1,10 @@
+# Backend/sgss_medical_fund/urls.py
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from rest_framework.authtoken import views as drf_views
+from medical import views as medical_views
 
 # Swagger imports
 from rest_framework import permissions
@@ -29,6 +32,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('medical.auth_urls')),
     path('api/', include('medical.urls')),
+    path('api/auth/me/', medical_views.me,),
+    path('api/auth/token/', include('rest_framework.authtoken.urls')),
+    path('api/auth/logout/', medical_views.logout_view),
 
     # --- Swagger / ReDoc documentation ---
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),

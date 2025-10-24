@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db import transaction
 from django.utils import timezone
+from django.contri.auth import login, logout
 
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview,
@@ -258,3 +259,10 @@ def my_member(request):
         })
     except Member.DoesNotExist:
         return Response({"detail": "Not registered as member."}, status=404)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    """Log out the current user"""
+    logout(request)
+    return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)

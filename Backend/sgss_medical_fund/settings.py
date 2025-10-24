@@ -1,3 +1,4 @@
+# Backend/sgss_medical_fund/settings.py
 """
 Django settings for sgss_medical_fund project.
 
@@ -63,7 +64,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
 CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]
 ROOT_URLCONF = 'sgss_medical_fund.urls'
 
@@ -100,7 +101,7 @@ AUTH_USER_MODEL = 'auth.user'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        #'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
@@ -155,9 +156,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': True,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-}
+#SIMPLE_JWT = {
+ #  'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+ #   'ROTATE_REFRESH_TOKENS': True,
+ #   'AUTH_HEADER_TYPES': ('Bearer',),
+#}

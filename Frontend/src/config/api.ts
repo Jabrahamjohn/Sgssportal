@@ -1,11 +1,14 @@
+// Frontend/src/config/api.ts
 import axios from 'axios';
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/',
-  withCredentials: true, // Django session cookies
+  withCredentials: true,
+  xsrfCookieName: 'csrftoken',
+  xsrfHeaderName: 'X-CSRFToken',
 });
 
-// (optional) minimal interceptor for 401 → redirect to login
+// Global 401 handler
 api.interceptors.response.use(
   (r) => r,
   (err) => {
@@ -17,3 +20,5 @@ api.interceptors.response.use(
     return Promise.reject(err);
   }
 );
+
+export default api;

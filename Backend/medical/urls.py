@@ -2,6 +2,9 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
+# ============================================================
+# Router for all ViewSets (Auto-generates REST endpoints)
+# ============================================================
 router = DefaultRouter()
 router.register(r'memberships', views.MembershipTypeViewSet, basename='membership-types')
 router.register(r'members', views.MemberViewSet, basename='members')
@@ -14,8 +17,16 @@ router.register(r'notifications', views.NotificationViewSet, basename='notificat
 router.register(r'settings', views.SettingViewSet, basename='settings')
 router.register(r'reimbursement-scales', views.ReimbursementScaleViewSet, basename='reimbursement-scales')
 
+# ============================================================
+# Manual Endpoints (Non-ViewSet)
+# ============================================================
 urlpatterns = [
-    path('auth/me/', views.me),
-    path('members/me/', views.my_member),  # ✅ fixed name
+    # 🔐 Authentication-related user info
+    path('auth/me/', views.me, name='me'),
+
+    # 👤 Member-specific info (current logged-in user)
+    path('members/me/', views.my_member, name='my-member'),
+
+    # 🌍 Include all router-based endpoints
     path('', include(router.urls)),
 ]

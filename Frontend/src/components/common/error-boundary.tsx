@@ -1,3 +1,4 @@
+// Frontend/src/components/common/error-boundary.tsx
 import React from 'react';
 
 import { AppImage, Button, Link } from '../../components/controls';
@@ -62,7 +63,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 							<Button>Go Back Home</Button>
 						</Link>
 					</div>
-					<div className="h-px w-px" />
+					<div className="text-center mt-20">⚠️ Something went wrong. Please reload.</div>
 				</div>
 			);
 		}

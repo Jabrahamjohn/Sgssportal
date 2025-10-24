@@ -64,6 +64,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
+CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]
 ROOT_URLCONF = 'sgss_medical_fund.urls'
 
 TEMPLATES = [

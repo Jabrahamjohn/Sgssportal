@@ -1,11 +1,10 @@
 # Backend/medical/views.py
-from rest_framework import viewsets, mixins, permissions, status
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db import transaction
 from django.utils import timezone
-from django.shortcuts import get_object_or_404
 
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview,
@@ -19,15 +18,16 @@ from .serializers import (
 from .permissions import IsSelfOrAdmin, IsClaimOwnerOrCommittee, IsCommittee, IsAdmin
 
 
-# --------- MembershipType ----------
+# ============================================================
+#                MEMBERSHIP MANAGEMENT
+# ============================================================
+
 class MembershipTypeViewSet(viewsets.ModelViewSet):
     queryset = MembershipType.objects.all().order_by("name")
     serializer_class = MembershipTypeSerializer
-    permission_classes = [permissions.IsAuthenticated, IsCommittee]  # read/write by committee/admin
-    http_method_names = ["get", "post", "put", "patch", "delete"]
+    permission_classes = [permissions.IsAuthenticated, IsCommittee]
 
 
-# --------- Member ----------
 class MemberViewSet(viewsets.ModelViewSet):
     queryset = Member.objects.select_related("user", "membership_type").all()
     serializer_class = MemberSerializer
@@ -41,30 +41,30 @@ class MemberViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
 
-# --------- Claim ----------
+# ============================================================
+#                CLAIMS MANAGEMENT
+# ============================================================
+
 class ClaimViewSet(viewsets.ModelViewSet):
-    queryset = Claim.objects.select_related("member__user", "member__membership_type").prefetch_related("items", "attachments")
+    queryset = Claim.objects.select_related(
+        "member__user", "member__membership_type"
+    ).prefetch_related("items", "attachments")
     serializer_class = ClaimSerializer
     permission_classes = [permissions.IsAuthenticated, IsClaimOwnerOrCommittee]
 
     def get_queryset(self):
         qs = super().get_queryset()
-        # members see their claims; committee/admin see all
         user = self.request.user
-        if user.is_superuser:
-            return qs
-        if user.groups.filter(name__in=["Admin", "Committee"]).exists():
+        if user.is_superuser or user.groups.filter(name__in=["Admin", "Committee"]).exists():
             return qs
         return qs.filter(member__user=user)
 
     @transaction.atomic
     def perform_create(self, serializer):
         claim = serializer.save()
-        # mark submitted_at if status == submitted
         if claim.status == "submitted" and claim.submitted_at is None:
             claim.submitted_at = timezone.now()
             claim.save(update_fields=["submitted_at"])
-        # compute totals
         claim.recalc_total()
         claim.compute_payable()
 
@@ -89,7 +89,10 @@ class ClaimViewSet(viewsets.ModelViewSet):
         return Response(ClaimSerializer(claim).data)
 
 
-# --------- ClaimItem ----------
+# ============================================================
+#                CLAIM ITEMS MANAGEMENT
+# ============================================================
+
 class ClaimItemViewSet(viewsets.ModelViewSet):
     queryset = ClaimItem.objects.select_related("claim", "claim__member__user")
     serializer_class = ClaimItemSerializer
@@ -112,7 +115,10 @@ class ClaimItemViewSet(viewsets.ModelViewSet):
         claim.compute_payable()
 
 
-# --------- ClaimReview ----------
+# ============================================================
+#                CLAIM REVIEW PROCESS
+# ============================================================
+
 class ClaimReviewViewSet(viewsets.ModelViewSet):
     queryset = ClaimReview.objects.select_related("claim", "reviewer")
     serializer_class = ClaimReviewSerializer
@@ -120,7 +126,6 @@ class ClaimReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         review = serializer.save(reviewer=self.request.user)
-        # update claim status according to action
         claim = review.claim
         if review.action == "approved":
             claim.status = "approved"
@@ -130,24 +135,30 @@ class ClaimReviewViewSet(viewsets.ModelViewSet):
             claim.status = "paid"
         elif review.action == "reviewed":
             claim.status = "reviewed"
-
         claim.save(update_fields=["status"])
         claim.compute_payable()
 
 
-# --------- ClaimAttachment ----------
+# ============================================================
+#                CLAIM ATTACHMENTS
+# ============================================================
+
 class ClaimAttachmentViewSet(viewsets.ModelViewSet):
-    queryset = ClaimAttachment.objects.select_related("claim", "claim__member__user", "uploaded_by")
+    queryset = ClaimAttachment.objects.select_related(
+        "claim", "claim__member__user", "uploaded_by"
+    )
     serializer_class = ClaimAttachmentSerializer
     permission_classes = [permissions.IsAuthenticated, IsClaimOwnerOrCommittee]
-    http_method_names = ["get", "post", "delete"]  # update isn't needed for files
+    http_method_names = ["get", "post", "delete"]
 
     def perform_create(self, serializer):
-        attachment = serializer.save(uploaded_by=self.request.user)
-        # nothing to recompute, but could validate file type if needed
+        serializer.save(uploaded_by=self.request.user)
 
 
-# --------- Chronic Requests ----------
+# ============================================================
+#                CHRONIC ILLNESS REQUESTS
+# ============================================================
+
 class ChronicRequestViewSet(viewsets.ModelViewSet):
     queryset = ChronicRequest.objects.select_related("member__user").all()
     serializer_class = ChronicRequestSerializer
@@ -174,7 +185,10 @@ class ChronicRequestViewSet(viewsets.ModelViewSet):
         return Response(ChronicRequestSerializer(cr).data)
 
 
-# --------- Notifications (current user) ----------
+# ============================================================
+#                NOTIFICATIONS
+# ============================================================
+
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -190,7 +204,10 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         return Response({"status": "marked"})
 
 
-# --------- Settings & Reimbursement (admin/committee) ----------
+# ============================================================
+#                SETTINGS & REIMBURSEMENT
+# ============================================================
+
 class SettingViewSet(viewsets.ModelViewSet):
     queryset = Setting.objects.all()
     serializer_class = SettingSerializer
@@ -202,24 +219,34 @@ class ReimbursementScaleViewSet(viewsets.ModelViewSet):
     serializer_class = ReimbursementScaleSerializer
     permission_classes = [permissions.IsAuthenticated, IsCommittee]
 
+
+# ============================================================
+#                USER & MEMBER INFO
+# ============================================================
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me(request):
-    """Return basic info for logged-in user"""
     user = request.user
+    try:
+        groups = list(user.groups.values_list("name", flat=True))
+    except Exception:
+        groups = []
+
     return Response({
         "id": user.id,
-        "email": user.email,
-        "role": getattr(user, "role", "member"),
-        "groups": list(user.groups.values_list("name", flat=True)),
-        "full_name": f"{user.first_name} {user.last_name}".strip() or user.username,
+        "email": getattr(user, "email", ""),
+        "username": getattr(user, "username", ""),
+        "role": getattr(user, "role", None) or (groups[0] if groups else "member"),
+        "groups": groups,
+        "full_name": f"{getattr(user, 'first_name', '')} {getattr(user, 'last_name', '')}".strip() or user.username,
     })
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_member(request):
-    """Return the current user's membership info"""
+    """Return membership info for the logged-in user"""
     try:
         member = Member.objects.get(user=request.user)
         return Response({

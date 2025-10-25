@@ -33,7 +33,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # --- Authentication ---
-    path("api/auth/login/", auth_views.LoginView.as_view(), name="login"),
+    path("api/auth/login/", medical_views.login_view, name="login"),
     path("api/auth/logout/", medical_views.logout_view, name="logout"),
     path("api/auth/me/", medical_views.me, name="me"),
 
@@ -41,7 +41,7 @@ urlpatterns = [
     path('api/', include('medical.urls')),
 
     # --- Optional DRF token auth (for later mobile use) ---
-    path('api/auth/token/', include('rest_framework.authtoken.urls')),
+    # path('api/auth/token/', include('rest_framework.authtoken.urls')),
 
     # --- Swagger / ReDoc ---
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),

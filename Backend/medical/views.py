@@ -1,11 +1,11 @@
 # Backend/medical/views.py
+from django.contrib.auth import authenticate, login, logout
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.db import transaction
 from django.utils import timezone
-from django.contri.auth import login, logout
 
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview,
@@ -228,6 +228,7 @@ class ReimbursementScaleViewSet(viewsets.ModelViewSet):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me(request):
+    """Return info about the logged-in user"""
     user = request.user
     try:
         groups = list(user.groups.values_list("name", flat=True))
@@ -236,11 +237,12 @@ def me(request):
 
     return Response({
         "id": user.id,
-        "email": getattr(user, "email", ""),
-        "username": getattr(user, "username", ""),
-        "role": getattr(user, "role", None) or (groups[0] if groups else "member"),
+        "username": user.username,
+        "email": user.email,
+        "full_name": f"{user.first_name} {user.last_name}".strip() or user.username,
+        "role": groups[0] if groups else "member",
         "groups": groups,
-        "full_name": f"{getattr(user, 'first_name', '')} {getattr(user, 'last_name', '')}".strip() or user.username,
+        "is_superuser": user.is_superuser,
     })
 
 
@@ -260,9 +262,27 @@ def my_member(request):
     except Member.DoesNotExist:
         return Response({"detail": "Not registered as member."}, status=404)
 
-@api_view(['POST'])
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def login_view(request):
+    """JSON-based login endpoint for frontend."""
+    username = request.data.get("username")
+    password = request.data.get("password")
+
+    if not username or not password:
+        return Response({"detail": "Username and password are required."},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        login(request, user)
+        return Response({"detail": "Login successful."}, status=status.HTTP_200_OK)
+    else:
+        return Response({"detail": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
-    """Log out the current user"""
     logout(request)
-    return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
+    return Response({"detail": "Logged out successfully."}, status=status.HTTP_200_OK)

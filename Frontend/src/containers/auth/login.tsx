@@ -1,33 +1,46 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "~/store/contexts/AuthContext";
-import { Button, Input, Alert, Spin } from "~/components/controls";
+import { Button, Input, Alert, Spin, AppImage } from "~/components/controls";
 import { APP_NAME, LOGO_IMAGE } from "~/config";
-import { AppImage } from "~/components/controls";
+import { useEffect } from "react";
 
-const Login: React.FC = () => {
-  const { login } = useAuth();
+export default function Login() {
+  const { login, auth, loading } = useAuth();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      const role = auth.role || "member";
+      if (role === "admin") navigate("/dashboard/admin");
+      else if (role === "committee") navigate("/dashboard/committee");
+      else navigate("/dashboard/member");
+    }
+  }, [auth.isAuthenticated, auth.role, navigate]);
+
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
+    setError("");
+
     try {
-      await login(email, password);
-      navigate("/dashboard/member", { replace: true });
+      await login(username, password);
+
+      // use updated auth after refresh
+      const role = auth?.role || "member";
+
+      if (role === "admin") navigate("/dashboard/admin");
+      else if (role === "committee") navigate("/dashboard/committee");
+      else navigate("/dashboard/member");
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.detail ||
-        "Invalid email or password. Please try again.";
-      setError(msg);
-    } finally {
-      setLoading(false);
+      const message =
+        err.response?.data?.detail ||
+        err.response?.data?.non_field_errors?.[0] ||
+        "Invalid username or password.";
+      setError(message);
     }
   };
 
@@ -45,49 +58,36 @@ const Login: React.FC = () => {
           </h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <h2 className="text-2xl font-semibold mb-4 text-center">
+            Member Login
+          </h2>
+
           {error && <Alert type="error" message={error} />}
 
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Email or Username
-            </label>
-            <Input
-              id="email"
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-            />
-          </div>
+          <Input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
 
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Password
-            </label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
-          </div>
+          <Input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
           <Button
             type="submit"
+            block
+            className="bg-blue-600 text-white hover:bg-blue-700"
             disabled={loading}
-            className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 rounded-lg"
           >
-            {loading ? <Spin size="small" /> : "Sign In"}
+            {loading ? <Spin size="small" /> : "Login"}
           </Button>
         </form>
 
@@ -103,6 +103,4 @@ const Login: React.FC = () => {
       </div>
     </div>
   );
-};
-
-export default Login;
+}

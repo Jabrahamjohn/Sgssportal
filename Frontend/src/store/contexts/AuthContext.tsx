@@ -5,9 +5,10 @@ interface User {
   id: number;
   username: string;
   email: string;
+  full_name: string;
   role: string;
   groups: string[];
-  full_name: string;
+  is_superuser?: boolean;
 }
 
 interface AuthState {
@@ -19,7 +20,7 @@ interface AuthState {
 interface AuthContextType {
   auth: AuthState;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -30,41 +31,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [auth, setAuth] = useState<AuthState>({ isAuthenticated: false });
   const [loading, setLoading] = useState(true);
 
-  // 1️⃣ Fetch user on startup
+  // 🔹 Fetch user on startup to restore session
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await api.get("/auth/me/");
-        const user = res.data;
-        setAuth({
-          isAuthenticated: true,
-          user,
-          role: user.role || "member",
-        });
-      } catch {
-        setAuth({ isAuthenticated: false });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
+    refreshUser();
   }, []);
 
-  // 2️⃣ Login function
-  const login = async (email: string, password: string) => {
+  // 🔹 Login
+  const login = async (username: string, password: string) => {
     try {
-      await api.post("/auth/login/", { email, password });
+      await api.post("auth/login/", { username, password }); // Django expects username, not email
       await refreshUser();
     } catch (err: any) {
-      console.error("Login failed", err.response?.data || err);
+      console.error("Login failed:", err.response?.data || err);
       throw err;
     }
   };
 
-  // 3️⃣ Logout function
+  // 🔹 Logout
   const logout = async () => {
     try {
-      await api.post("/auth/logout/");
+      await api.post("auth/logout/");
     } catch {
       /* ignore */
     } finally {
@@ -72,10 +58,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // 4️⃣ Refresh user from backend
+  // 🔹 Refresh user (called after login and on mount)
   const refreshUser = async () => {
     try {
-      const res = await api.get("/auth/me/");
+      const res = await api.get("auth/me/");
       const user = res.data;
       setAuth({
         isAuthenticated: true,
@@ -84,6 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } catch {
       setAuth({ isAuthenticated: false });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -94,7 +82,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// Hook for easy use
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within an AuthProvider");

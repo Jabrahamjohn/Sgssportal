@@ -1,16 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "~/store/contexts/AuthContext";
 import { Button, Input, Alert, Spin, AppImage } from "~/components/controls";
 import { APP_NAME, LOGO_IMAGE } from "~/config";
-import { useEffect } from "react";
 import api from "~/config/api";
 
 export default function Login() {
-  await api.get("/auth/csrf/");
   const { login, auth, loading } = useAuth();
   const navigate = useNavigate();
 
+  // 1️⃣ Fetch CSRF cookie on mount (required for Django session login)
+  useEffect(() => {
+    const getCsrfToken = async () => {
+      try {
+        await api.get("/auth/csrf/");
+        console.log("✅ CSRF cookie set successfully");
+      } catch (err) {
+        console.error("❌ Failed to get CSRF cookie", err);
+      }
+    };
+    getCsrfToken();
+  }, []);
+
+  // 2️⃣ Auto-redirect if already authenticated
   useEffect(() => {
     if (auth.isAuthenticated) {
       const role = auth.role || "member";
@@ -20,20 +32,19 @@ export default function Login() {
     }
   }, [auth.isAuthenticated, auth.role, navigate]);
 
+  // 3️⃣ Local state
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  // 4️⃣ Handle login
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     try {
       await login(username, password);
-
-      // use updated auth after refresh
       const role = auth?.role || "member";
-
       if (role === "admin") navigate("/dashboard/admin");
       else if (role === "committee") navigate("/dashboard/committee");
       else navigate("/dashboard/member");
@@ -46,6 +57,7 @@ export default function Login() {
     }
   };
 
+  // 5️⃣ UI
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white shadow-md rounded-2xl p-8">

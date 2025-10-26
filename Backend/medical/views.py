@@ -282,9 +282,16 @@ def login_view(request):
     else:
         return Response({"detail": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
 
-
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
+    """Logs out the current session user."""
     logout(request)
     return Response({"detail": "Logged out successfully."}, status=status.HTTP_200_OK)
+
+@ensure_csrf_cookie
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def csrf_cookie(request):
+    """Set a CSRF cookie for frontend login/session use"""
+    return JsonResponse({"detail": "CSRF cookie set"})

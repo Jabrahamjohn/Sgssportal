@@ -6,6 +6,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.db import transaction
 from django.utils import timezone
+from django.http import JsonResponse
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview,

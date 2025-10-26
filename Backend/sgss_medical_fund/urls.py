@@ -40,7 +40,8 @@ urlpatterns = [
     # --- Core API ---
     path('api/', include('medical.urls')),
 
-    # --- Optional DRF token auth (for later mobile use) ---
+    # --- Optional DRF token auth (for later mobile use) --
+    path("api/auth/csrf/", medical_views.csrf_cookie),    
     # path('api/auth/token/', include('rest_framework.authtoken.urls')),
 
     # --- Swagger / ReDoc ---

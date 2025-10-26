@@ -4,8 +4,10 @@ import { useAuth } from "~/store/contexts/AuthContext";
 import { Button, Input, Alert, Spin, AppImage } from "~/components/controls";
 import { APP_NAME, LOGO_IMAGE } from "~/config";
 import { useEffect } from "react";
+import api from "~/config/api";
 
 export default function Login() {
+  await api.get("/auth/csrf/");
   const { login, auth, loading } = useAuth();
   const navigate = useNavigate();
 

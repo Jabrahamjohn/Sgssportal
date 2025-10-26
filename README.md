@@ -268,3 +268,4 @@ The **Frontend Developer’s primary goals** are:
 3. Enable **file uploads**, **form validation**, and **notifications**.
 4. Maintain **clean modular structure** — you’ll define your own boilerplate.
 5. Ensure the **system’s workflow mirrors real SGSS operations** as above.
+6. 

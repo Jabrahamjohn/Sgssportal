@@ -96,7 +96,7 @@ export default function Login() {
           />
 
           <Button
-            type="submit"
+            htmlType="submit"
             block
             className="bg-blue-600 text-white hover:bg-blue-700"
             disabled={loading}

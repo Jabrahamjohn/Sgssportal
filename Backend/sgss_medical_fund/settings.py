@@ -86,6 +86,11 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
 ]
 
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = False
+
 ROOT_URLCONF = 'sgss_medical_fund.urls'
 
 TEMPLATES = [
@@ -123,6 +128,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         #'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',

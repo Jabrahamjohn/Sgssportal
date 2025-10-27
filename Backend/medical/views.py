@@ -1,5 +1,5 @@
 # Backend/medical/views.py
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, get_user_model
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from django.db import transaction
 from django.utils import timezone
 from django.http import JsonResponse
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview,
@@ -227,6 +227,7 @@ class ReimbursementScaleViewSet(viewsets.ModelViewSet):
 #                USER & MEMBER INFO
 # ============================================================
 
+@ensure_csrf_cookie
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me(request):
@@ -289,9 +290,73 @@ def logout_view(request):
     logout(request)
     return Response({"detail": "Logged out successfully."}, status=status.HTTP_200_OK)
 
+User = get_user_model()
+
+# ============================================================
+#                CSRF TOKEN ISSUER
+# ============================================================
+
 @ensure_csrf_cookie
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def csrf_cookie(request):
-    """Set a CSRF cookie for frontend login/session use"""
-    return JsonResponse({"detail": "CSRF cookie set"})
+    """Ensures frontend has a valid CSRF cookie"""
+    return Response({"detail": "CSRF cookie set."})
+
+
+# ============================================================
+#                USER REGISTRATION
+# ============================================================
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def register_view(request):
+    """
+    Register a new user (auto-assigns Member group and creates Member record)
+    JSON body: { "username": "", "email": "", "password": "", "first_name": "", "last_name": "" }
+    """
+    username = request.data.get("username")
+    email = request.data.get("email")
+    password = request.data.get("password")
+    first_name = request.data.get("first_name", "")
+    last_name = request.data.get("last_name", "")
+
+    if not username or not password or not email:
+        return Response({"detail": "Username, email, and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if User.objects.filter(username=username).exists():
+        return Response({"detail": "Username already exists."}, status=status.HTTP_400_BAD_REQUEST)
+    if User.objects.filter(email=email).exists():
+        return Response({"detail": "Email already registered."}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.create_user(
+        username=username,
+        email=email,
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+    )
+
+    # assign default "Member" group
+    member_group, _ = Group.objects.get_or_create(name="Member")
+    user.groups.add(member_group)
+
+    # create linked Member record
+    single_type, _ = MembershipType.objects.get_or_create(
+        key="single",
+        defaults={"name": "Single", "annual_limit": 250000, "fund_share_percent": 80},
+    )
+
+    Member.objects.create(
+        user=user,
+        membership_type=single_type,
+        nhif_number="PENDING",
+        valid_from=timezone.now().date(),
+        valid_to=timezone.now().date() + timezone.timedelta(days=365),
+    )
+
+    return Response(
+        {"detail": "Registration successful.", "username": username, "email": email},
+        status=status.HTTP_201_CREATED,
+    )
+

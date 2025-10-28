@@ -273,15 +273,32 @@ def login_view(request):
     password = request.data.get("password")
 
     if not username or not password:
-        return Response({"detail": "Username and password are required."},
-                        status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"detail": "Username and password are required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # ✅ Try both username and email for convenience
+    from django.contrib.auth import authenticate, get_user_model
+    User = get_user_model()
 
     user = authenticate(request, username=username, password=password)
+    if user is None:
+        # fallback: try to find by email
+        try:
+            user_obj = User.objects.get(email=username)
+            user = authenticate(request, username=user_obj.username, password=password)
+        except User.DoesNotExist:
+            user = None
+
     if user is not None:
         login(request, user)
         return Response({"detail": "Login successful."}, status=status.HTTP_200_OK)
-    else:
-        return Response({"detail": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
+
+    return Response(
+        {"detail": "Invalid username or password."},
+        status=status.HTTP_401_UNAUTHORIZED,
+    )
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])

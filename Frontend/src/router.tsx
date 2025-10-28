@@ -1,3 +1,4 @@
+// Frontend/src/router.tsx
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Unauthenticated from './layout/protections/unauthenticated';
@@ -26,6 +27,15 @@ export default function AppRouter() {
           element={
             <Unauthenticated>
               <Login />
+            </Unauthenticated>
+          }
+        />
+
+        <Route
+          path="/register"
+          element={
+            <Unauthenticated>
+              <Register />
             </Unauthenticated>
           }
         />

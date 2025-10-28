@@ -1,7 +1,9 @@
+// Frontend/src/router.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 // import Unauthenticated from './layout/protections/unauthenticated';
 // import Authenticated from './layout/protections/authenticated';
 import Login from './containers/auth/login';
+import Register from './containers/auth/register';
 import AppLayout from './layout';
 
 import MemberDashboard from './pages/dashboard/member';
@@ -26,6 +28,15 @@ export default function AppRouter() {
           element={
             // <Unauthenticated>
             <Login />
+            // </Unauthenticated>
+          }
+        />
+
+        <Route
+          path={pageRoutes.REGISTER_PAGE}
+          element={
+            // <Unauthenticated>
+            <Register />
             // </Unauthenticated>
           }
         />
@@ -76,8 +87,16 @@ export default function AppRouter() {
               // </Authenticated>
             }
           />
-        </Route>
 
+          {/* <Route
+            path='/register'
+            element={
+              <Unauthenticated>
+                <Register />
+              </Unauthenticated>
+            }
+          /> */}
+        </Route>
         {/* Not Found */}
         <Route path='*' element={<NotFound />} />
       </Routes>

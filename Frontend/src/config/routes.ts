@@ -7,6 +7,8 @@ export const pageRoutes = {
 
   LOGIN_PAGE: '/login',
 
+  REGISTER_PAGE: '/register',
+
   MEMBERS: DASHBOARD_PAGE + 'member',
 
   MEMBERS_CLAIMS: DASHBOARD_PAGE + 'member/claims',

@@ -6,7 +6,13 @@ export interface ClaimItem {
   quantity: number;
 }
 
-export type ClaimStatus = 'draft' | 'submitted' | 'reviewed' | 'approved' | 'rejected' | 'paid';
+export type ClaimStatus =
+  | 'draft'
+  | 'submitted'
+  | 'reviewed'
+  | 'approved'
+  | 'rejected'
+  | 'paid';
 
 export interface Claim {
   id: string;
@@ -19,7 +25,7 @@ export interface Claim {
   status: ClaimStatus;
   notes?: string | null;
   excluded: boolean;
-  created_at: string;
+  created_at: string | number;
   items?: ClaimItem[];
 }
 

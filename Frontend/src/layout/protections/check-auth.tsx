@@ -3,14 +3,14 @@ import React from 'react';
 import { useAuthContext } from '../../store/contexts';
 import { useGetAuthQuery } from '../../store/queries/auth';
 import { SplashScreen } from '../../utils/components';
-import type { LoginResponseType } from '../../types';
+// import type { LoginResponseType } from '../../types';
 
 export default function CheckAuth({
   children,
-  initialData,
-}: {
+}: // initialData,
+{
   children: React.ReactNode;
-  initialData?: LoginResponseType;
+  // initialData?: LoginResponseType;
 }) {
   const [loading, setLoading] = React.useState(true);
 
@@ -21,7 +21,7 @@ export default function CheckAuth({
     status,
     isLoading,
   } = useGetAuthQuery({
-    initialData,
+    // initialData,
   });
 
   React.useEffect(() => {

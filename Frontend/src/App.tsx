@@ -1,18 +1,20 @@
 // Frontend/src/App.tsx
-import React from "react";
-import { AuthProvider } from "./store/contexts/AuthContext";
-import { ErrorBoundary } from "./components/common";
-import AppRouter from "./router";
+import { AuthProvider } from './store/contexts/AuthContext';
+import { ErrorBoundary } from './components/common';
+import AppRouter from './router';
 
-import "./styles/index.css";
-import "./styles/antd-override.css";
+import './styles/index.css';
+import './styles/antd-override.css';
+import { AlertProvider } from './store/contexts';
 
 export default function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <AppRouter />
-      </AuthProvider>
+      <AlertProvider>
+        <AuthProvider>
+          <AppRouter />
+        </AuthProvider>
+      </AlertProvider>
     </ErrorBoundary>
   );
 }

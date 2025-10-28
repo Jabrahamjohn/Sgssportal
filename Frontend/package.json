@@ -21,6 +21,7 @@
     "@tanstack/react-table": "^8.21.3",
     "antd": "^5.26.0",
     "axios": "^1.9.0",
+    "chart.js": "^4.5.1",
     "cookie": "^1.0.2",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
@@ -30,7 +31,9 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "react": "^19.1.0",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.1.0",
+    "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.2",
     "serverless-http": "^3.2.0",
     "yup": "^1.6.1"

@@ -1,11 +1,15 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import AdminDashboardContainer from '~/containers/dashboard/admin';
+import { Title } from '~/utils/components';
 
-export default function AdminDashboard() {
+const AdminDashboard = () => {
   return (
-    <div className="p-6 space-y-3">
-      <h2 className="text-xl font-semibold">Admin Dashboard</h2>
-      <Link className="underline" to="/dashboard/admin/settings">Settings</Link>
-    </div>
+    <>
+      <Title
+        title='Admin Dashboard'
+        description='Dashboard for the admin of the SGGSS Medical Fund'
+      />
+      <AdminDashboardContainer />
+    </>
   );
-}
+};
+export default AdminDashboard;

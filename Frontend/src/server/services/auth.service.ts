@@ -1,18 +1,23 @@
 import { CSRF_TOKEN } from '~/config';
-import type { LoginRequestDataType, LoginResponseType, LogoutResponseType, ResponseType } from '~/types';
+import type { ResponseType } from '~/types';
+// import type { LoginRequestDataType, LoginResponseType, LogoutResponseType, ResponseType } from '~/types';
 import { AppError, handleAllErrors } from '~/utils/errors';
 import HttpInstance from '~/utils/http';
 import * as AuthSerializer from '../serializers/auth.serializer';
 import { saveCredentials } from '../utils/auth';
 import { NewSuccessDataResponse } from '../utils/response';
 
-export async function getAuth(): Promise<LoginResponseType> {
-  const response = await HttpInstance.current().get<LoginResponseType>('/api/auth/user');
+export async function getAuth(): Promise<any> {
+  const response = await HttpInstance.current().get<any>('/api/auth/user');
   const responseData = response.data;
 
   // Get the CSRF_TOKEN FROM THE HEADERS
   let csrfToken = responseData.data.csrfToken;
-  if (!csrfToken && typeof response.headers.get === 'function' && response.headers.get(CSRF_TOKEN) !== undefined) {
+  if (
+    !csrfToken &&
+    typeof response.headers.get === 'function' &&
+    response.headers.get(CSRF_TOKEN) !== undefined
+  ) {
     csrfToken = response.headers.get(CSRF_TOKEN)?.toString() || '';
   }
   const BROWSER_REFRESHED_KEY = 'browser_refreshed';
@@ -38,8 +43,8 @@ export async function login({
   data,
 }: {
   csrfToken: string;
-  data: LoginRequestDataType;
-}): Promise<LoginResponseType> {
+  data: any;
+}): Promise<any> {
   const credentials = AuthSerializer.serializeLogin({
     token: 'token',
     data: {
@@ -58,7 +63,7 @@ export async function login({
     message: 'Logged in',
   });
 
-  let result: LoginResponseType | undefined = undefined;
+  let result: any | undefined = undefined;
 
   try {
     // Save credentials to the express server side cookies
@@ -78,16 +83,30 @@ export async function login({
   return NewSuccessDataResponse(result.data);
 }
 
-export async function logout({ csrfToken, token }: { csrfToken: string; token: string }): Promise<LogoutResponseType> {
+export async function logout({
+  csrfToken,
+  token,
+}: {
+  csrfToken: string;
+  token: string;
+}): Promise<any> {
   try {
-    const response = await HttpInstance.login(token, csrfToken).post<ResponseType>('/api/auth/logout/', {});
+    const response = await HttpInstance.login(
+      token,
+      csrfToken
+    ).post<ResponseType>('/api/auth/logout/', {});
     const responseData = response.data;
 
     // Get the CSRF_TOKEN FROM THE HEADERS IF PROVIDED
     const newCsrfToken =
-      typeof response.headers.get === 'function' ? response.headers.get(CSRF_TOKEN)?.toString() : undefined;
+      typeof response.headers.get === 'function'
+        ? response.headers.get(CSRF_TOKEN)?.toString()
+        : undefined;
 
-    return NewSuccessDataResponse({ csrfToken: newCsrfToken }, responseData.message);
+    return NewSuccessDataResponse(
+      { csrfToken: newCsrfToken },
+      responseData.message
+    );
   } catch (err) {
     const error = handleAllErrors(err);
     if (error.errorCode === 'ERROR_CSRF_100') {

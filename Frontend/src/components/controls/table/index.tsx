@@ -229,7 +229,7 @@ function Table<T extends object>(
   return (
     <React.Fragment>
       {/* Table Start */}
-      <div className="flex flex-col">
+      <div className='flex flex-col'>
         <div className={`table-container ${containerClassName || ''}`.trim()}>
           <table>
             <thead>
@@ -239,8 +239,8 @@ function Table<T extends object>(
                     return (
                       <th
                         key={header.id}
-                        className="table-head group"
-                        scope="col"
+                        className='table-head group'
+                        scope='col'
                         colSpan={header.colSpan}
                         style={{
                           width: header.getSize(),
@@ -266,10 +266,10 @@ function Table<T extends object>(
             <tbody>
               {loader && isLoading
                 ? Array.from({ length: loaderLength || 7 }).map((_, i) => (
-                    <tr key={i} className="table-row-horizontal">
+                    <tr key={i} className='table-row-horizontal'>
                       {table.getVisibleFlatColumns().map((col) => (
                         <td key={col.id}>
-                          <div className="table-data">
+                          <div className='table-data'>
                             {LoaderComponent ? (
                               <LoaderComponent />
                             ) : (
@@ -279,7 +279,7 @@ function Table<T extends object>(
                                   display: 'inline-block',
                                   width: 'auto',
                                 }}
-                                size="small"
+                                size='small'
                               />
                             )}
                           </div>
@@ -313,7 +313,7 @@ function Table<T extends object>(
                               key={cell.id}
                               style={{ width: cell.column.getSize() }}
                             >
-                              <div className="table-data">
+                              <div className='table-data'>
                                 {flexRender(
                                   cell.column.columnDef.cell,
                                   cell.getContext()
@@ -331,14 +331,14 @@ function Table<T extends object>(
                 {table.getFooterGroups().map((footerGroup, index) => {
                   return (
                     <React.Fragment key={footerGroup.id + `-${index}`}>
-                      <tr className="table-footer-row-horizontal">
+                      <tr className='table-footer-row-horizontal'>
                         {/* {showSn && <td className="table-footer-data"></td>} */}
                         {footerGroup.headers.map((header) => {
                           return (
                             <td
                               key={header.id}
                               colSpan={header.colSpan}
-                              className="table-footer-data"
+                              className='table-footer-data'
                               style={{
                                 width: header.getSize(),
                               }}
@@ -362,7 +362,7 @@ function Table<T extends object>(
                                 footerGroup.id + `-${i + 1}-` + 'footer';
                               return (
                                 <tr
-                                  className="table-footer-row-horizontal"
+                                  className='table-footer-row-horizontal'
                                   key={key}
                                 >
                                   {footerGroup.headers.map((header, index) => {
@@ -376,7 +376,7 @@ function Table<T extends object>(
                                       <td
                                         key={key}
                                         colSpan={header.colSpan}
-                                        className="table-footer-data"
+                                        className='table-footer-data'
                                         style={{
                                           width: header.getSize(),
                                         }}

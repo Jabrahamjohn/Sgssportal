@@ -21,102 +21,102 @@ const MESSAGE_COLOR_INFO = 'hsla(60, 1%, 51%, 1)';
 export const FONT_FAMILY = "'Aeonik', sans-serif";
 
 const buttonStyle = {
-	borderColorDisabled: 'transparent',
-	colorPrimary: PRIMARY_COLOR,
-	colorLink: PRIMARY_COLOR,
-	colorText: PRIMARY_DARK_COLOR,
-	colorTextLightSolid: PRIMARY_DARK_COLOR,
-	contentFontSize: 13,
-	contentFontSizeLG: 14,
-	contentFontSizeSM: 11,
-	defaultBg: 'transparent',
-	defaultBorderColor: BORDER_COLOR,
-	defaultColor: SECONDARY_COLOR,
-	defaultHoverBg: 'hsla(94, 100%, 10%, 0.05)',
-	defaultHoverBorderColor: BORDER_COLOR,
-	defaultHoverColor: SECONDARY_COLOR,
-	defaultActiveColor: SECONDARY_COLOR,
+  borderColorDisabled: 'transparent',
+  colorPrimary: PRIMARY_COLOR,
+  colorLink: PRIMARY_COLOR,
+  colorText: PRIMARY_DARK_COLOR,
+  colorTextLightSolid: PRIMARY_DARK_COLOR,
+  contentFontSize: 13,
+  contentFontSizeLG: 14,
+  contentFontSizeSM: 11,
+  defaultBg: 'transparent',
+  defaultBorderColor: BORDER_COLOR,
+  defaultColor: SECONDARY_COLOR,
+  defaultHoverBg: 'hsla(94, 100%, 10%, 0.05)',
+  defaultHoverBorderColor: BORDER_COLOR,
+  defaultHoverColor: SECONDARY_COLOR,
+  defaultActiveColor: SECONDARY_COLOR,
 };
 
 const dateStyle = {
-	borderRadius: 8,
-	fontSize: 12,
-	fontSizeSM: 10,
-	fontSizeLG: 14,
-	colorPrimary: PRIMARY_TEXT_DARK_COLOR,
-	colorPrimaryHover: PRIMARY_TEXT_DARK_COLOR,
-	colorBorder: TERTIARY_COLOR,
-	paddingBlockLG: 8,
+  borderRadius: 8,
+  fontSize: 12,
+  fontSizeSM: 10,
+  fontSizeLG: 14,
+  colorPrimary: PRIMARY_TEXT_DARK_COLOR,
+  colorPrimaryHover: PRIMARY_TEXT_DARK_COLOR,
+  colorBorder: TERTIARY_COLOR,
+  paddingBlockLG: 8,
 };
 
 const inputStyle = {
-	activeBorderColor: PRIMARY_TEXT_DARK_COLOR,
-	borderRadius: 8,
-	colorPrimary: PRIMARY_TEXT_DARK_COLOR,
-	hoverBorderColor: PRIMARY_TEXT_DARK_COLOR,
-	inputFontSize: 12,
-	inputFontSizeSM: 10,
-	inputFontSizeLG: 14,
-	paddingBlockLG: 8,
+  activeBorderColor: PRIMARY_TEXT_DARK_COLOR,
+  borderRadius: 8,
+  colorPrimary: PRIMARY_TEXT_DARK_COLOR,
+  hoverBorderColor: PRIMARY_TEXT_DARK_COLOR,
+  inputFontSize: 12,
+  inputFontSizeSM: 10,
+  inputFontSizeLG: 14,
+  paddingBlockLG: 8,
 };
 
 const selectStyle = {
-	activeBorderColor: PRIMARY_TEXT_DARK_COLOR,
-	borderRadius: 8,
-	colorPrimary: PRIMARY_TEXT_DARK_COLOR,
-	colorPrimaryHover: PRIMARY_TEXT_DARK_COLOR,
-	fontSize: 12,
-	fontSizeSM: 10,
-	fontSizeLG: 14,
-	hoverBorderColor: PRIMARY_TEXT_DARK_COLOR,
-	optionSelectedColor: SECONDARY_COLOR,
-	optionSelectedFontWeight: 400,
+  activeBorderColor: PRIMARY_TEXT_DARK_COLOR,
+  borderRadius: 8,
+  colorPrimary: PRIMARY_TEXT_DARK_COLOR,
+  colorPrimaryHover: PRIMARY_TEXT_DARK_COLOR,
+  fontSize: 12,
+  fontSizeSM: 10,
+  fontSizeLG: 14,
+  hoverBorderColor: PRIMARY_TEXT_DARK_COLOR,
+  optionSelectedColor: SECONDARY_COLOR,
+  optionSelectedFontWeight: 400,
 };
 
 const theme = ({ themeValue }: { themeValue?: 'dark' | 'light' }) => {
-	const value: ConfigProviderProps['theme'] = {
-		algorithm:
-			themeValue === 'dark'
-				? baseTheme.darkAlgorithm
-				: baseTheme.defaultAlgorithm,
-		components: {
-			Button: buttonStyle,
-			Checkbox: {
-				colorPrimary: TERTIARY_COLOR,
-				colorPrimaryHover: SECONDARY_COLOR,
-			},
-			DatePicker: dateStyle,
-			Form: {
-				margin: 8,
-				marginLG: 8, // adjust this value to your liking
-			},
-			InputNumber: inputStyle,
-			Input: inputStyle,
-			Message: {
-				colorPrimary: PRIMARY_COLOR,
-				colorPrimaryHover: PRIMARY_HOVER_COLOR,
-				colorInfo: MESSAGE_COLOR_INFO,
-			},
-			Select: selectStyle,
-			Tabs: {
-				itemColor: PRIMARY_TEXT_DARK_COLOR,
-				inkBarColor: PRIMARY_TEXT_DARK_COLOR,
-				itemActiveColor: PRIMARY_TEXT_DARK_COLOR,
-				itemHoverColor: PRIMARY_TEXT_DARK_COLOR,
-				itemSelectedColor: PRIMARY_TEXT_DARK_COLOR,
-			},
-			Upload: {
-				colorPrimaryHover: PRIMARY_TEXT_DARK_COLOR,
-			},
-		},
-		token: {
-			colorPrimary: PRIMARY_COLOR,
-			// colorBgBase: themeValue === 'dark' ? DARK_BG_BASE_COLOR : undefined,
-			fontFamily: FONT_FAMILY,
-		},
-	};
+  const value: ConfigProviderProps['theme'] = {
+    algorithm:
+      themeValue === 'dark'
+        ? baseTheme.darkAlgorithm
+        : baseTheme.defaultAlgorithm,
+    components: {
+      Button: buttonStyle,
+      Checkbox: {
+        colorPrimary: TERTIARY_COLOR,
+        colorPrimaryHover: SECONDARY_COLOR,
+      },
+      DatePicker: dateStyle,
+      Form: {
+        margin: 8,
+        marginLG: 8, // adjust this value to your liking
+      },
+      InputNumber: inputStyle,
+      Input: inputStyle,
+      Message: {
+        colorPrimary: PRIMARY_COLOR,
+        colorPrimaryHover: PRIMARY_HOVER_COLOR,
+        colorInfo: MESSAGE_COLOR_INFO,
+      },
+      Select: selectStyle,
+      Tabs: {
+        itemColor: PRIMARY_TEXT_DARK_COLOR,
+        inkBarColor: PRIMARY_TEXT_DARK_COLOR,
+        itemActiveColor: PRIMARY_TEXT_DARK_COLOR,
+        itemHoverColor: PRIMARY_TEXT_DARK_COLOR,
+        itemSelectedColor: PRIMARY_TEXT_DARK_COLOR,
+      },
+      Upload: {
+        colorPrimaryHover: PRIMARY_TEXT_DARK_COLOR,
+      },
+    },
+    token: {
+      colorPrimary: PRIMARY_COLOR,
+      // colorBgBase: themeValue === 'dark' ? DARK_BG_BASE_COLOR : undefined,
+      fontFamily: FONT_FAMILY,
+    },
+  };
 
-	return value;
+  return value;
 };
 
 export default theme;

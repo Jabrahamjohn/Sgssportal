@@ -1,7 +1,6 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Unauthenticated from './layout/protections/unauthenticated';
-import Authenticated from './layout/protections/authenticated';
+// import Unauthenticated from './layout/protections/unauthenticated';
+// import Authenticated from './layout/protections/authenticated';
 import Login from './containers/auth/login';
 import AppLayout from './layout';
 
@@ -14,6 +13,8 @@ import CommitteeDashboard from './pages/dashboard/committee';
 import AdminDashboard from './pages/dashboard/admin';
 import AdminSettings from './pages/dashboard/admin/settings';
 import NotFound from './pages/404';
+import { pageRoutes } from './config/routes';
+import MembershipPage from './pages/dashboard/member/membership';
 
 export default function AppRouter() {
   return (
@@ -21,63 +22,64 @@ export default function AppRouter() {
       <Routes>
         {/* LOGIN */}
         <Route
-          path="/login"
+          path={pageRoutes.LOGIN_PAGE}
           element={
-            <Unauthenticated>
-              <Login />
-            </Unauthenticated>
+            // <Unauthenticated>
+            <Login />
+            // </Unauthenticated>
           }
         />
 
         {/* MAIN APP */}
         <Route
-          path="/"
+          path={pageRoutes.HOME_PAGE}
           element={
-            <Authenticated>
-              <AppLayout />
-            </Authenticated>
+            // <Authenticated>
+            <AppLayout />
+            // </Authenticated>
           }
         >
           {/* Default redirect */}
-          <Route index element={<Navigate to="/dashboard/member" replace />} />
+          <Route index element={<Navigate to={pageRoutes.MEMBERS} replace />} />
 
           {/* Member Dashboard */}
-          <Route path="dashboard/member" element={<MemberDashboard />} />
-          <Route path="dashboard/member/claims" element={<ClaimsList />} />
-          <Route path="dashboard/member/claims/new" element={<NewClaim />} />
-          <Route path="dashboard/member/chronic" element={<ChronicPage />} />
+          <Route path={pageRoutes.MEMBERS} element={<MemberDashboard />} />
+          <Route path={pageRoutes.MEMBERS_CLAIMS} element={<ClaimsList />} />
+          <Route path={pageRoutes.MEMBERS_CLAIMS_NEW} element={<NewClaim />} />
+          <Route path={pageRoutes.MEMBERSHIP} element={<MembershipPage />} />
+          <Route path={pageRoutes.MEMBER_CHRONIC} element={<ChronicPage />} />
 
           {/* Committee Dashboard */}
           <Route
-            path="dashboard/committee"
+            path={pageRoutes.COMMITTE}
             element={
-              <Authenticated roles={['committee', 'admin']}>
-                <CommitteeDashboard />
-              </Authenticated>
+              // <Authenticated roles={['committee', 'admin']}>
+              <CommitteeDashboard />
+              // </Authenticated>
             }
           />
 
           {/* Admin Dashboard */}
           <Route
-            path="dashboard/admin"
+            path={pageRoutes.ADMIN}
             element={
-              <Authenticated roles={['admin']}>
-                <AdminDashboard />
-              </Authenticated>
+              // <Authenticated roles={['admin']}>
+              <AdminDashboard />
+              // </Authenticated>
             }
           />
           <Route
-            path="dashboard/admin/settings"
+            path={pageRoutes.ADMIN_SETTINGS}
             element={
-              <Authenticated roles={['admin']}>
-                <AdminSettings />
-              </Authenticated>
+              // <Authenticated roles={['admin']}>
+              <AdminSettings />
+              // </Authenticated>
             }
           />
         </Route>
 
         {/* Not Found */}
-        <Route path="*" element={<NotFound />} />
+        <Route path='*' element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

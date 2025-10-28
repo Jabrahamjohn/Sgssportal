@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import * as AuthService from '~/server/services/auth.service';
-import type { LoginRequestDataType, LoginResponseType, LogoutResponseType, MutationOptionsType } from '~/types';
+import type { MutationOptionsType } from '~/types';
+// import type { LoginRequestDataType, LoginResponseType, LogoutResponseType, MutationOptionsType } from '~/types';
 import { AppError } from '~/utils/errors';
 
 import { useAuthContext, useUserContext } from '../contexts';
@@ -10,8 +11,8 @@ import tags from '../tags';
 // ****** Queries ******
 
 // get auth status
-export function useGetAuthQuery({ initialData }: { initialData?: LoginResponseType }) {
-  const query = useQuery<LoginResponseType>({
+export function useGetAuthQuery({ initialData }: { initialData?: any }) {
+  const query = useQuery<any>({
     queryKey: [tags.Auth],
     async queryFn() {
       return AuthService.getAuth();
@@ -26,10 +27,10 @@ export function useGetAuthQuery({ initialData }: { initialData?: LoginResponseTy
 // ****** Mutations ******
 
 // login
-export function useLoginMutation(options: MutationOptionsType<LoginResponseType['data']>) {
+export function useLoginMutation(options: MutationOptionsType<any['data']>) {
   const { csrfToken } = useAuthContext();
   const mutation = useMutation({
-    async mutationFn(data: LoginRequestDataType) {
+    async mutationFn(data: any) {
       if (!csrfToken) throw new AppError(500, 'CSRF Token is required');
       return AuthService.login({ csrfToken, data });
     },
@@ -42,7 +43,7 @@ export function useLoginMutation(options: MutationOptionsType<LoginResponseType[
 }
 
 // logout
-export function useLogoutMutation(options: MutationOptionsType<LogoutResponseType['data']>) {
+export function useLogoutMutation(options: MutationOptionsType<any['data']>) {
   const queryClient = useQueryClient();
 
   const { csrfToken, token } = useUserContext();

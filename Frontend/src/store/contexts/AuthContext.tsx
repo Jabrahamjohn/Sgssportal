@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import api from "~/config/api";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '~/config/api';
 
 interface User {
   id: number;
@@ -27,7 +27,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [auth, setAuth] = useState<AuthState>({ isAuthenticated: false });
   const [loading, setLoading] = useState(true);
 
@@ -39,10 +41,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 🔹 Login
   const login = async (username: string, password: string) => {
     try {
-      await api.post("auth/login/", { username, password }); // Django expects username, not email
+      await api.post('auth/login/', { username, password }); // Django expects username, not email
       await refreshUser();
     } catch (err: any) {
-      console.error("Login failed:", err.response?.data || err);
+      console.error('Login failed:', err.response?.data || err);
       throw err;
     }
   };
@@ -50,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 🔹 Logout
   const logout = async () => {
     try {
-      await api.post("auth/logout/");
+      await api.post('auth/logout/');
     } catch {
       /* ignore */
     } finally {
@@ -61,12 +63,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 🔹 Refresh user (called after login and on mount)
   const refreshUser = async () => {
     try {
-      const res = await api.get("auth/me/");
+      const res = await api.get('auth/me/');
       const user = res.data;
       setAuth({
         isAuthenticated: true,
         user,
-        role: user.role || "member",
+        role: user.role || 'member',
       });
     } catch {
       setAuth({ isAuthenticated: false });
@@ -84,6 +86,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };

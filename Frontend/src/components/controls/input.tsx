@@ -47,29 +47,44 @@ type TextAreaType = TextAreaProps & {
 };
 
 const inputClassName = 'form-input font-normal w-full';
-const inputOTPClassName = 'border font-normal h-[50px] max-w-none rounded-[12px] w-full';
+const inputOTPClassName =
+  'border font-normal h-[50px] max-w-none rounded-[12px] w-full';
 
 const Input = React.forwardRef<InputRef, InputType>(
-  ({ className: propsClassName, error, label, icon: Icon, notes, required, ...props }, ref) => {
+  (
+    {
+      className: propsClassName,
+      error,
+      label,
+      icon: Icon,
+      notes,
+      required,
+      ...props
+    },
+    ref
+  ) => {
     const className = classNames(inputClassName, propsClassName || '');
     return (
       <>
         {label && (
-          <label className={`${error ? '!text-red-500' : ''} form-field-label`} htmlFor={props.id}>
+          <label
+            className={`${error ? '!text-red-500' : ''} form-field-label`}
+            htmlFor={props.id}
+          >
             {label}
-            {required ? <span className="text-red-500"> *</span> : ''}
+            {required ? <span className='text-red-500'> *</span> : ''}
           </label>
         )}
 
         <AntdInput
           status={error ? 'error' : undefined}
           className={className}
-          size="large"
+          size='large'
           required={required}
           ref={ref}
           prefix={
             Icon ? (
-              <span className="form-input-icon pr-2">
+              <span className='form-input-icon pr-2'>
                 <Icon />
               </span>
             ) : undefined
@@ -78,7 +93,9 @@ const Input = React.forwardRef<InputRef, InputType>(
           {...props}
         />
 
-        {error && <span className="block !text-red-500 form-field-label">{error}</span>}
+        {error && (
+          <span className='block !text-red-500 form-field-label'>{error}</span>
+        )}
         {notes}
       </>
     );
@@ -97,20 +114,23 @@ export const InputNumber = ({
   return (
     <>
       {label && (
-        <label className={`${error ? '!text-red-500' : ''} form-field-label`} htmlFor={props.id}>
+        <label
+          className={`${error ? '!text-red-500' : ''} form-field-label`}
+          htmlFor={props.id}
+        >
           {label}
-          {required ? <span className="text-red-500"> *</span> : ''}
+          {required ? <span className='text-red-500'> *</span> : ''}
         </label>
       )}
 
       <AntdInputNumber
         className={className}
-        size="large"
+        size='large'
         status={error ? 'error' : undefined}
         required={required}
         prefix={
           Icon ? (
-            <span className="form-input-icon pr-2">
+            <span className='form-input-icon pr-2'>
               <Icon />
             </span>
           ) : undefined
@@ -119,7 +139,9 @@ export const InputNumber = ({
         {...props}
       />
 
-      {error && <span className="block !text-red-500 form-field-label">{error}</span>}
+      {error && (
+        <span className='block !text-red-500 form-field-label'>{error}</span>
+      )}
     </>
   );
 };
@@ -130,7 +152,10 @@ export const InputPassword = React.forwardRef<InputRef, InputType>(
     return (
       <>
         {label && (
-          <label className={`${error ? '!text-red-500' : ''} form-field-label`} htmlFor={props.id}>
+          <label
+            className={`${error ? '!text-red-500' : ''} form-field-label`}
+            htmlFor={props.id}
+          >
             {label}
           </label>
         )}
@@ -138,7 +163,7 @@ export const InputPassword = React.forwardRef<InputRef, InputType>(
         <AntdInput.Password
           className={className}
           status={error ? 'error' : undefined}
-          size="large"
+          size='large'
           iconRender={(visible) =>
             !visible ? (
               <span>
@@ -153,7 +178,7 @@ export const InputPassword = React.forwardRef<InputRef, InputType>(
           required={false}
           prefix={
             Icon ? (
-              <span className="form-input-icon pr-2">
+              <span className='form-input-icon pr-2'>
                 <Icon />
               </span>
             ) : undefined
@@ -162,7 +187,9 @@ export const InputPassword = React.forwardRef<InputRef, InputType>(
           {...props}
         />
 
-        {error && <span className="block !text-red-500 form-field-label">{error}</span>}
+        {error && (
+          <span className='block !text-red-500 form-field-label'>{error}</span>
+        )}
       </>
     );
   }
@@ -174,7 +201,10 @@ export const InputSearch = React.forwardRef<InputRef, InputSearchType>(
     return (
       <>
         {label && (
-          <label className={`${error ? '!text-red-500' : ''} form-field-label`} htmlFor={props.id}>
+          <label
+            className={`${error ? '!text-red-500' : ''} form-field-label`}
+            htmlFor={props.id}
+          >
             {label}
           </label>
         )}
@@ -186,7 +216,7 @@ export const InputSearch = React.forwardRef<InputRef, InputSearchType>(
           ref={ref}
           prefix={
             Icon ? (
-              <span className="form-input-icon pr-2">
+              <span className='form-input-icon pr-2'>
                 <Icon />
               </span>
             ) : undefined
@@ -196,7 +226,9 @@ export const InputSearch = React.forwardRef<InputRef, InputSearchType>(
           {...props}
         />
 
-        {error && <span className="block !text-red-500 form-field-label">{error}</span>}
+        {error && (
+          <span className='block !text-red-500 form-field-label'>{error}</span>
+        )}
       </>
     );
   }
@@ -204,13 +236,19 @@ export const InputSearch = React.forwardRef<InputRef, InputSearchType>(
 
 export const Textarea = React.forwardRef<TextAreaRef, TextAreaType>(
   ({ className: propsClassName, error, label, required, ...props }, ref) => {
-    const className = classNames(inputClassName + ' rounded-[15px]', propsClassName || '');
+    const className = classNames(
+      inputClassName + ' rounded-[15px]',
+      propsClassName || ''
+    );
     return (
       <>
         {label && (
-          <label className={`${error ? '!text-red-500' : ''} form-field-label`} htmlFor={props.id}>
+          <label
+            className={`${error ? '!text-red-500' : ''} form-field-label`}
+            htmlFor={props.id}
+          >
             {label}
-            {required ? <span className="text-red-500"> *</span> : ''}
+            {required ? <span className='text-red-500'> *</span> : ''}
           </label>
         )}
 
@@ -226,7 +264,9 @@ export const Textarea = React.forwardRef<TextAreaRef, TextAreaType>(
           {...props}
         />
 
-        {error && <span className="block !text-red-500 form-field-label">{error}</span>}
+        {error && (
+          <span className='block !text-red-500 form-field-label'>{error}</span>
+        )}
       </>
     );
   }
@@ -238,12 +278,21 @@ export const InputOTP = React.forwardRef<OTPRef, InputOTPType>(
     return (
       <>
         {label && (
-          <label className={`${error ? 'text-red-500' : ''} form-field-label`} htmlFor={props.id}>
+          <label
+            className={`${error ? 'text-red-500' : ''} form-field-label`}
+            htmlFor={props.id}
+          >
             {label}
           </label>
         )}
 
-        <AntdInput.OTP ref={ref} status={error ? 'error' : undefined} length={5} className={className} {...props} />
+        <AntdInput.OTP
+          ref={ref}
+          status={error ? 'error' : undefined}
+          length={5}
+          className={className}
+          {...props}
+        />
       </>
     );
   }

@@ -11,13 +11,11 @@ import { CSRF_TOKEN } from '~/config/app';
 import { useAuthContext } from './auth/context';
 import { useAlertContext } from './alert/context';
 import { handleAllErrors } from '../../utils/errors';
-import { external_routes } from '~/config/routes';
 
 function QueryProvider({ children }: { children: React.ReactNode }) {
   const { open } = useAlertContext();
   const { logout, changeCSRFToken } = useAuthContext();
-  const pathname = window.location.pathname;
-  // console.log(external_routes[0] === pathname);
+  // const pathname = window.location.pathname;
 
   // Create a client
   const queryClient = React.useMemo(() => {
@@ -35,7 +33,7 @@ function QueryProvider({ children }: { children: React.ReactNode }) {
             if (csrfToken) changeCSRFToken(csrfToken);
           }
           const err = handleAllErrors(error);
-          if (err.status !== 401 && !external_routes.includes(pathname))
+          if (err.status !== 401)
             open({
               message: err.message,
               type: 'error',
@@ -56,13 +54,12 @@ function QueryProvider({ children }: { children: React.ReactNode }) {
             if (csrfToken) changeCSRFToken(csrfToken);
           }
           const err = handleAllErrors(error);
-          if (err.status !== 401 && !external_routes.includes(pathname))
+          if (err.status !== 401)
             open({
               message: err.message,
               type: 'error',
             });
-          if (err.status === 401 && !external_routes.includes(pathname))
-            logout();
+          if (err.status === 401) logout();
         },
       }),
       defaultOptions: {
@@ -74,7 +71,7 @@ function QueryProvider({ children }: { children: React.ReactNode }) {
       },
     });
     return client;
-  }, [open, logout, changeCSRFToken, pathname]);
+  }, [open, logout, changeCSRFToken]);
 
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

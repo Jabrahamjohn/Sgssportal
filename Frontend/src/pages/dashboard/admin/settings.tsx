@@ -1,11 +1,10 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import AdminSettingsContainer from '~/containers/dashboard/admin/settings';
 
-export default function AdminDashboard() {
+const AdminSettings = () => {
   return (
-    <div className="p-6 space-y-3">
-      <h2 className="text-xl font-semibold">Admin Dashboard</h2>
-      <Link className="underline" to="/dashboard/admin/settings">Settings</Link>
-    </div>
+    <>
+      <AdminSettingsContainer />
+    </>
   );
-}
+};
+export default AdminSettings;

@@ -8,6 +8,8 @@ from django.db import transaction
 from django.utils import timezone
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
+from django.middleware.csrf import get_token
+from django.contrib.auth.models import Group
 
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview,
@@ -303,11 +305,13 @@ def login_view(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
-    """Logs out the current session user."""
+    """Logs out the current session user and resets CSRF cookie."""
     logout(request)
-    return Response({"detail": "Logged out successfully."}, status=status.HTTP_200_OK)
-
-User = get_user_model()
+    # Generate a fresh CSRF token for the next login
+    token = get_token(request)
+    response = Response({"detail": "Logged out successfully."}, status=200)
+    response.set_cookie("csrftoken", token)
+    return response
 
 # ============================================================
 #                CSRF TOKEN ISSUER
@@ -317,7 +321,7 @@ User = get_user_model()
 @ensure_csrf_cookie
 @api_view(["GET"])
 @permission_classes([AllowAny])
-def get_csrf(request):
+def get_csrf_token(request):
     return JsonResponse({'csrfToken': 'set'})
 
 @ensure_csrf_cookie
@@ -325,7 +329,10 @@ def get_csrf(request):
 @permission_classes([AllowAny])
 def csrf_cookie(request):
     """Ensures frontend has a valid CSRF cookie"""
-    return Response({"detail": "CSRF cookie set."})
+    token = get_token(request)
+    resp = Response({"detail": "CSRF cookie set."})
+    resp.set_cookie("csrftoken", token, samesite=None)
+    return resp
 
 # ============================================================
 #                USER REGISTRATION

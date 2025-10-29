@@ -64,11 +64,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 # CORS & CSRF Configuration
-CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
     "accept",
@@ -90,13 +90,15 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 
-SESSION_COOKIE_DOMAIN = None
-SESSION_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SECURE = False
-
+CSRF_COOKIE_NAME = "csrftoken"
 CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = None
 CSRF_COOKIE_SECURE = False
+
+
+SESSION_COOKIE_DOMAIN = None
+SESSION_COOKIE_SAMESITE = None
+SESSION_COOKIE_SECURE = False
 
 ROOT_URLCONF = 'sgss_medical_fund.urls'
 

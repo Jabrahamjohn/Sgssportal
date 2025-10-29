@@ -302,16 +302,23 @@ def login_view(request):
         status=status.HTTP_401_UNAUTHORIZED,
     )
 
+@csrf_exempt
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
-    """Logs out the current session user and resets CSRF cookie."""
+    """Logs out the current session user and reissues a new CSRF token."""
     logout(request)
-    # Generate a fresh CSRF token for the next login
     token = get_token(request)
     response = Response({"detail": "Logged out successfully."}, status=200)
-    response.set_cookie("csrftoken", token)
+    response.set_cookie(
+        "csrftoken",
+        token,
+        samesite=None,
+        secure=False,
+        httponly=False
+    )
     return response
+
 
 # ============================================================
 #                CSRF TOKEN ISSUER
@@ -324,15 +331,19 @@ def logout_view(request):
 def get_csrf_token(request):
     return JsonResponse({'csrfToken': 'set'})
 
-@ensure_csrf_cookie
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def csrf_cookie(request):
-    """Ensures frontend has a valid CSRF cookie"""
     token = get_token(request)
-    resp = Response({"detail": "CSRF cookie set."})
-    resp.set_cookie("csrftoken", token, samesite=None)
-    return resp
+    response = Response({"csrfToken": token})
+    response.set_cookie(
+        key="csrftoken",
+        value=token,
+        httponly=False,
+        secure=False,
+        samesite=None,
+    )
+    return response
 
 # ============================================================
 #                USER REGISTRATION

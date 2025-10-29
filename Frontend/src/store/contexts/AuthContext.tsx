@@ -1,3 +1,4 @@
+// Frontend/src/store/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import api from "~/config/api";
 
@@ -38,25 +39,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // 🔹 Login
   const login = async (username: string, password: string) => {
-    try {
-      await api.post("auth/login/", { username, password }); // Django expects username, not email
-      await refreshUser();
-    } catch (err: any) {
-      console.error("Login failed:", err.response?.data || err);
-      throw err;
-    }
-  };
+  try {
+    // ✅ always get CSRF token before POST
+    await api.get("auth/csrf/");
+    await api.post("auth/login/", { username, password });
+    await refreshUser();
+  } catch (err: any) {
+    console.error("Login failed:", err.response?.data || err);
+    throw err;
+  }
+};
+
 
   // 🔹 Logout
   const logout = async () => {
-    try {
-      await api.post("auth/logout/");
-    } catch {
-      /* ignore */
-    } finally {
-      setAuth({ isAuthenticated: false });
-    }
-  };
+  try {
+    await api.get("auth/csrf/");   // Get token first
+    await api.post("auth/logout/");
+    console.log("✅ Logged out");
+  } catch (err) {
+    console.error("Logout failed:", err);
+  } finally {
+    await api.get("auth/csrf/");   // Refresh token again
+    setAuth({ isAuthenticated: false });
+  }
+};
 
   // 🔹 Refresh user (called after login and on mount)
   const refreshUser = async () => {

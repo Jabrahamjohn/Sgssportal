@@ -42,6 +42,7 @@ urlpatterns = [
     # --- Optional DRF token auth (for later mobile use) --
     path("api/auth/csrf/", medical_views.csrf_cookie),    
     # path('api/auth/token/', include('rest_framework.authtoken.urls')),
+    path("api/auth/csrf-token/", medical_views.get_csrf, name="csrf"),
 
     # --- Swagger / ReDoc ---
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),

@@ -3,14 +3,25 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.utils import timezone
-from medical.models import MembershipType, Member, ReimbursementScale, Setting, Claim, ClaimItem
 from django.db import transaction
+from faker import Faker
+import random
+
+from medical.models import (
+    MembershipType,
+    Member,
+    ReimbursementScale,
+    Setting,
+    Claim,
+    ClaimItem,
+)
 
 User = get_user_model()
+fake = Faker()
 
 
 class Command(BaseCommand):
-    help = "Seed SGSS Medical Fund core data (roles, users, memberships, settings, reimbursement scales, sample claim)"
+    help = "Seed SGSS Medical Fund data: roles, users, memberships, settings, reimbursement scales, and test claims."
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -87,10 +98,14 @@ class Command(BaseCommand):
             key="family",
             defaults={"name": "Family", "annual_limit": 500000, "fund_share_percent": 80},
         )
-        self.stdout.write(self.style.SUCCESS("Created membership types: Single, Family"))
+        senior, _ = MembershipType.objects.get_or_create(
+            key="senior",
+            defaults={"name": "Senior Citizen", "annual_limit": 300000, "fund_share_percent": 75},
+        )
+        self.stdout.write(self.style.SUCCESS("Created membership types: Single, Family, Senior Citizen"))
 
         # -------------------------------
-        # 4️⃣ Create Member Record
+        # 4️⃣ Create Member Record for main user
         # -------------------------------
         member, _ = Member.objects.get_or_create(
             user=member_user,
@@ -101,7 +116,7 @@ class Command(BaseCommand):
                 "valid_to": timezone.now().date() + timezone.timedelta(days=365 * 2),
             },
         )
-        self.stdout.write(self.style.SUCCESS("Created member record for 'member' user."))
+        self.stdout.write(self.style.SUCCESS("Created main member record for 'member' user."))
 
         # -------------------------------
         # 5️⃣ Settings
@@ -139,7 +154,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Seeded reimbursement scales."))
 
         # -------------------------------
-        # 7️⃣ Sample Claim
+        # 7️⃣ Sample Claim for main member
         # -------------------------------
         claim, _ = Claim.objects.get_or_create(
             member=member,
@@ -160,9 +175,68 @@ class Command(BaseCommand):
             category="medicine",
             defaults={"description": "Tablets", "amount": 2000, "quantity": 1},
         )
-        self.stdout.write(self.style.SUCCESS("Created sample claim with items."))
+        self.stdout.write(self.style.SUCCESS("Created sample claim for 'member' user."))
+
+        # -------------------------------
+        # 8️⃣ Create 5 Fake Members + Claims
+        # -------------------------------
+        for i in range(5):
+            first = fake.first_name()
+            last = fake.last_name()
+            username = f"{first.lower()}{i}"
+            email = f"{username}@sgss.org"
+
+            user, _ = User.objects.get_or_create(
+                username=username,
+                defaults={
+                    "email": email,
+                    "first_name": first,
+                    "last_name": last,
+                },
+            )
+            user.set_password("member123")
+            user.save()
+            user.groups.add(member_group)
+
+            mtype = random.choice([single, family, senior])
+
+            member, _ = Member.objects.get_or_create(
+                user=user,
+                defaults={
+                    "membership_type": mtype,
+                    "nhif_number": f"NHIF-{random.randint(1000,9999)}",
+                    "valid_from": timezone.now().date() - timezone.timedelta(days=random.randint(10, 200)),
+                    "valid_to": timezone.now().date() + timezone.timedelta(days=365),
+                },
+            )
+
+            # Each gets one random claim
+            c = Claim.objects.create(
+                member=member,
+                claim_type=random.choice(["outpatient", "inpatient", "chronic"]),
+                status=random.choice(["submitted", "approved", "rejected"]),
+                notes=f"Visit to {fake.company()}",
+                date_of_first_visit=timezone.now().date() - timezone.timedelta(days=random.randint(1, 20)),
+            )
+
+            ClaimItem.objects.create(
+                claim=c,
+                category="consultation",
+                description="Routine check-up",
+                amount=random.randint(1000, 5000),
+                quantity=1,
+            )
+            ClaimItem.objects.create(
+                claim=c,
+                category="medicine",
+                description="Prescribed meds",
+                amount=random.randint(500, 2000),
+                quantity=1,
+            )
+
+            self.stdout.write(self.style.SUCCESS(f"Created test member: {username} / member123"))
 
         # -------------------------------
         # ✅ Summary
         # -------------------------------
-        self.stdout.write(self.style.SUCCESS("✅ SGSS seed data created successfully!"))
+        self.stdout.write(self.style.SUCCESS("✅ SGSS seed data created successfully with test members!"))

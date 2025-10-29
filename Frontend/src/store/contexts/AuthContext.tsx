@@ -54,16 +54,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 🔹 Logout
   const logout = async () => {
   try {
-    await api.get("auth/csrf/");   // Get token first
-    await api.post("auth/logout/");
-    console.log("✅ Logged out");
+    await api.post("auth/logout/");  // backend sends Set-Cookie header
+    console.log("✅ Logged out successfully");
   } catch (err) {
-    console.error("Logout failed:", err);
+    console.warn("Logout failed:", err);
   } finally {
-    await api.get("auth/csrf/");   // Refresh token again
+    // Pull the new CSRF token immediately, guaranteeing sync
+    await api.get("auth/csrf/");
     setAuth({ isAuthenticated: false });
   }
 };
+
+
 
   // 🔹 Refresh user (called after login and on mount)
   const refreshUser = async () => {

@@ -302,20 +302,21 @@ def login_view(request):
         status=status.HTTP_401_UNAUTHORIZED,
     )
 
-@csrf_exempt
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@csrf_exempt  # <-- this must be directly on top and no DRF decorator above
 def logout_view(request):
-    """Logs out the current session user and reissues a new CSRF token."""
+    """Logs out the user and reissues CSRF cookie manually (CSRF bypass)."""
+    if request.method != "POST":
+        return JsonResponse({"detail": "Method not allowed"}, status=405)
+
     logout(request)
-    token = get_token(request)
-    response = Response({"detail": "Logged out successfully."}, status=200)
+    new_token = get_token(request)
+    response = JsonResponse({"detail": "Logged out successfully."})
     response.set_cookie(
         "csrftoken",
-        token,
-        samesite=None,
+        new_token,
+        httponly=False,
         secure=False,
-        httponly=False
+        samesite=None,
     )
     return response
 

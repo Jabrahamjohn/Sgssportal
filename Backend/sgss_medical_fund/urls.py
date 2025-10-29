@@ -61,6 +61,7 @@ urlpatterns = [
     path("api/auth/me/", medical_views.me, name="me"),
     path("api/auth/csrf/", medical_views.csrf_cookie),
     path("api/auth/get-csrf-token/", medical_views.get_csrf_token, name="get_csrf-token"),
+    path('api/members/', include('api.members.urls')),
 
     # --- Swagger / ReDoc ---
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),

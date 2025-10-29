@@ -10,7 +10,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.middleware.csrf import get_token
 from django.contrib.auth.models import Group
-
+from medical.models import Member  # adjust import to your actual model
+from medical.serializers import MemberSerializer  # adjust import if serializer exists
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview,
     Notification, ReimbursementScale, Setting, ChronicRequest, ClaimAttachment
@@ -251,21 +252,19 @@ def me(request):
     })
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def my_member(request):
-    """Return membership info for the logged-in user"""
+    """
+    Return the logged-in user's member profile.
+    """
     try:
         member = Member.objects.get(user=request.user)
-        return Response({
-            "id": member.id,
-            "nhif_number": member.nhif_number,
-            "membership_type": member.membership_type.name if member.membership_type else None,
-            "valid_from": member.valid_from,
-            "valid_to": member.valid_to,
-        })
+        serializer = MemberSerializer(member)
+        return Response(serializer.data)
     except Member.DoesNotExist:
-        return Response({"detail": "Not registered as member."}, status=404)
+        return Response({"detail": "Member profile not found."}, status=404)
+    
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -280,13 +279,15 @@ def login_view(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # ✅ Try both username and email for convenience
     from django.contrib.auth import authenticate, get_user_model
+    from django.utils import timezone
+    from medical.models import MembershipType, Member
+
     User = get_user_model()
 
+    # ✅ Try both username and email
     user = authenticate(request, username=username, password=password)
     if user is None:
-        # fallback: try to find by email
         try:
             user_obj = User.objects.get(email=username)
             user = authenticate(request, username=user_obj.username, password=password)
@@ -294,13 +295,31 @@ def login_view(request):
             user = None
 
     if user is not None:
+        # ✅ Log the user in
         login(request, user)
+
+        # ✅ Auto-create Member profile if missing
+        member, created = Member.objects.get_or_create(
+            user=user,
+            defaults={
+                "membership_type": MembershipType.objects.first(),  # fallback to first type
+                "nhif_number": "PENDING",
+                "valid_from": timezone.now().date(),
+                "valid_to": timezone.now().date() + timezone.timedelta(days=365),
+            },
+        )
+
+        if created:
+            print(f"🟢 Auto-created Member profile for {user.username}")
+
         return Response({"detail": "Login successful."}, status=status.HTTP_200_OK)
 
+    # ❌ Invalid credentials
     return Response(
         {"detail": "Invalid username or password."},
         status=status.HTTP_401_UNAUTHORIZED,
     )
+
 
 @csrf_exempt  # <-- this must be directly on top and no DRF decorator above
 def logout_view(request):

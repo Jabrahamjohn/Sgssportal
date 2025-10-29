@@ -26,7 +26,7 @@ urlpatterns = [
     path('auth/me/', views.me, name='me'),
 
     # 👤 Member-specific info (current logged-in user)
-    path('members/me/', views.my_member, name='my-member'),
+    path("me/", views.my_member, name="my-member"),
 
     # 🌍 Include all router-based endpoints
     path('', include(router.urls)),

@@ -320,6 +320,11 @@ def csrf_cookie(request):
     """Ensures frontend has a valid CSRF cookie"""
     return Response({"detail": "CSRF cookie set."})
 
+@ensure_csrf_cookie
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_csrf(request):
+    return JsonResponse({'csrfToken': 'set'})
 
 # ============================================================
 #                USER REGISTRATION

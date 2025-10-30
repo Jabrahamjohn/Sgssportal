@@ -1,32 +1,31 @@
-import { Button as AntdButton } from 'antd';
-import React from 'react';
+import React from "react";
 
-import type { ButtonProps } from 'antd';
-import classNames from '../../utils/classnames';
-
-export type ButtonType = Omit<ButtonProps, 'icon'> & {
-	icon?: ({ className }: { className?: string }) => React.ReactNode;
-	iconClass?: string;
-};
-
-function Button({
-	className: propsClassName,
-	icon: Icon,
-	iconClass = '',
-	...props
-}: ButtonType) {
-	const className = classNames('gap-1', propsClassName || '');
-
-	const iconClassName = classNames('text-sm relative top-[1.5px', iconClass);
-	return (
-		<AntdButton
-			icon={Icon ? <Icon className={iconClassName} /> : undefined}
-			className={className}
-			htmlType="submit"
-			size="large"
-			{...props}
-		/>
-	);
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  children: React.ReactNode;
+  className?: string;
+  variant?: "primary" | "outline" | "danger";
 }
 
-export default Button;
+export default function Button({
+  children,
+  className = "",
+  variant = "primary",
+  ...props
+}: ButtonProps) {
+  const base = "px-4 py-2 rounded-xl font-medium transition focus:outline-none";
+  const variants = {
+    primary: "bg-blue-600 text-white hover:bg-blue-700",
+    outline:
+      "border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900",
+    danger: "bg-red-500 text-white hover:bg-red-600",
+  };
+
+  return (
+    <button
+      {...props}
+      className={`${base} ${variants[variant]} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}

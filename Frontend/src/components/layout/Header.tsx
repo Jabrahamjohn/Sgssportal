@@ -1,6 +1,6 @@
 import React from "react";
 import { useAuth } from "~/store/contexts/AuthContext";
-import { Button } from "~/components/controls/button";
+import Button from "../controls/button";
 import { Bell } from "lucide-react";
 
 export default function Header() {

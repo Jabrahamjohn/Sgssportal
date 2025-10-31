@@ -1,0 +1,59 @@
+Backend/
+├─ requirements.txt
+├─ README.md
+├─ manage.py
+├─ Dockerfile
+├─ .gitignore
+├─ .env
+├─ api/
+│  └─ members/
+│     ├─ views.py
+│     ├─ urls.py
+│     └─ __pycache__/
+│        ├─ views.cpython-313.pyc
+│        └─ urls.cpython-313.pyc
+├─ sgss_medical_fund/
+│  ├─ __init__.py
+│  ├─ wsgi.py
+│  ├─ urls.py
+│  ├─ settings.py
+│  ├─ asgi.py
+│  └─ __pycache__/
+│     ├─ __init__.cpython-313.pyc
+│     ├─ wsgi.cpython-313.pyc
+│     ├─ urls.cpython-313.pyc
+│     ├─ settings.cpython-313.pyc
+├─ medical/
+│  ├─ __init__.py
+│  ├─ views.py
+│  ├─ urls.py
+│  ├─ tests.py
+│  ├─ signals.py
+│  ├─ serializers.py
+│  ├─ permissions.py
+│  ├─ models.py
+│  ├─ auth_urls.py
+│  ├─ apps.py
+│  ├─ admin.py
+│  ├─ management/
+│  │  └─ commands/
+│  │     ├─ seed_sgss.py
+│  │     └─ __pycache__/
+│  │        └─ seed_sgss.cpython-313.pyc
+│  ├─ migrations/
+│  │  ├─ 0001_initial.py
+│  │  ├─ 0002_reimbursementscale_setting_alter_claim_options_and_more.py
+│  │  ├─ 0003_chronicrequest_claimattachment.py
+│  │  └─ __pycache__/
+│  │     ├─ __init__.cpython-313.pyc
+│  │     ├─ 0001_initial.cpython-313.pyc
+│  │     ├─ 0002_reimbursementscale_setting_alter_claim_options_and_more.cpython-313.pyc
+│  │     └─ 0003_chronicrequest_claimattachment.cpython-313.pyc
+│  └─ __pycache__/
+│     ├─ views.cpython-313.pyc
+│     ├─ __init__.cpython-313.pyc
+│     ├─ urls.cpython-313.pyc
+│     ├─ signals.cpython-313.pyc
+│     ├─ serializers.cpython-313.pyc
+│     ├─ permissions.cpython-313.pyc
+│     └─ models.cpython-313.pyc

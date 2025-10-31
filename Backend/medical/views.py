@@ -421,3 +421,38 @@ def register_view(request):
         status=status.HTTP_201_CREATED,
     )
 
+
+# Committee: list all claims
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsCommittee])
+def committee_claims(request):
+    claims = Claim.objects.select_related("member__user").order_by("-created_at")
+    data = [
+        {
+            "id": str(c.id),
+            "claim_type": c.claim_type,
+            "member_name": c.member.user.get_full_name() or c.member.user.username,
+            "total_claimed": float(c.total_claimed),
+            "status": c.status,
+            "created_at": c.created_at,
+        }
+        for c in claims
+    ]
+    return Response(data)
+
+# Committee: change claim status
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsCommittee])
+def set_claim_status(request, claim_id):
+    try:
+        claim = Claim.objects.get(id=claim_id)
+    except Claim.DoesNotExist:
+        return Response({"detail": "Claim not found."}, status=404)
+
+    new_status = request.data.get("status")
+    if new_status not in dict(Claim.STATUS_CHOICES):
+        return Response({"detail": "Invalid status."}, status=400)
+
+    claim.status = new_status
+    claim.save(update_fields=["status"])
+    return Response({"detail": f"Claim marked as {new_status}."})

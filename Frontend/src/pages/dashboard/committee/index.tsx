@@ -1,58 +1,154 @@
-import React, { useEffect, useState } from 'react';
-import { listClaims, reviewClaim } from '../../../server/services/claim.service';
-import type { Claim } from '../../../types/claim';
+// Frontend/src/pages/dashboard/committee/index.tsx
+import React, { useEffect, useState } from "react";
+import api from "~/config/api";
+import  Card  from "~/components/controls/card";
+import  Table  from "~/components/controls/table";
+import  Button  from "~/components/controls/button";
+import  Badge from "~/components/controls/badge";
+import  Spin  from "~/components/controls/spin";
+import formatCurrency  from "~/utils/format-price";
+
+interface Claim {
+  id: string;
+  claim_type: string;
+  member_name: string;
+  total_claimed: number;
+  status: string;
+  created_at: string;
+}
 
 export default function CommitteeDashboard() {
-  const [rows, setRows] = useState<Claim[]>([]);
+  const [claims, setClaims] = useState<Claim[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
 
-  async function load() {
-    const data = await listClaims({ status: 'submitted' });
-    setRows(data);
-  }
+  // 🔹 Fetch claims
+  useEffect(() => {
+    const fetchClaims = async () => {
+      try {
+        const res = await api.get("/medical/claims/");
+        setClaims(res.data || []);
+        const pending = res.data.filter((c: any) => c.status === "submitted").length;
+        const approved = res.data.filter((c: any) => c.status === "approved").length;
+        const rejected = res.data.filter((c: any) => c.status === "rejected").length;
+        setStats({
+          total: res.data.length,
+          pending,
+          approved,
+          rejected,
+        });
+      } catch (err) {
+        console.error("Failed to fetch claims:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchClaims();
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  // 🔹 Handle status update
+  const handleAction = async (id: string, status: string) => {
+    try {
+      await api.post(`/medical/claims/${id}/set_status/`, { status });
+      setClaims((prev) =>
+        prev.map((claim) =>
+          claim.id === id ? { ...claim, status } : claim
+        )
+      );
+    } catch (err) {
+      console.error(`Failed to update claim ${id}:`, err);
+    }
+  };
 
-  async function approve(id: string) {
-    await reviewClaim({ claim: id, action: 'approved' });
-    await load();
-  }
-
-  async function reject(id: string) {
-    await reviewClaim({ claim: id, action: 'rejected' });
-    await load();
-  }
+  if (loading) return <Spin fullscreen />;
 
   return (
-    <div className="p-6 space-y-4">
-      <h2 className="text-xl font-semibold">Committee — Submitted Claims</h2>
-      <div className="overflow-x-auto">
-        <table className="min-w-[800px] w-full border rounded">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left p-2">ID</th>
-              <th className="text-left p-2">Type</th>
-              <th className="text-left p-2">Claimed</th>
-              <th className="text-left p-2">Payable</th>
-              <th className="text-left p-2">Actions</th>
+    <div className="space-y-6 p-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <Card title="Total Claims">
+          <p className="text-2xl font-bold text-gray-700">{stats.total}</p>
+        </Card>
+        <Card title="Pending Review">
+          <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+        </Card>
+        <Card title="Approved">
+          <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
+        </Card>
+        <Card title="Rejected">
+          <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
+        </Card>
+      </div>
+
+      {/* Claims Table */}
+      <Card title="Claims Review Queue">
+        <Table>
+          <thead>
+            <tr className="text-left bg-gray-100">
+              <th className="p-2">Member</th>
+              <th className="p-2">Claim Type</th>
+              <th className="p-2">Total Claimed</th>
+              <th className="p-2">Status</th>
+              <th className="p-2 text-right">Action</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((c) => (
-              <tr key={c.id} className="border-t">
-                <td className="p-2">{c.id.slice(0, 8)}…</td>
-                <td className="p-2">{c.claim_type}</td>
-                <td className="p-2">Ksh {Number(c.total_claimed).toLocaleString()}</td>
-                <td className="p-2">Ksh {Number(c.total_payable).toLocaleString()}</td>
-                <td className="p-2 space-x-2">
-                  <button className="px-2 py-1 rounded bg-green-600 text-white" onClick={() => approve(c.id)}>Approve</button>
-                  <button className="px-2 py-1 rounded bg-red-600 text-white" onClick={() => reject(c.id)}>Reject</button>
+            {claims.map((claim) => (
+              <tr key={claim.id} className="border-b hover:bg-gray-50">
+                <td className="p-2">{claim.member_name}</td>
+                <td className="p-2 capitalize">{claim.claim_type}</td>
+                <td className="p-2">{formatCurrency(claim.total_claimed)}</td>
+                <td className="p-2">
+                  <Badge
+                    color={
+                      claim.status === "approved"
+                        ? "green"
+                        : claim.status === "rejected"
+                        ? "red"
+                        : "yellow"
+                    }
+                    text={claim.status}
+                  />
+                </td>
+                <td className="p-2 flex justify-end gap-2">
+                  {claim.status === "submitted" && (
+                    <>
+                      <Button
+                        size="small"
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => handleAction(claim.id, "approved")}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="small"
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                        onClick={() => handleAction(claim.id, "rejected")}
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                  {claim.status === "approved" && (
+                    <Button
+                      size="small"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={() => handleAction(claim.id, "paid")}
+                    >
+                      Mark Paid
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}
-            {!rows.length && <tr><td colSpan={5} className="p-3 text-gray-500">No submitted claims.</td></tr>}
           </tbody>
-        </table>
-      </div>
+        </Table>
+      </Card>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+// Frontend/src/containers/auth/login.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "~/store/contexts/AuthContext";
@@ -44,10 +45,22 @@ export default function Login() {
 
     try {
       await login(username, password);
-      const role = auth?.role || "member";
-      if (role === "admin") navigate("/dashboard/admin");
-      else if (role === "committee") navigate("/dashboard/committee");
-      else navigate("/dashboard/member");
+
+// refresh session and user data
+await new Promise((r) => setTimeout(r, 500)); // small delay to ensure context updates
+const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+
+const role =
+  storedUser?.role ||
+  storedUser?.groups?.[0] ||
+  auth?.role ||
+  auth?.user?.groups?.[0] ||
+  "member";
+
+if (role === "admin") navigate("/dashboard/admin");
+else if (role === "committee") navigate("/dashboard/committee");
+else navigate("/dashboard/member");
+
     } catch (err: any) {
       const message =
         err.response?.data?.detail ||
@@ -96,13 +109,15 @@ export default function Login() {
           />
 
           <Button
-            htmlType="submit"
+            type="submit"
             block
             className="bg-blue-600 text-white hover:bg-blue-700"
             disabled={loading}
+            onClick={() => console.log("Login clicked")} // 🔹 Debug check
           >
             {loading ? <Spin size="small" /> : "Login"}
           </Button>
+
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-500">

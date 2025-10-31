@@ -69,7 +69,7 @@ export default function AppRouter() {
           <Route
             path="dashboard/committee"
             element={
-              <Authenticated roles={["committee", "admin"]}>
+              <Authenticated allowed={["committee", "admin"]}>
                 <CommitteeDashboard />
               </Authenticated>
             }
@@ -79,7 +79,7 @@ export default function AppRouter() {
           <Route
             path="dashboard/admin"
             element={
-              <Authenticated roles={["admin"]}>
+              <Authenticated allowed={["admin"]}>
                 <AdminDashboard />
               </Authenticated>
             }
@@ -87,7 +87,7 @@ export default function AppRouter() {
           <Route
             path="dashboard/admin/settings"
             element={
-              <Authenticated roles={["admin"]}>
+              <Authenticated allowed={["admin"]}>
                 <AdminSettings />
               </Authenticated>
             }

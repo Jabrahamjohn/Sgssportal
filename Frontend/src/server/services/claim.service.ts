@@ -1,37 +1,73 @@
-import { api } from '../../config/api';
-import type { Claim, ClaimItem, ClaimReviewPayload } from '../../types/claim';
+import api from "~/config/api";
 
-export async function listClaims(params?: { status?: string }) {
-  const { data } = await api.get<Claim[]>('claims/', { params });
-  return data;
-}
+export type CommitteeClaimRow = {
+  id: string;
+  member_name: string;
+  membership_type: string | null;
+  claim_type: "inpatient" | "outpatient" | string;
+  status: string;
+  total_claimed: string;
+  total_payable: string;
+  member_payable: string;
+  created_at: string;
+  submitted_at?: string | null;
+};
 
-export async function getClaim(id: string) {
-  const { data } = await api.get<Claim>(`claims/${id}/`);
-  return data;
-}
+export const listCommitteeClaims = async (params?: {
+  status?: string;
+  type?: string;
+  q?: string;
+}) => {
+  const res = await api.get("claims/committee/", { params });
+  return res.data.results as CommitteeClaimRow[];
+};
 
-export async function createClaim(payload: Partial<Claim>) {
-  const { data } = await api.post<Claim>('claims/', payload);
-  return data;
-}
+export const getCommitteeClaimDetail = async (id: string) => {
+  const res = await api.get(`claims/committee/${id}/`);
+  return res.data as {
+    id: string;
+    member: {
+      name: string;
+      username: string;
+      email: string;
+      membership_type: string | null;
+      nhif_number: string | null;
+    };
+    claim: {
+      type: string;
+      status: string;
+      notes: string | null;
+      date_of_first_visit: string | null;
+      date_of_discharge: string | null;
+      total_claimed: string;
+      total_payable: string;
+      member_payable: string;
+      override_amount: string | null;
+      submitted_at: string | null;
+      created_at: string;
+    };
+    items: Array<{
+      id: string;
+      category: string | null;
+      description: string | null;
+      amount: string;
+      quantity: number;
+      line_total: string;
+    }>;
+    attachments: Array<{
+      id: string;
+      file: string | null;
+      content_type: string | null;
+      uploaded_at: string;
+      uploaded_by: string | null;
+    }>;
+  };
+};
 
-export async function addItem(claimId: string, item: Omit<ClaimItem, 'id'>) {
-  const { data } = await api.post<ClaimItem>('claim-items/', { claim: claimId, ...item });
-  return data;
-}
-
-export async function reviewClaim(payload: ClaimReviewPayload) {
-  const { data } = await api.post('claim-reviews/', payload);
-  return data;
-}
-
-export async function uploadAttachment(claimId: string, file: File) {
-  const fd = new FormData();
-  fd.append('claim', claimId);
-  fd.append('file', file);
-  const { data } = await api.post('claim-attachments/', fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-}
+export const setClaimStatus = async (
+  id: string,
+  status: "reviewed" | "approved" | "rejected" | "paid"
+) => {
+  const res = await api.post(`claims/${id}/set_status/`, { status });
+  return res.data;
+};

@@ -63,6 +63,11 @@ urlpatterns = [
     path("api/auth/get-csrf-token/", medical_views.get_csrf_token, name="get_csrf-token"),
     path('api/members/', include('api.members.urls')),
 
+    # --- Medical Fund ---
+    path('api/claims/committee/', medical_views.committee_claims, name='committee-claims'),
+    path('api/claims/committee/<uuid:pk>/', medical_views.committee_claim_detail, name='committee-claim-detail'),
+
+
     # --- Swagger / ReDoc ---
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

@@ -32,6 +32,5 @@ urlpatterns = [
     path('', include(router.urls)),
 
     #  claims 
-    path("claims/committee/", views.committee_claims, name="committee-claims"),
-    path("claims/<uuid:claim_id>/set_status/", views.set_claim_status, name="set-claim-status"),
+    
 ]

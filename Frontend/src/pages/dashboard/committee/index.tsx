@@ -1,154 +1,109 @@
-// Frontend/src/pages/dashboard/committee/index.tsx
 import React, { useEffect, useState } from "react";
-import api from "~/config/api";
-import  Card  from "~/components/controls/card";
+import { listCommitteeClaims, setClaimStatus } from "~/server/services/claim.service";
 import  Table  from "~/components/controls/table";
+import Badge  from "~/components/controls/badge";
 import  Button  from "~/components/controls/button";
-import  Badge from "~/components/controls/badge";
-import  Spin  from "~/components/controls/spin";
-import formatCurrency  from "~/utils/format-price";
+import ClaimDetailsModal from "./modal-claim-details";
 
-interface Claim {
-  id: string;
-  claim_type: string;
-  member_name: string;
-  total_claimed: number;
-  status: string;
-  created_at: string;
-}
+const statusColor = (s: string) => {
+  switch (s) {
+    case "submitted": return "warning";
+    case "reviewed": return "info";
+    case "approved": return "success";
+    case "rejected": return "danger";
+    case "paid": return "primary";
+    default: return "default";
+  }
+};
 
 export default function CommitteeDashboard() {
-  const [claims, setClaims] = useState<Claim[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    total: 0,
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-  });
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({ status: "submitted", type: "" });
+  const [openId, setOpenId] = useState<string | null>(null);
 
-  // 🔹 Fetch claims
-  useEffect(() => {
-    const fetchClaims = async () => {
-      try {
-        const res = await api.get("/medical/claims/");
-        setClaims(res.data || []);
-        const pending = res.data.filter((c: any) => c.status === "submitted").length;
-        const approved = res.data.filter((c: any) => c.status === "approved").length;
-        const rejected = res.data.filter((c: any) => c.status === "rejected").length;
-        setStats({
-          total: res.data.length,
-          pending,
-          approved,
-          rejected,
-        });
-      } catch (err) {
-        console.error("Failed to fetch claims:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchClaims();
-  }, []);
-
-  // 🔹 Handle status update
-  const handleAction = async (id: string, status: string) => {
+  const load = async () => {
+    setLoading(true);
     try {
-      await api.post(`/medical/claims/${id}/set_status/`, { status });
-      setClaims((prev) =>
-        prev.map((claim) =>
-          claim.id === id ? { ...claim, status } : claim
-        )
-      );
-    } catch (err) {
-      console.error(`Failed to update claim ${id}:`, err);
+      const data = await listCommitteeClaims({
+        status: filters.status || undefined,
+        type: filters.type || undefined,
+      });
+      setRows(data);
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading) return <Spin fullscreen />;
+  useEffect(() => { load(); }, [filters.status, filters.type]);
+
+  const onSet = async (id: string, st: "reviewed"|"approved"|"rejected"|"paid") => {
+    await setClaimStatus(id, st);
+    await load();
+  };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <Card title="Total Claims">
-          <p className="text-2xl font-bold text-gray-700">{stats.total}</p>
-        </Card>
-        <Card title="Pending Review">
-          <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-        </Card>
-        <Card title="Approved">
-          <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
-        </Card>
-        <Card title="Rejected">
-          <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
-        </Card>
+    <div className="p-4 md:p-6">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <select
+          className="border rounded px-2 py-1"
+          value={filters.status}
+          onChange={(e)=>setFilters(f=>({...f, status:e.target.value}))}
+        >
+          <option value="">All statuses</option>
+          <option value="submitted">Submitted</option>
+          <option value="reviewed">Reviewed</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="paid">Paid</option>
+        </select>
+        <select
+          className="border rounded px-2 py-1"
+          value={filters.type}
+          onChange={(e)=>setFilters(f=>({...f, type:e.target.value}))}
+        >
+          <option value="">All types</option>
+          <option value="outpatient">Outpatient</option>
+          <option value="inpatient">Inpatient</option>
+        </select>
+        <Button onClick={load}>Refresh</Button>
       </div>
 
-      {/* Claims Table */}
-      <Card title="Claims Review Queue">
-        <Table>
-          <thead>
-            <tr className="text-left bg-gray-100">
-              <th className="p-2">Member</th>
-              <th className="p-2">Claim Type</th>
-              <th className="p-2">Total Claimed</th>
-              <th className="p-2">Status</th>
-              <th className="p-2 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {claims.map((claim) => (
-              <tr key={claim.id} className="border-b hover:bg-gray-50">
-                <td className="p-2">{claim.member_name}</td>
-                <td className="p-2 capitalize">{claim.claim_type}</td>
-                <td className="p-2">{formatCurrency(claim.total_claimed)}</td>
-                <td className="p-2">
-                  <Badge
-                    color={
-                      claim.status === "approved"
-                        ? "green"
-                        : claim.status === "rejected"
-                        ? "red"
-                        : "yellow"
-                    }
-                    text={claim.status}
-                  />
-                </td>
-                <td className="p-2 flex justify-end gap-2">
-                  {claim.status === "submitted" && (
-                    <>
-                      <Button
-                        size="small"
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => handleAction(claim.id, "approved")}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        size="small"
-                        className="bg-red-600 hover:bg-red-700 text-white"
-                        onClick={() => handleAction(claim.id, "rejected")}
-                      >
-                        Reject
-                      </Button>
-                    </>
-                  )}
-                  {claim.status === "approved" && (
-                    <Button
-                      size="small"
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                      onClick={() => handleAction(claim.id, "paid")}
-                    >
-                      Mark Paid
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </Card>
+      <Table
+        loading={loading}
+        columns={[
+          { title: "Member", key: "member_name" },
+          { title: "Membership", key: "membership_type" },
+          { title: "Type", key: "claim_type" },
+          {
+            title: "Status",
+            key: "status",
+            render: (r:any)=> <Badge variant={statusColor(r.status)}>{r.status}</Badge>
+          },
+          { title: "Claimed", key: "total_claimed" },
+          { title: "Payable", key: "total_payable" },
+          { title: "Created", key: "created_at" },
+          {
+            title: "Actions",
+            key: "actions",
+            render: (r:any)=> (
+              <div className="flex gap-2">
+                <Button size="sm" onClick={()=>setOpenId(r.id)}>Details</Button>
+                <Button size="sm" onClick={()=>onSet(r.id, "reviewed")}>Review</Button>
+                <Button size="sm" onClick={()=>onSet(r.id, "approved")}>Approve</Button>
+                <Button size="sm" onClick={()=>onSet(r.id, "rejected")}>Reject</Button>
+                <Button size="sm" onClick={()=>onSet(r.id, "paid")}>Mark Paid</Button>
+              </div>
+            )
+          }
+        ]}
+        data={rows}
+        rowKey="id"
+      />
+
+      {openId && (
+        <ClaimDetailsModal id={openId} onClose={()=>setOpenId(null)} />
+      )}
     </div>
   );
 }

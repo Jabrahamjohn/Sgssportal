@@ -1,3 +1,4 @@
+// Frontend/src/pages/dashboard/member/claims.tsx
 import React, { useEffect, useState } from 'react';
 import { listClaims } from '../../../server/services/claim.service';
 import type { Claim } from '../../../types/claim';

@@ -12,8 +12,9 @@ from django.middleware.csrf import get_token
 from django.contrib.auth.models import Group
 from medical.models import Member  # adjust import to your actual model
 from medical.serializers import MemberSerializer  # adjust import if serializer exists
+from django.db.models import Q
 from .models import (
-    Member, MembershipType, Claim, ClaimItem, ClaimReview,
+    Member, MembershipType, Claim, ClaimItem, ClaimReview, 
     Notification, ReimbursementScale, Setting, ChronicRequest, ClaimAttachment
 )
 from .serializers import (
@@ -426,19 +427,48 @@ def register_view(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsCommittee])
 def committee_claims(request):
-    claims = Claim.objects.select_related("member__user").order_by("-created_at")
-    data = [
-        {
+    """
+    List claims for committee with optional filters:
+    ?status=submitted|reviewed|approved|rejected|paid
+    ?type=outpatient|inpatient
+    ?q=<member name or username or nhif>
+    """
+    status_f = request.GET.get("status")
+    type_f = request.GET.get("type")
+    q = request.GET.get("q")
+
+    qs = Claim.objects.select_related(
+        "member__user", "member__membership_type"
+    ).order_by("-created_at")
+
+    if status_f:
+        qs = qs.filter(status=status_f)
+    if type_f:
+        qs = qs.filter(claim_type=type_f)
+    if q:
+        qs = qs.filter(
+            Q(member__user__username__icontains=q) |
+            Q(member__user__first_name__icontains=q) |
+            Q(member__user__last_name__icontains=q) |
+            Q(nhif_number__icontains=q)
+        )
+
+    data = []
+    for c in qs[:300]:  # soft cap page for now
+        data.append({
             "id": str(c.id),
+            "member_name": f"{c.member.user.first_name} {c.member.user.last_name}".strip() or c.member.user.username,
+            "membership_type": c.member.membership_type.name if c.member.membership_type else None,
             "claim_type": c.claim_type,
-            "member_name": c.member.user.get_full_name() or c.member.user.username,
-            "total_claimed": float(c.total_claimed),
             "status": c.status,
+            "total_claimed": str(c.total_claimed),
+            "total_payable": str(c.total_payable),
+            "member_payable": str(c.member_payable),
             "created_at": c.created_at,
-        }
-        for c in claims
-    ]
-    return Response(data)
+            "submitted_at": c.submitted_at,
+        })
+    return Response({"results": data})
+
 
 # Committee: change claim status
 @api_view(["POST"])
@@ -456,3 +486,61 @@ def set_claim_status(request, claim_id):
     claim.status = new_status
     claim.save(update_fields=["status"])
     return Response({"detail": f"Claim marked as {new_status}."})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsCommittee])
+def committee_claim_detail(request, pk):
+    """
+    Detailed claim view for modal: items, attachments, computed totals, dates.
+    """
+    try:
+        c = Claim.objects.select_related(
+            "member__user", "member__membership_type"
+        ).prefetch_related("items", "attachments").get(pk=pk)
+    except Claim.DoesNotExist:
+        return Response({"detail": "Not found."}, status=404)
+
+    items = [{
+        "id": str(i.id),
+        "category": i.category,
+        "description": i.description,
+        "amount": str(i.amount),
+        "quantity": i.quantity,
+        "line_total": str(i.amount * i.quantity),
+    } for i in c.items.all()]
+
+    atts = [{
+        "id": str(a.id),
+        "file": a.file.url if a.file else None,
+        "content_type": a.content_type,
+        "uploaded_at": a.uploaded_at,
+        "uploaded_by": a.uploaded_by.username if a.uploaded_by else None,
+    } for a in c.attachments.all()]
+
+    data = {
+        "id": str(c.id),
+        "member": {
+            "name": f"{c.member.user.first_name} {c.member.user.last_name}".strip() or c.member.user.username,
+            "username": c.member.user.username,
+            "email": c.member.user.email,
+            "membership_type": c.member.membership_type.name if c.member.membership_type else None,
+            "nhif_number": c.nhif_number or c.member.nhif_number,
+        },
+        "claim": {
+            "type": c.claim_type,
+            "status": c.status,
+            "notes": c.notes,
+            "date_of_first_visit": c.date_of_first_visit,
+            "date_of_discharge": c.date_of_discharge,
+            "total_claimed": str(c.total_claimed),
+            "total_payable": str(c.total_payable),
+            "member_payable": str(c.member_payable),
+            "override_amount": str(c.override_amount) if c.override_amount is not None else None,
+            "submitted_at": c.submitted_at,
+            "created_at": c.created_at,
+        },
+        "items": items,
+        "attachments": atts,
+    }
+    return Response(data)

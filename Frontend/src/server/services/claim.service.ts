@@ -1,3 +1,4 @@
+// frontend/src/server/services/claim.service.ts
 import api from "~/config/api";
 
 export type CommitteeClaimRow = {
@@ -21,6 +22,12 @@ export const listCommitteeClaims = async (params?: {
   const res = await api.get("claims/committee/", { params });
   return res.data.results as CommitteeClaimRow[];
 };
+
+export const listClaims = async () => {
+  const res = await api.get("claims/");
+  return res.data.results || res.data;
+};
+
 
 export const getCommitteeClaimDetail = async (id: string) => {
   const res = await api.get(`claims/committee/${id}/`);
@@ -69,5 +76,42 @@ export const setClaimStatus = async (
   status: "reviewed" | "approved" | "rejected" | "paid"
 ) => {
   const res = await api.post(`claims/${id}/set_status/`, { status });
+  return res.data;
+};
+
+// ✨ Create a new claim (for member)
+export const createClaim = async (payload: {
+  claim_type: string;
+  date_of_first_visit?: string;
+  date_of_discharge?: string;
+  notes?: string;
+  status?: string;
+}) => {
+  const res = await api.post("claims/", payload);
+  return res.data;
+};
+
+// ✨ Add an item to a claim
+export const addItem = async (
+  claimId: string,
+  item: {
+    category?: string;
+    description?: string;
+    amount: number;
+    quantity: number;
+  }
+) => {
+  const res = await api.post(`claim-items/`, { claim: claimId, ...item });
+  return res.data;
+};
+
+// ✨ Upload an attachment (file) to a claim
+export const uploadAttachment = async (claimId: string, file: File) => {
+  const formData = new FormData();
+  formData.append("claim", claimId);
+  formData.append("file", file);
+  const res = await api.post("claim-attachments/", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return res.data;
 };

@@ -1,3 +1,4 @@
+// frontend/src/pages/dashboard/member/claims-new.tsx
 import React, { useState } from 'react';
 import { createClaim, addItem, uploadAttachment } from '../../../server/services/claim.service';
 import type { ClaimItem } from '../../../types/claim';

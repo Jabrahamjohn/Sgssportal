@@ -1,6 +1,6 @@
 // Frontend/src/pages/dashboard/member/claims.tsx
 import React, { useEffect, useState } from 'react';
-import { listClaims } from '../../../server/services/claim.service';
+import { listCommitteeClaims } from "~/server/services/claim.service";
 import type { Claim } from '../../../types/claim';
 import { Link } from 'react-router-dom';
 
@@ -9,7 +9,7 @@ export default function ClaimsList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    listClaims()
+    listCommitteeClaims()
       .then(setData)
       .finally(() => setLoading(false));
   }, []);

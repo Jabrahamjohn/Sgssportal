@@ -1,8 +1,8 @@
 // Frontend/src/pages/dashboard/member/claims-new.tsx
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import api from "~/config/api";
-import Button from "~/components/controls/button";
-import Input from "~/components/controls/input";
+import  Button  from "~/components/controls/button";
+import  Input  from "~/components/controls/input";
 import { useNavigate } from "react-router-dom";
 
 export default function NewClaim() {
@@ -13,15 +13,12 @@ export default function NewClaim() {
   const [err, setErr] = useState("");
   const nav = useNavigate();
 
-  // 🔹 Update form data
   const handleChange = (key: string, value: any) =>
     setFormData((prev: any) => ({ ...prev, [key]: value }));
 
-  // 🔹 Submit claim
   const handleSubmit = async () => {
     setBusy(true);
     setErr("");
-
     try {
       const res = await api.post("claims/", {
         claim_type: type,
@@ -44,7 +41,6 @@ export default function NewClaim() {
     }
   };
 
-  // 🔹 Render correct form
   const renderForm = () => {
     switch (type) {
       case "inpatient":
@@ -75,9 +71,7 @@ export default function NewClaim() {
         </div>
       </div>
 
-      <div className="border rounded p-4 bg-white shadow-sm">
-        {renderForm()}
-      </div>
+      <div className="border rounded p-4 bg-white shadow-sm">{renderForm()}</div>
 
       <div className="border rounded p-4">
         <h3 className="font-medium mb-2">Attachments</h3>
@@ -102,139 +96,155 @@ export default function NewClaim() {
   );
 }
 
+/* ---------------------------------------------------------------------- */
+/* 🩺 OUTPATIENT FORM                                                     */
+/* ---------------------------------------------------------------------- */
 function OutpatientForm({ data, onChange }: any) {
+  const total = useMemo(() => {
+    const { consultation_fee = 0, medicine_cost = 0, investigation_cost = 0, procedure_cost = 0 } = data;
+    return consultation_fee + medicine_cost + investigation_cost + procedure_cost;
+  }, [data]);
+
   return (
     <div className="space-y-4">
-      <div>
-        <label className="block text-sm mb-1">Diagnosis</label>
-        <Input
-          value={data.diagnosis || ""}
-          onChange={(e) => onChange("diagnosis", e.target.value)}
-        />
-      </div>
+      <h3 className="font-semibold mb-3 text-gray-800">Outpatient Claim</h3>
+      <Input
+        label="Diagnosis"
+        value={data.diagnosis || ""}
+        onChange={(e) => onChange("diagnosis", e.target.value)}
+      />
+      <Input
+        label="Date of Visit"
+        type="date"
+        value={data.date_of_first_visit || ""}
+        onChange={(e) => onChange("date_of_first_visit", e.target.value)}
+      />
+      <Input
+        label="Consultation Fee (Ksh)"
+        type="number"
+        value={data.consultation_fee || ""}
+        onChange={(e) => onChange("consultation_fee", Number(e.target.value))}
+      />
+      <Input
+        label="Medicine Cost (Ksh)"
+        type="number"
+        value={data.medicine_cost || ""}
+        onChange={(e) => onChange("medicine_cost", Number(e.target.value))}
+      />
+      <Input
+        label="Investigation Cost (Ksh)"
+        type="number"
+        value={data.investigation_cost || ""}
+        onChange={(e) => onChange("investigation_cost", Number(e.target.value))}
+      />
+      <Input
+        label="Procedure Cost (Ksh)"
+        type="number"
+        value={data.procedure_cost || ""}
+        onChange={(e) => onChange("procedure_cost", Number(e.target.value))}
+      />
 
-      <div>
-        <label className="block text-sm mb-1">Date of Visit</label>
-        <Input
-          type="date"
-          value={data.date_of_first_visit || ""}
-          onChange={(e) => onChange("date_of_first_visit", e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm mb-1">Consultation Fee</label>
-        <Input
-          type="number"
-          value={data.consultation_fee || ""}
-          onChange={(e) => onChange("consultation_fee", Number(e.target.value))}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm mb-1">Medicine Cost</label>
-        <Input
-          type="number"
-          value={data.medicine_cost || ""}
-          onChange={(e) => onChange("medicine_cost", Number(e.target.value))}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm mb-1">Investigation Cost</label>
-        <Input
-          type="number"
-          value={data.investigation_cost || ""}
-          onChange={(e) =>
-            onChange("investigation_cost", Number(e.target.value))
-          }
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm mb-1">Procedure Cost</label>
-        <Input
-          type="number"
-          value={data.procedure_cost || ""}
-          onChange={(e) => onChange("procedure_cost", Number(e.target.value))}
-        />
+      <div className="text-right text-lg font-semibold border-t pt-3">
+        Total Claimed: Ksh {total.toLocaleString()}
       </div>
     </div>
   );
 }
 
+/* ---------------------------------------------------------------------- */
+/* 🏥 INPATIENT FORM                                                      */
+/* ---------------------------------------------------------------------- */
 function InpatientForm({ data, onChange }: any) {
+  const total = useMemo(() => {
+    const {
+      bed_charge_per_day = 0,
+      nhif_total = 0,
+      inpatient_total = 0,
+      doctor_total = 0,
+      claimable_total = 0,
+      discounts_total = 0,
+      stay_days = 1,
+    } = data;
+
+    const accommodation = bed_charge_per_day * stay_days - nhif_total;
+    return accommodation + inpatient_total + doctor_total + claimable_total - discounts_total;
+  }, [data]);
+
   return (
     <div className="space-y-4">
-      <div>
-        <label className="block text-sm mb-1">Hospital Name</label>
-        <Input
-          value={data.hospital_name || ""}
-          onChange={(e) => onChange("hospital_name", e.target.value)}
-        />
-      </div>
+      <h3 className="font-semibold mb-3 text-gray-800">Inpatient Claim</h3>
+      <Input
+        label="Hospital Name"
+        value={data.hospital_name || ""}
+        onChange={(e) => onChange("hospital_name", e.target.value)}
+      />
       <div className="grid md:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm mb-1">Admission Date</label>
-          <Input
-            type="date"
-            value={data.admission_date || ""}
-            onChange={(e) => onChange("admission_date", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block text-sm mb-1">Discharge Date</label>
-          <Input
-            type="date"
-            value={data.discharge_date || ""}
-            onChange={(e) => onChange("discharge_date", e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm mb-1">Bed Charges (Ksh/day)</label>
         <Input
-          type="number"
-          value={data.bed_charge_per_day || ""}
-          onChange={(e) =>
-            onChange("bed_charge_per_day", Number(e.target.value))
-          }
+          label="Admission Date"
+          type="date"
+          value={data.admission_date || ""}
+          onChange={(e) => onChange("admission_date", e.target.value)}
+        />
+        <Input
+          label="Discharge Date"
+          type="date"
+          value={data.discharge_date || ""}
+          onChange={(e) => onChange("discharge_date", e.target.value)}
         />
       </div>
+      <Input
+        label="Bed Charge per Day (Ksh)"
+        type="number"
+        value={data.bed_charge_per_day || ""}
+        onChange={(e) => onChange("bed_charge_per_day", Number(e.target.value))}
+      />
+      <Input
+        label="Number of Days Stayed"
+        type="number"
+        value={data.stay_days || ""}
+        onChange={(e) => onChange("stay_days", Number(e.target.value))}
+      />
+      <Input
+        label="NHIF Total (Ksh)"
+        type="number"
+        value={data.nhif_total || ""}
+        onChange={(e) => onChange("nhif_total", Number(e.target.value))}
+      />
+      <Input
+        label="Inpatient Charges Total (Ksh)"
+        type="number"
+        value={data.inpatient_total || ""}
+        onChange={(e) => onChange("inpatient_total", Number(e.target.value))}
+      />
+      <Input
+        label="Doctor Charges Total (Ksh)"
+        type="number"
+        value={data.doctor_total || ""}
+        onChange={(e) => onChange("doctor_total", Number(e.target.value))}
+      />
+      <Input
+        label="Claimable Charges Total (Ksh)"
+        type="number"
+        value={data.claimable_total || ""}
+        onChange={(e) => onChange("claimable_total", Number(e.target.value))}
+      />
+      <Input
+        label="Discounts Total (Ksh)"
+        type="number"
+        value={data.discounts_total || ""}
+        onChange={(e) => onChange("discounts_total", Number(e.target.value))}
+      />
 
-      <div>
-        <label className="block text-sm mb-1">NHIF Number</label>
-        <Input
-          value={data.nhif_number || ""}
-          onChange={(e) => onChange("nhif_number", e.target.value)}
-        />
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm mb-1">Rebate per Day</label>
-          <Input
-            type="number"
-            value={data.nhif_rebate_per_day || ""}
-            onChange={(e) =>
-              onChange("nhif_rebate_per_day", Number(e.target.value))
-            }
-          />
-        </div>
-        <div>
-          <label className="block text-sm mb-1">Total NHIF Rebate</label>
-          <Input
-            type="number"
-            value={data.nhif_total || ""}
-            onChange={(e) => onChange("nhif_total", Number(e.target.value))}
-          />
-        </div>
+      <div className="text-right text-lg font-semibold border-t pt-3">
+        Total Payable: Ksh {total.toLocaleString()}
       </div>
     </div>
   );
 }
 
+/* ---------------------------------------------------------------------- */
+/* 💊 CHRONIC FORM                                                        */
+/* ---------------------------------------------------------------------- */
 function ChronicForm({ data, onChange }: any) {
   const medicines = data.medicines || [];
 
@@ -252,9 +262,14 @@ function ChronicForm({ data, onChange }: any) {
     onChange("medicines", updated);
   };
 
+  const total = useMemo(
+    () => medicines.reduce((sum: number, m: any) => sum + (m.cost || 0), 0),
+    [medicines]
+  );
+
   return (
     <div className="space-y-4">
-      <h3 className="font-medium">Chronic Medications</h3>
+      <h3 className="font-semibold mb-3 text-gray-800">Chronic Illness Medication</h3>
       {medicines.map((m: any, i: number) => (
         <div key={i} className="grid md:grid-cols-5 gap-2 border p-3 rounded">
           <Input
@@ -288,6 +303,10 @@ function ChronicForm({ data, onChange }: any) {
       <Button variant="outline" onClick={addMedicine}>
         + Add Medicine
       </Button>
+
+      <div className="text-right text-lg font-semibold border-t pt-3">
+        Total Cost: Ksh {total.toLocaleString()}
+      </div>
     </div>
   );
 }

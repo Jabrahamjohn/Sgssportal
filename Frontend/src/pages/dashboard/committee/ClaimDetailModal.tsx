@@ -14,9 +14,10 @@ import {
   setClaimStatus,
 } from "~/server/services/claim.service";
 import { format } from "date-fns";
-import  Button  from "~/components/controls/button";
+import { Button } from "~/components/controls/button";
 import Badge from "~/components/controls/badge";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "~/store/contexts/AuthContext";
 
 interface Props {
   claimId: string | null;
@@ -24,6 +25,9 @@ interface Props {
 }
 
 export default function ClaimDetailModal({ claimId, onClose }: Props) {
+  const { auth } = useAuth();
+  const isCommittee = ["committee", "admin"].includes(auth.role || "member");
+
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -254,27 +258,38 @@ export default function ClaimDetailModal({ claimId, onClose }: Props) {
 
                 {/* 🔹 Action Buttons */}
                 <section className="flex flex-wrap gap-3 pt-4 border-t">
-                  <Button
-                    disabled={actionLoading}
-                    onClick={() => handleAction("approved")}
-                    className="bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
-                  >
-                    <Check className="w-4 h-4" /> Approve
-                  </Button>
-                  <Button
-                    disabled={actionLoading}
-                    onClick={() => handleAction("rejected")}
-                    className="bg-red-600 text-white hover:bg-red-700 flex items-center gap-2"
-                  >
-                    <XCircle className="w-4 h-4" /> Reject
-                  </Button>
-                  <Button
-                    disabled={actionLoading}
-                    onClick={() => handleAction("paid")}
-                    className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
-                  >
-                    <DollarSign className="w-4 h-4" /> Mark Paid
-                  </Button>
+                  {isCommittee ? (
+                    <>
+                      <Button
+                        disabled={actionLoading}
+                        onClick={() => handleAction("approved")}
+                        className="bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+                      >
+                        <Check className="w-4 h-4" /> Approve
+                      </Button>
+                      <Button
+                        disabled={actionLoading}
+                        onClick={() => handleAction("rejected")}
+                        className="bg-red-600 text-white hover:bg-red-700 flex items-center gap-2"
+                      >
+                        <XCircle className="w-4 h-4" /> Reject
+                      </Button>
+                      <Button
+                        disabled={actionLoading}
+                        onClick={() => handleAction("paid")}
+                        className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <DollarSign className="w-4 h-4" /> Mark Paid
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      onClick={onClose}
+                      className="bg-gray-700 text-white hover:bg-gray-800 ml-auto"
+                    >
+                      Close
+                    </Button>
+                  )}
                 </section>
               </div>
             )

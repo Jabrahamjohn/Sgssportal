@@ -16,6 +16,17 @@ import CommitteeDashboard from "./pages/dashboard/committee";
 import AdminDashboard from "./pages/dashboard/admin";
 import AdminSettings from "./pages/dashboard/admin/settings";
 import NotFound from "./pages/404";
+// Add below imports
+import { useAuth } from "~/store/contexts/AuthContext";
+
+function RoleRedirect() {
+  const { auth } = useAuth();
+  const role = auth?.role?.toLowerCase();
+
+  if (role === "admin") return <Navigate to="/dashboard/admin" replace />;
+  if (role === "committee") return <Navigate to="/dashboard/committee" replace />;
+  return <Navigate to="/dashboard/member" replace />;
+}
 
 export default function AppRouter() {
   return (
@@ -50,7 +61,7 @@ export default function AppRouter() {
           }
         >
           {/* Default redirect */}
-          <Route index element={<Navigate to="/dashboard/member" replace />} />
+          <Route index element={<RoleRedirect />} />
 
           {/* ✅ Member Dashboard */}
           <Route

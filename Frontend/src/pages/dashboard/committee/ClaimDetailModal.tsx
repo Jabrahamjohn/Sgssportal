@@ -14,7 +14,7 @@ import {
   setClaimStatus,
 } from "~/server/services/claim.service";
 import { format } from "date-fns";
-import { Button } from "~/components/controls/button";
+import  Button  from "~/components/controls/button";
 import Badge from "~/components/controls/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "~/store/contexts/AuthContext";
@@ -258,39 +258,105 @@ export default function ClaimDetailModal({ claimId, onClose }: Props) {
 
                 {/* 🔹 Action Buttons */}
                 <section className="flex flex-wrap gap-3 pt-4 border-t">
-                  {isCommittee ? (
+                {isCommittee ? (
                     <>
-                      <Button
+                    <Button
                         disabled={actionLoading}
                         onClick={() => handleAction("approved")}
                         className="bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
-                      >
+                    >
                         <Check className="w-4 h-4" /> Approve
-                      </Button>
-                      <Button
+                    </Button>
+                    <Button
                         disabled={actionLoading}
                         onClick={() => handleAction("rejected")}
                         className="bg-red-600 text-white hover:bg-red-700 flex items-center gap-2"
-                      >
+                    >
                         <XCircle className="w-4 h-4" /> Reject
-                      </Button>
-                      <Button
+                    </Button>
+                    <Button
                         disabled={actionLoading}
                         onClick={() => handleAction("paid")}
                         className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
-                      >
-                        <DollarSign className="w-4 h-4" /> Mark Paid
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      onClick={onClose}
-                      className="bg-gray-700 text-white hover:bg-gray-800 ml-auto"
                     >
-                      Close
+                        <DollarSign className="w-4 h-4" /> Mark Paid
                     </Button>
-                  )}
+                    </>
+                ) : (
+                    <Button
+                    onClick={onClose}
+                    className="bg-gray-700 text-white hover:bg-gray-800 ml-auto"
+                    >
+                    Close
+                    </Button>
+                )}
                 </section>
+
+                {/* 🔹 Status Timeline (Full Audit Log) */}
+<section className="mt-8 border-t pt-6">
+  <h3 className="text-base font-semibold mb-4 text-gray-800">
+    Claim Progress & Review History
+  </h3>
+  <div className="relative border-l-2 border-blue-200 pl-6 space-y-5">
+    {data.reviews?.length ? (
+      data.reviews.map((rev: any, idx: number) => {
+        const actionColor =
+          rev.action === "approved"
+            ? "bg-green-600"
+            : rev.action === "rejected"
+            ? "bg-red-600"
+            : rev.action === "paid"
+            ? "bg-blue-600"
+            : "bg-gray-400";
+        const icon =
+          rev.action === "approved"
+            ? "✅"
+            : rev.action === "rejected"
+            ? "❌"
+            : rev.action === "paid"
+            ? "💰"
+            : "📝";
+
+        return (
+          <div key={idx} className="flex items-start gap-3">
+            <div
+              className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white ${actionColor}`}
+            >
+              {icon}
+            </div>
+            <div>
+              <p className="font-semibold text-gray-800 capitalize">
+                {rev.action}{" "}
+                <span className="text-sm text-gray-500">
+                  {rev.role && `by ${rev.role}`}
+                </span>
+              </p>
+              {rev.reviewer && (
+                <p className="text-sm text-gray-600">
+                  Reviewer: {rev.reviewer.username || rev.reviewer.name}
+                </p>
+              )}
+              {rev.note && (
+                <p className="text-sm italic text-gray-500 mt-1">
+                  “{rev.note}”
+                </p>
+              )}
+              <p className="text-xs text-gray-400 mt-1">
+                {format(new Date(rev.created_at), "dd MMM yyyy, hh:mm a")}
+              </p>
+            </div>
+          </div>
+        );
+      })
+    ) : (
+      <p className="text-sm text-gray-500 italic">
+        No reviews recorded yet for this claim.
+      </p>
+    )}
+  </div>
+</section>
+
+
               </div>
             )
           )}

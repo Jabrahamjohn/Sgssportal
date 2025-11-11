@@ -1,8 +1,9 @@
 // Frontend/src/pages/dashboard/member/claims-new.tsx
 import React, { useState, useMemo } from "react";
 import api from "~/config/api";
-import  Button  from "~/components/controls/button";
-import  Input from "~/components/controls/input";
+import { Button } from "~/components/controls/button";
+import { Input } from "~/components/controls/input";
+import { Alert } from "~/components/controls/alert";
 import { useNavigate } from "react-router-dom";
 
 export default function NewClaim() {
@@ -17,6 +18,12 @@ export default function NewClaim() {
     setFormData((prev: any) => ({ ...prev, [key]: value }));
 
   const handleSubmit = async () => {
+    const { overLimit } = computeClaimLimit(formData, type);
+    if (overLimit) {
+      setErr("⚠️ Claim exceeds your annual benefit limit. Please adjust.");
+      return;
+    }
+
     setBusy(true);
     setErr("");
     try {
@@ -82,7 +89,7 @@ export default function NewClaim() {
         />
       </div>
 
-      {err && <div className="text-red-600">{err}</div>}
+      {err && <Alert type="error" message={err} />}
 
       <div className="flex gap-3">
         <Button onClick={() => nav(-1)} variant="outline">
@@ -97,16 +104,50 @@ export default function NewClaim() {
 }
 
 /* ---------------------------------------------------------------------- */
-/* 🩺 OUTPATIENT FORM — includes 80/20 computation                        */
+/* 🧮 Common Claim Limit Computation                                      */
+/* ---------------------------------------------------------------------- */
+function computeClaimLimit(data: any, type: string) {
+  const isCritical = !!data.critical_illness;
+  const baseLimit = 250000;
+  const criticalBoost = isCritical ? 200000 : 0;
+  const limit = baseLimit + criticalBoost;
+
+  // Estimate current total
+  let total = 0;
+  if (type === "outpatient") {
+    const { consultation_fee = 0, medicine_cost = 0, investigation_cost = 0, procedure_cost = 0 } = data;
+    total = consultation_fee + medicine_cost + investigation_cost + procedure_cost;
+  } else if (type === "inpatient") {
+    const {
+      bed_charge_per_day = 0,
+      stay_days = 1,
+      nhif_total = 0,
+      inpatient_total = 0,
+      doctor_total = 0,
+      claimable_total = 0,
+      discounts_total = 0,
+    } = data;
+    const accommodation = bed_charge_per_day * stay_days - nhif_total;
+    total = accommodation + inpatient_total + doctor_total + claimable_total - discounts_total;
+    if (isCritical) total += 200000;
+  } else if (type === "chronic") {
+    total = (data.medicines || []).reduce(
+      (sum: number, m: any) => sum + (m.cost || 0),
+      0
+    );
+  }
+
+  const overLimit = total > limit;
+  return { total, limit, overLimit };
+}
+
+/* ---------------------------------------------------------------------- */
+/* 🩺 OUTPATIENT FORM                                                     */
 /* ---------------------------------------------------------------------- */
 function OutpatientForm({ data, onChange }: any) {
-  const totalClaimed = useMemo(() => {
-    const { consultation_fee = 0, medicine_cost = 0, investigation_cost = 0, procedure_cost = 0 } = data;
-    return consultation_fee + medicine_cost + investigation_cost + procedure_cost;
-  }, [data]);
-
-  const fundShare = useMemo(() => totalClaimed * 0.8, [totalClaimed]);
-  const memberShare = useMemo(() => totalClaimed * 0.2, [totalClaimed]);
+  const { total, limit, overLimit } = computeClaimLimit(data, "outpatient");
+  const fundShare = total * 0.8;
+  const memberShare = total * 0.2;
 
   return (
     <div className="space-y-4">
@@ -118,8 +159,15 @@ function OutpatientForm({ data, onChange }: any) {
       <Input label="Investigation Cost (Ksh)" type="number" value={data.investigation_cost || ""} onChange={(e) => onChange("investigation_cost", Number(e.target.value))} />
       <Input label="Procedure Cost (Ksh)" type="number" value={data.procedure_cost || ""} onChange={(e) => onChange("procedure_cost", Number(e.target.value))} />
 
+      {overLimit && (
+        <Alert
+          type="warning"
+          message={`Total exceeds your current benefit limit (Ksh ${limit.toLocaleString()}). Please review before submitting.`}
+        />
+      )}
+
       <div className="text-right mt-4 border-t pt-3 space-y-1">
-        <div>Total Claimed: <strong>Ksh {totalClaimed.toLocaleString()}</strong></div>
+        <div>Total Claimed: <strong>Ksh {total.toLocaleString()}</strong></div>
         <div>Fund Liability (80%): <strong className="text-green-700">Ksh {fundShare.toLocaleString()}</strong></div>
         <div>Member Share (20%): <strong className="text-blue-700">Ksh {memberShare.toLocaleString()}</strong></div>
       </div>
@@ -128,29 +176,12 @@ function OutpatientForm({ data, onChange }: any) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* 🏥 INPATIENT FORM — includes 80/20 + critical illness top-up logic     */
+/* 🏥 INPATIENT FORM                                                      */
 /* ---------------------------------------------------------------------- */
 function InpatientForm({ data, onChange }: any) {
-  const total = useMemo(() => {
-    const {
-      bed_charge_per_day = 0,
-      stay_days = 1,
-      nhif_total = 0,
-      inpatient_total = 0,
-      doctor_total = 0,
-      claimable_total = 0,
-      discounts_total = 0,
-      critical_illness = false,
-    } = data;
-
-    const accommodation = bed_charge_per_day * stay_days - nhif_total;
-    const baseTotal = accommodation + inpatient_total + doctor_total + claimable_total - discounts_total;
-
-    return critical_illness ? baseTotal + 200000 : baseTotal; // 🔹 Add critical illness top-up
-  }, [data]);
-
-  const fundShare = useMemo(() => total * 0.8, [total]);
-  const memberShare = useMemo(() => total * 0.2, [total]);
+  const { total, limit, overLimit } = computeClaimLimit(data, "inpatient");
+  const fundShare = total * 0.8;
+  const memberShare = total * 0.2;
 
   return (
     <div className="space-y-4">
@@ -173,6 +204,13 @@ function InpatientForm({ data, onChange }: any) {
         <label className="text-sm">Mark as Critical Illness (+Ksh 200,000 top-up)</label>
       </div>
 
+      {overLimit && (
+        <Alert
+          type="warning"
+          message={`Total exceeds your current benefit limit (Ksh ${limit.toLocaleString()}). Please review before submitting.`}
+        />
+      )}
+
       <div className="text-right mt-4 border-t pt-3 space-y-1">
         <div>Total Payable: <strong>Ksh {total.toLocaleString()}</strong></div>
         <div>Fund Liability (80%): <strong className="text-green-700">Ksh {fundShare.toLocaleString()}</strong></div>
@@ -183,29 +221,17 @@ function InpatientForm({ data, onChange }: any) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* 💊 CHRONIC FORM — simple total only                                    */
+/* 💊 CHRONIC FORM                                                        */
 /* ---------------------------------------------------------------------- */
 function ChronicForm({ data, onChange }: any) {
   const medicines = data.medicines || [];
-
-  const addMedicine = () => {
-    onChange("medicines", [
-      ...medicines,
-      { name: "", strength: "", dosage: "", duration: "", cost: 0 },
-    ]);
-  };
-
+  const addMedicine = () => onChange("medicines", [...medicines, { name: "", strength: "", dosage: "", duration: "", cost: 0 }]);
   const setMedicine = (i: number, key: string, value: any) => {
-    const updated = medicines.map((m: any, idx: number) =>
-      idx === i ? { ...m, [key]: value } : m
-    );
+    const updated = medicines.map((m: any, idx: number) => (idx === i ? { ...m, [key]: value } : m));
     onChange("medicines", updated);
   };
 
-  const total = useMemo(
-    () => medicines.reduce((sum: number, m: any) => sum + (m.cost || 0), 0),
-    [medicines]
-  );
+  const { total, limit, overLimit } = computeClaimLimit(data, "chronic");
 
   return (
     <div className="space-y-4">
@@ -219,9 +245,14 @@ function ChronicForm({ data, onChange }: any) {
           <Input type="number" placeholder="Cost" value={m.cost} onChange={(e) => setMedicine(i, "cost", Number(e.target.value))} />
         </div>
       ))}
-      <Button variant="outline" onClick={addMedicine}>
-        + Add Medicine
-      </Button>
+      <Button variant="outline" onClick={addMedicine}>+ Add Medicine</Button>
+
+      {overLimit && (
+        <Alert
+          type="warning"
+          message={`Total exceeds your current benefit limit (Ksh ${limit.toLocaleString()}). Please review before submitting.`}
+        />
+      )}
 
       <div className="text-right text-lg font-semibold border-t pt-3">
         Total Cost: Ksh {total.toLocaleString()}

@@ -1,10 +1,44 @@
 import React, { useState, useMemo, useEffect } from "react";
 import api from "~/config/api";
-import  Button from "~/components/controls/button";
-import  Input from "~/components/controls/input";
-import  Alert from "~/components/controls/alert";
+import  Button  from "~/components/controls/button";
+import  Input  from "~/components/controls/input";
+import  Alert  from "~/components/controls/alert";
 import Modal from "~/components/controls/modal";
 import { useNavigate } from "react-router-dom";
+
+
+import jsPDF from "jspdf";
+
+function generateClaimPDF({ type, total, fundShare, memberShare, limit, formData }: any) {
+  const doc = new jsPDF();
+  const now = new Date().toLocaleString();
+
+  doc.setFont("helvetica", "normal");
+  doc.text("SIRI GURU SINGH SABHA MEDICAL FUND", 105, 15, { align: "center" });
+  doc.text("Claim Summary Report", 105, 25, { align: "center" });
+
+  doc.setFontSize(10);
+  doc.text(`Generated on: ${now}`, 20, 35);
+
+  doc.text("Claim Details:", 20, 50);
+  doc.text(`Claim Type: ${type}`, 20, 58);
+  doc.text(`Diagnosis / Notes: ${formData.diagnosis || "N/A"}`, 20, 65);
+
+  doc.text(`Total Claimed: Ksh ${total.toLocaleString()}`, 20, 80);
+  doc.text(`Fund Liability (80%): Ksh ${fundShare.toLocaleString()}`, 20, 87);
+  doc.text(`Member Share (20%): Ksh ${memberShare.toLocaleString()}`, 20, 94);
+  doc.text(`Claim Limit (Byelaws §6.3): Ksh ${limit.toLocaleString()}`, 20, 101);
+
+  doc.setFont("helvetica", "italic");
+  doc.text("This summary follows SGSS Medical Fund Byelaws (May 2024), Section 6.", 20, 115);
+
+  doc.line(20, 120, 190, 120);
+  doc.text("Claimant Signature: ____________________", 20, 135);
+  doc.text("Committee Review: ____________________", 20, 145);
+
+  doc.save(`SGSS_Claim_Summary_${Date.now()}.pdf`);
+}
+
 
 /* ---------------------------------------------------------------------- */
 /* 🌍 Claim Form with Summary Preview + Balance Check                     */

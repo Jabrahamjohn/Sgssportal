@@ -12,7 +12,8 @@ from django.middleware.csrf import get_token
 from django.contrib.auth.models import Group
 from medical.models import Member  # adjust import to your actual model
 from medical.serializers import MemberSerializer  # adjust import if serializer exists
-from django.db.models import Q
+from django.db.models import Q, Sum
+from datetime import date
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview, 
     Notification, ReimbursementScale, Setting, ChronicRequest, ClaimAttachment
@@ -266,6 +267,48 @@ def my_member(request):
     except Member.DoesNotExist:
         return Response({"detail": "Member profile not found."}, status=404)
     
+
+# ============================================================
+# BENEFIT BALANCE ENDPOINT
+# ============================================================
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def benefit_balance(request):
+    """Return remaining annual benefit for logged-in member"""
+    try:
+        member = Member.objects.get(user=request.user)
+    except Member.DoesNotExist:
+        return Response({"detail": "Member not found"}, status=404)
+
+    year_start = date.today().replace(month=1, day=1)
+    year_end = date.today().replace(month=12, day=31)
+
+    # Sum approved and paid claims within current year
+    total_used = (
+        Claim.objects.filter(
+            member=member,
+            status__in=["approved", "paid"],
+            created_at__range=[year_start, year_end],
+        )
+        .aggregate(total=Sum("total_claimed"))
+        .get("total")
+        or 0
+    )
+
+    # Determine annual limit
+    critical_topup = 200000 if member.claims.filter(status="approved", claim_type="inpatient", total_claimed__gte=200000).exists() else 0
+    annual_limit = 250000 + critical_topup
+    remaining = max(0, annual_limit - total_used)
+
+    return Response({
+        "annual_limit": annual_limit,
+        "total_used": total_used,
+        "remaining_balance": remaining,
+        "as_of": date.today(),
+    })
+
 
 @api_view(["POST"])
 @permission_classes([AllowAny])

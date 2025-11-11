@@ -1,3 +1,4 @@
+// Frontend/src/components/layout/DashboardLayout.tsx
 import React from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";

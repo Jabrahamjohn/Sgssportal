@@ -36,13 +36,23 @@ class ClaimItemSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
 
+# medical/serializers.py
 class ClaimReviewSerializer(serializers.ModelSerializer):
-    reviewer_email = serializers.EmailField(source="reviewer.email", read_only=True)
+    reviewer = serializers.SerializerMethodField()
+    role = serializers.CharField(source="reviewer.groups.first.name", read_only=True)
+
+    def get_reviewer(self, obj):
+        if not obj.reviewer:
+            return None
+        return {
+            "id": obj.reviewer.id,
+            "username": obj.reviewer.username,
+            "name": f"{obj.reviewer.first_name} {obj.reviewer.last_name}".strip() or obj.reviewer.username,
+        }
 
     class Meta:
         model = ClaimReview
-        fields = ["id", "claim", "reviewer", "reviewer_email", "role", "action", "note", "created_at"]
-        read_only_fields = ["id", "created_at", "reviewer_email"]
+        fields = ["id", "role", "action", "note", "created_at", "reviewer"]
 
 
 class ClaimAttachmentSerializer(serializers.ModelSerializer):

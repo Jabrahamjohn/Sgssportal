@@ -544,3 +544,14 @@ def committee_claim_detail(request, pk):
         "attachments": atts,
     }
     return Response(data)
+
+# medical/views.py
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_committee_claim_detail(request, pk):
+    claim = get_object_or_404(Claim, pk=pk)
+    serializer = ClaimSerializer(claim)
+    reviews = ClaimReviewSerializer(claim.reviews.all(), many=True).data
+    data = serializer.data
+    data["reviews"] = reviews
+    return Response(data)

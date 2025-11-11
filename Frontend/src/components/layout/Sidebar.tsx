@@ -1,3 +1,4 @@
+// Frontend/src/components/layout/Sidebar.tsx
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
@@ -9,29 +10,52 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { useAuth } from "~/store/contexts/AuthContext";
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const { auth } = useAuth();
 
-  const toggleSidebar = () => setCollapsed(!collapsed);
+  const toggleSidebar = () => setCollapsed((p) => !p);
 
   const navItem =
     "flex items-center gap-3 px-4 py-2.5 rounded-xl transition font-medium text-sm";
-  const active =
-    "bg-blue-600 text-white shadow-md";
+  const active = "bg-blue-600 text-white shadow-sm";
   const inactive =
     "text-gray-600 hover:bg-blue-50 hover:text-blue-700";
 
+  // 🧭 Menu based on role
+  const commonLinks = [
+    { to: "/dashboard/member", icon: <Home className="w-5 h-5" />, label: "Dashboard" },
+    { to: "/dashboard/member/claims", icon: <FileText className="w-5 h-5" />, label: "Claims" },
+    { to: "/dashboard/member/chronic", icon: <Pill className="w-5 h-5" />, label: "Chronic Illness" },
+  ];
+
+  const committeeLinks = [
+    { to: "/dashboard/committee", icon: <Users className="w-5 h-5" />, label: "Committee" },
+  ];
+
+  const adminLinks = [
+    { to: "/dashboard/admin/settings", icon: <Settings className="w-5 h-5" />, label: "Settings" },
+  ];
+
+  const links = [
+    ...commonLinks,
+    ...(auth?.role === "committee" || auth?.role === "admin" ? committeeLinks : []),
+    ...(auth?.role === "admin" ? adminLinks : []),
+  ];
+
   return (
     <aside
-      className={`h-screen fixed left-0 top-0 flex flex-col justify-between bg-white/80 backdrop-blur-xl border-r border-gray-100 transition-all duration-300 ease-in-out ${
+      className={`fixed top-0 left-0 h-full flex flex-col justify-between bg-white/80 backdrop-blur-xl border-r border-gray-100 transition-all duration-300 ease-in-out shadow-sm ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
+      {/* Header */}
       <div>
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
           <h2
-            className={`text-lg font-bold text-gray-800 transition ${
+            className={`text-lg font-bold text-gray-800 transition-all ${
               collapsed ? "hidden" : "block"
             }`}
           >
@@ -39,7 +63,8 @@ export default function Sidebar() {
           </h2>
           <button
             onClick={toggleSidebar}
-            className="p-2 rounded-full hover:bg-gray-100"
+            className="p-2 rounded-full hover:bg-gray-100 transition"
+            title={collapsed ? "Expand menu" : "Collapse menu"}
           >
             {collapsed ? (
               <Menu className="w-5 h-5 text-gray-700" />
@@ -49,61 +74,34 @@ export default function Sidebar() {
           </button>
         </div>
 
+        {/* Nav Links */}
         <nav className="mt-6 flex flex-col gap-1">
-          <NavLink
-            to="/dashboard/member"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? active : inactive}`
-            }
-          >
-            <Home className="w-5 h-5" />
-            {!collapsed && <span>Dashboard</span>}
-          </NavLink>
-
-          <NavLink
-            to="/dashboard/member/claims"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? active : inactive}`
-            }
-          >
-            <FileText className="w-5 h-5" />
-            {!collapsed && <span>Claims</span>}
-          </NavLink>
-
-          <NavLink
-            to="/dashboard/member/chronic"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? active : inactive}`
-            }
-          >
-            <Pill className="w-5 h-5" />
-            {!collapsed && <span>Chronic Illness</span>}
-          </NavLink>
-
-          <NavLink
-            to="/dashboard/admin/settings"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? active : inactive}`
-            }
-          >
-            <Settings className="w-5 h-5" />
-            {!collapsed && <span>Settings</span>}
-          </NavLink>
-
-          <NavLink
-            to="/dashboard/committee"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? active : inactive}`
-            }
-          >
-            <Users className="w-5 h-5" />
-            {!collapsed && <span>Committee</span>}
-          </NavLink>
+          {links.map(({ to, icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `${navItem} ${isActive ? active : inactive}`
+              }
+              title={collapsed ? label : undefined}
+            >
+              {icon}
+              {!collapsed && <span>{label}</span>}
+            </NavLink>
+          ))}
         </nav>
       </div>
 
+      {/* Footer */}
       <footer className="p-4 text-xs text-gray-400 border-t border-gray-100 text-center">
-        {!collapsed && "© 2025 SGSS Medical Fund"}
+        {!collapsed ? (
+          <>
+            © {new Date().getFullYear()} SGSS <br />
+            <span className="text-[11px] text-gray-300">Medical Fund</span>
+          </>
+        ) : (
+          <span className="block text-[10px] text-gray-300">©SGSS</span>
+        )}
       </footer>
     </aside>
   );

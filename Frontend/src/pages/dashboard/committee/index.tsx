@@ -1,9 +1,10 @@
+// Frontend/src/pages/dashboard/committee/index.tsx
 import React, { useEffect, useState } from "react";
 import { listCommitteeClaims, setClaimStatus } from "~/server/services/claim.service";
-import  Table  from "~/components/controls/table";
-import Badge  from "~/components/controls/badge";
-import  Button  from "~/components/controls/button";
-import ClaimDetailsModal from "./modal-claim-details";
+import Table from "~/components/controls/table";
+import Badge from "~/components/controls/badge";
+import Button from "~/components/controls/button";
+import ClaimDetailModal from "./ClaimDetailModal";
 
 const statusColor = (s: string) => {
   switch (s) {
@@ -19,7 +20,7 @@ const statusColor = (s: string) => {
 export default function CommitteeDashboard() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({ status: "submitted", type: "" });
+  const [filters, setFilters] = useState({ status: "", type: "" });
   const [openId, setOpenId] = useState<string | null>(null);
 
   const load = async () => {
@@ -44,6 +45,7 @@ export default function CommitteeDashboard() {
 
   return (
     <div className="p-4 md:p-6">
+      {/* Filter Controls */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <select
           className="border rounded px-2 py-1"
@@ -65,10 +67,12 @@ export default function CommitteeDashboard() {
           <option value="">All types</option>
           <option value="outpatient">Outpatient</option>
           <option value="inpatient">Inpatient</option>
+          <option value="chronic">Chronic</option>
         </select>
         <Button onClick={load}>Refresh</Button>
       </div>
 
+      {/* Table */}
       <Table
         loading={loading}
         columns={[
@@ -78,16 +82,32 @@ export default function CommitteeDashboard() {
           {
             title: "Status",
             key: "status",
-            render: (r:any)=> <Badge variant={statusColor(r.status)}>{r.status}</Badge>
+            render: (r:any)=> (
+              <Badge variant={statusColor(r.status)} className="capitalize">
+                {r.status}
+              </Badge>
+            )
           },
-          { title: "Claimed", key: "total_claimed" },
-          { title: "Payable", key: "total_payable" },
-          { title: "Created", key: "created_at" },
+          {
+            title: "Claimed (Ksh)",
+            key: "total_claimed",
+            render: (r:any)=> Number(r.total_claimed).toLocaleString()
+          },
+          {
+            title: "Payable (Ksh)",
+            key: "total_payable",
+            render: (r:any)=> Number(r.total_payable).toLocaleString()
+          },
+          {
+            title: "Created",
+            key: "created_at",
+            render: (r:any)=> new Date(r.created_at).toLocaleDateString()
+          },
           {
             title: "Actions",
             key: "actions",
             render: (r:any)=> (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-1">
                 <Button size="sm" onClick={()=>setOpenId(r.id)}>Details</Button>
                 <Button size="sm" onClick={()=>onSet(r.id, "reviewed")}>Review</Button>
                 <Button size="sm" onClick={()=>onSet(r.id, "approved")}>Approve</Button>
@@ -101,8 +121,9 @@ export default function CommitteeDashboard() {
         rowKey="id"
       />
 
+      {/* Modal */}
       {openId && (
-        <ClaimDetailsModal id={openId} onClose={()=>setOpenId(null)} />
+        <ClaimDetailModal claimId={openId} onClose={() => setOpenId(null)} />
       )}
     </div>
   );

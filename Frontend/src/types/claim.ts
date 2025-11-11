@@ -1,3 +1,4 @@
+// Frontend/src/types/claim.ts
 export interface ClaimItem {
   id: string;
   category?: string | null;
@@ -28,4 +29,21 @@ export interface ClaimReviewPayload {
   action: 'reviewed' | 'approved' | 'rejected' | 'override' | 'paid';
   note?: string;
   override_amount?: number;
+}
+
+
+
+export interface InpatientClaim {
+  hospital_name: string;
+  admission_date: string;
+  discharge_date: string;
+  bed_charge_per_day: number;
+  nhif_number?: string;
+  nhif_rebate_per_day?: number;
+  nhif_total?: number;
+  inpatient_charges: Array<{ description: string; amount: number }>;
+  doctor_charges: Array<{ name: string; specialty?: string; amount: number }>;
+  claimable_charges: Array<{ category: string; amount: number }>;
+  discounts: Array<{ reason: string; amount: number }>;
+  total_payable: number;
 }

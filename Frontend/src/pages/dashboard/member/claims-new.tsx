@@ -1,119 +1,293 @@
-// frontend/src/pages/dashboard/member/claims-new.tsx
-import React, { useState } from 'react';
-import { createClaim, addItem, uploadAttachment } from '../../../server/services/claim.service';
-import type { ClaimItem } from '../../../types/claim';
-import { useNavigate } from 'react-router-dom';
+// Frontend/src/pages/dashboard/member/claims-new.tsx
+import React, { useState } from "react";
+import api from "~/config/api";
+import Button from "~/components/controls/button";
+import Input from "~/components/controls/input";
+import { useNavigate } from "react-router-dom";
 
 export default function NewClaim() {
-  const nav = useNavigate();
-  const [claimType, setClaimType] = useState('outpatient');
-  const [firstVisit, setFirstVisit] = useState('');
-  const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<Array<Omit<ClaimItem, 'id'>>>(
-    [{ category: 'consultation', description: '', amount: 0, quantity: 1 }]
-  );
+  const [type, setType] = useState("outpatient");
+  const [formData, setFormData] = useState<any>({});
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState('');
+  const [err, setErr] = useState("");
+  const nav = useNavigate();
 
-  const setItem = (i: number, patch: Partial<Omit<ClaimItem, 'id'>>) =>
-    setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
+  // 🔹 Update form data
+  const handleChange = (key: string, value: any) =>
+    setFormData((prev: any) => ({ ...prev, [key]: value }));
 
-  async function submit() {
+  // 🔹 Submit claim
+  const handleSubmit = async () => {
     setBusy(true);
-    setErr('');
+    setErr("");
+
     try {
-      const claim = await createClaim({
-        claim_type: claimType,
-        date_of_first_visit: firstVisit || undefined,
-        notes,
-        status: 'submitted',
-      } as any);
+      const res = await api.post("claims/", {
+        claim_type: type,
+        details: formData,
+        status: "submitted",
+      });
 
-      for (const it of items) {
-        if (!it.amount || !it.quantity) continue;
-        await addItem(claim.id, it);
-      }
-
+      const claimId = res.data.id;
       for (const f of files) {
-        await uploadAttachment(claim.id, f);
+        const form = new FormData();
+        form.append("file", f);
+        await api.post(`claims/${claimId}/attachments/`, form);
       }
 
-      nav('/dashboard/member/claims');
+      nav("/dashboard/member/claims");
     } catch (e: any) {
-      setErr(e?.response?.data?.detail || 'Could not submit claim');
+      setErr(e.response?.data?.detail || "Failed to submit claim");
     } finally {
       setBusy(false);
     }
-  }
+  };
+
+  // 🔹 Render correct form
+  const renderForm = () => {
+    switch (type) {
+      case "inpatient":
+        return <InpatientForm data={formData} onChange={handleChange} />;
+      case "chronic":
+        return <ChronicForm data={formData} onChange={handleChange} />;
+      default:
+        return <OutpatientForm data={formData} onChange={handleChange} />;
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
-      <h2 className="text-xl font-semibold">New Claim</h2>
+      <h2 className="text-2xl font-semibold">New Claim</h2>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="border rounded p-4 space-y-3">
-          <div>
-            <label className="block text-sm mb-1">Claim type</label>
-            <select className="border rounded px-2 py-2 w-full"
-              value={claimType} onChange={(e) => setClaimType(e.target.value)}>
-              <option value="outpatient">Outpatient</option>
-              <option value="inpatient">Inpatient</option>
-              <option value="chronic">Chronic</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Date of first visit</label>
-            <input className="border rounded px-2 py-2 w-full" type="date"
-              value={firstVisit} onChange={(e) => setFirstVisit(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Notes</label>
-            <textarea className="border rounded px-2 py-2 w-full" rows={3}
-              value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="border rounded p-4 space-y-3">
-          <div className="font-medium">Items</div>
-          {items.map((it, i) => (
-            <div key={i} className="grid grid-cols-5 gap-2">
-              <input placeholder="Category" className="border rounded px-2 py-2 col-span-1"
-                value={it.category || ''} onChange={(e) => setItem(i, { category: e.target.value })} />
-              <input placeholder="Description" className="border rounded px-2 py-2 col-span-2"
-                value={it.description || ''} onChange={(e) => setItem(i, { description: e.target.value })} />
-              <input type="number" placeholder="Amount" className="border rounded px-2 py-2 col-span-1"
-                value={it.amount} onChange={(e) => setItem(i, { amount: Number(e.target.value) })} />
-              <input type="number" placeholder="Qty" className="border rounded px-2 py-2 col-span-1"
-                value={it.quantity} onChange={(e) => setItem(i, { quantity: Number(e.target.value) })} />
-            </div>
-          ))}
-          <button
-            className="text-sm underline"
-            onClick={() => setItems((p) => [...p, { category: '', description: '', amount: 0, quantity: 1 }])}
+      <div className="grid md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Claim Type</label>
+          <select
+            className="border rounded px-2 py-2 w-full"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
           >
-            + Add item
-          </button>
+            <option value="outpatient">Outpatient</option>
+            <option value="inpatient">Inpatient</option>
+            <option value="chronic">Chronic Illness</option>
+          </select>
         </div>
       </div>
 
+      <div className="border rounded p-4 bg-white shadow-sm">
+        {renderForm()}
+      </div>
+
       <div className="border rounded p-4">
-        <div className="font-medium mb-2">Attachments</div>
-        <input type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files || []))} />
+        <h3 className="font-medium mb-2">Attachments</h3>
+        <input
+          type="file"
+          multiple
+          onChange={(e) => setFiles(Array.from(e.target.files || []))}
+        />
       </div>
 
       {err && <div className="text-red-600">{err}</div>}
 
       <div className="flex gap-3">
-        <button className="px-4 py-2 rounded bg-gray-200" onClick={() => history.back()}>Cancel</button>
-        <button
-          disabled={busy}
-          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
-          onClick={submit}
-        >
-          {busy ? 'Submitting…' : 'Submit claim'}
-        </button>
+        <Button onClick={() => nav(-1)} variant="outline">
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={busy}>
+          {busy ? "Submitting..." : "Submit Claim"}
+        </Button>
       </div>
+    </div>
+  );
+}
+
+function OutpatientForm({ data, onChange }: any) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm mb-1">Diagnosis</label>
+        <Input
+          value={data.diagnosis || ""}
+          onChange={(e) => onChange("diagnosis", e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm mb-1">Date of Visit</label>
+        <Input
+          type="date"
+          value={data.date_of_first_visit || ""}
+          onChange={(e) => onChange("date_of_first_visit", e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm mb-1">Consultation Fee</label>
+        <Input
+          type="number"
+          value={data.consultation_fee || ""}
+          onChange={(e) => onChange("consultation_fee", Number(e.target.value))}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm mb-1">Medicine Cost</label>
+        <Input
+          type="number"
+          value={data.medicine_cost || ""}
+          onChange={(e) => onChange("medicine_cost", Number(e.target.value))}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm mb-1">Investigation Cost</label>
+        <Input
+          type="number"
+          value={data.investigation_cost || ""}
+          onChange={(e) =>
+            onChange("investigation_cost", Number(e.target.value))
+          }
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm mb-1">Procedure Cost</label>
+        <Input
+          type="number"
+          value={data.procedure_cost || ""}
+          onChange={(e) => onChange("procedure_cost", Number(e.target.value))}
+        />
+      </div>
+    </div>
+  );
+}
+
+function InpatientForm({ data, onChange }: any) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm mb-1">Hospital Name</label>
+        <Input
+          value={data.hospital_name || ""}
+          onChange={(e) => onChange("hospital_name", e.target.value)}
+        />
+      </div>
+      <div className="grid md:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm mb-1">Admission Date</label>
+          <Input
+            type="date"
+            value={data.admission_date || ""}
+            onChange={(e) => onChange("admission_date", e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Discharge Date</label>
+          <Input
+            type="date"
+            value={data.discharge_date || ""}
+            onChange={(e) => onChange("discharge_date", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm mb-1">Bed Charges (Ksh/day)</label>
+        <Input
+          type="number"
+          value={data.bed_charge_per_day || ""}
+          onChange={(e) =>
+            onChange("bed_charge_per_day", Number(e.target.value))
+          }
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm mb-1">NHIF Number</label>
+        <Input
+          value={data.nhif_number || ""}
+          onChange={(e) => onChange("nhif_number", e.target.value)}
+        />
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm mb-1">Rebate per Day</label>
+          <Input
+            type="number"
+            value={data.nhif_rebate_per_day || ""}
+            onChange={(e) =>
+              onChange("nhif_rebate_per_day", Number(e.target.value))
+            }
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Total NHIF Rebate</label>
+          <Input
+            type="number"
+            value={data.nhif_total || ""}
+            onChange={(e) => onChange("nhif_total", Number(e.target.value))}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChronicForm({ data, onChange }: any) {
+  const medicines = data.medicines || [];
+
+  const addMedicine = () => {
+    onChange("medicines", [
+      ...medicines,
+      { name: "", strength: "", dosage: "", duration: "", cost: 0 },
+    ]);
+  };
+
+  const setMedicine = (i: number, key: string, value: any) => {
+    const updated = medicines.map((m: any, idx: number) =>
+      idx === i ? { ...m, [key]: value } : m
+    );
+    onChange("medicines", updated);
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-medium">Chronic Medications</h3>
+      {medicines.map((m: any, i: number) => (
+        <div key={i} className="grid md:grid-cols-5 gap-2 border p-3 rounded">
+          <Input
+            placeholder="Medicine Name"
+            value={m.name}
+            onChange={(e) => setMedicine(i, "name", e.target.value)}
+          />
+          <Input
+            placeholder="Strength"
+            value={m.strength}
+            onChange={(e) => setMedicine(i, "strength", e.target.value)}
+          />
+          <Input
+            placeholder="Dosage"
+            value={m.dosage}
+            onChange={(e) => setMedicine(i, "dosage", e.target.value)}
+          />
+          <Input
+            placeholder="Duration"
+            value={m.duration}
+            onChange={(e) => setMedicine(i, "duration", e.target.value)}
+          />
+          <Input
+            type="number"
+            placeholder="Cost"
+            value={m.cost}
+            onChange={(e) => setMedicine(i, "cost", Number(e.target.value))}
+          />
+        </div>
+      ))}
+      <Button variant="outline" onClick={addMedicine}>
+        + Add Medicine
+      </Button>
     </div>
   );
 }

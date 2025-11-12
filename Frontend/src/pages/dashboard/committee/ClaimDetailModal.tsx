@@ -29,6 +29,11 @@ export default function ClaimDetailModal({ claimId, onClose }: Props) {
   const { auth } = useAuth();
   const isCommittee = ["committee", "admin"].includes(auth.role || "member");
 
+  const timeline = (data.reviews || []).filter((r: any) =>
+  ["submitted", "reviewed", "approved", "rejected", "paid"].includes(r.action)
+  );
+
+
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);

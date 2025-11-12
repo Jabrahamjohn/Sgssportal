@@ -1,7 +1,8 @@
 # Backend/api/members/urls.py
-from django.urls import path
-from api.members import views  # ✅ Correct import path
+from rest_framework.routers import DefaultRouter
+from medical.views import MemberViewSet
 
-urlpatterns = [
-    path("me/", views.member_me, name="my-member"),
-]
+router = DefaultRouter()
+router.register(r'', MemberViewSet, basename='members')
+
+urlpatterns = router.urls

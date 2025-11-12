@@ -1,6 +1,8 @@
-from medical import views as medical_views
+# Backend/api/claims/urls.py
+from rest_framework.routers import DefaultRouter
+from medical.views import ClaimViewSet
 
-urlpatterns = [
-    # ... existing viewsets / routers
-    path("<uuid:claim_id>/upload_summary/", medical_views.upload_summary_pdf, name="upload-summary-pdf"),
-]
+router = DefaultRouter()
+router.register(r'', ClaimViewSet, basename='claims')
+
+urlpatterns = router.urls

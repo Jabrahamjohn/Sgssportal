@@ -14,8 +14,7 @@ import importlib, pkgutil
 # ============================================
 def load_api_urlpatterns(base_package="api"):
     """
-    Dynamically discovers and includes all `urls.py` modules
-    inside api/* directories.
+    Dynamically discovers and includes all `urls.py` modules inside api/* directories.
     Example: api/members/urls.py → /api/members/
     """
     patterns = []
@@ -24,10 +23,11 @@ def load_api_urlpatterns(base_package="api"):
         if is_pkg:
             try:
                 urls_module = importlib.import_module(f"{base_package}.{module_name}.urls")
-                patterns.append(path(f"{base_package}/{module_name}/", include(urls_module)))
+                patterns.append(path(f"api/{module_name}/", include(urls_module)))  # ✅ FIXED
             except ModuleNotFoundError:
                 continue
     return patterns
+
 
 # ============================================
 # Swagger/OpenAPI schema

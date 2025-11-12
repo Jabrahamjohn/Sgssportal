@@ -17,16 +17,16 @@ from medical.serializers import MemberSerializer  # adjust import if serializer 
 from django.db.models import Q, Sum
 from datetime import date
 from .models import (
-    Member, MembershipType, Claim, ClaimItem, ClaimReview, 
+    Member, MembershipType, Claim, ClaimItem, ClaimReview, AuditLog, 
     Notification, ReimbursementScale, Setting, ChronicRequest, ClaimAttachment
 )
 from .serializers import (
     MemberSerializer, MembershipTypeSerializer, ClaimSerializer, ClaimItemSerializer,
     ClaimReviewSerializer, NotificationSerializer, ReimbursementScaleSerializer,
-    SettingSerializer, ChronicRequestSerializer, ClaimAttachmentSerializer
+    SettingSerializer, ChronicRequestSerializer, ClaimAttachmentSerializer, AuditLogSerializer
 )
 from .permissions import IsSelfOrAdmin, IsClaimOwnerOrCommittee, IsCommittee, IsAdmin
-
+from .audit import log_claim_event
 
 # ============================================================
 #                MEMBERSHIP MANAGEMENT
@@ -81,8 +81,10 @@ class ClaimViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def perform_update(self, serializer):
         claim = serializer.save()
+        old_status = claim.status  # status after serializer.save()
         claim.recalc_total()
         claim.compute_payable()
+    # Optional: no audit here unless you want to log edits explicitly
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsCommittee])
     def set_status(self, request, pk=None):
@@ -96,7 +98,28 @@ class ClaimViewSet(viewsets.ModelViewSet):
             claim.submitted_at = timezone.now()
         claim.save(update_fields=["status", "submitted_at"])
         claim.compute_payable()
+
+        # 🧾 Audit: status change
+        note = request.data.get("note")
+        log_claim_event(
+            claim=claim,
+            actor=request.user,
+            action=status_val,
+            note=note,
+            role=request.user.groups.values_list("name", flat=True).first()
+                or ("admin" if request.user.is_superuser else "member"),
+            meta={"claim_id": str(claim.id)}
+        )
+
         return Response(ClaimSerializer(claim).data)
+    
+    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def audit(self, request, pk=None):
+        claim = self.get_object()
+        qs = AuditLog.objects.filter(meta__claim_id=str(claim.id)).order_by("created_at")
+        data = AuditLogSerializer(qs, many=True).data
+        return Response({"results": data})
+
 
 
 # ============================================================
@@ -162,7 +185,22 @@ class ClaimAttachmentViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "delete"]
 
     def perform_create(self, serializer):
-        serializer.save(uploaded_by=self.request.user)
+        obj = serializer.save(uploaded_by=self.request.user)
+        # 🧾 Audit: attachment uploaded
+        log_claim_event(
+            claim=obj.claim,
+            actor=self.request.user,
+            action="attachment_uploaded",
+            note=obj.file.name if hasattr(obj.file, "name") else "Attachment uploaded",
+            role=self.request.user.groups.values_list("name", flat=True).first()
+                or ("admin" if self.request.user.is_superuser else "member"),
+            meta={
+                "attachment_id": str(obj.id),
+                "content_type": obj.content_type,
+                "file": obj.file.url if hasattr(obj.file, "url") else None
+            }
+        )
+
 
 
 # ============================================================
@@ -590,7 +628,7 @@ def committee_claim_detail(request, pk):
     }
     return Response(data)
 
-# medical/views.py
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_committee_claim_detail(request, pk):
@@ -623,3 +661,24 @@ def upload_summary_pdf(request, claim_id):
         uploaded_by=request.user,
     )
     return Response({"detail": "PDF uploaded successfully."}, status=status.HTTP_201_CREATED)
+
+
+@transaction.atomic
+def perform_create(self, serializer):
+    claim = serializer.save()
+    if claim.status == "submitted" and claim.submitted_at is None:
+        claim.submitted_at = timezone.now()
+        claim.save(update_fields=["submitted_at"])
+    claim.recalc_total()
+    claim.compute_payable()
+
+    # 🧾 Audit: claim created / submitted
+    action = "submitted" if claim.status == "submitted" else "created"
+    log_claim_event(
+        claim=claim,
+        actor=self.request.user if self.request.user.is_authenticated else None,
+        action=action,
+        note="Claim created by member" if action == "created" else "Claim submitted by member",
+        role=None,
+        meta={"claim_id": str(claim.id), "status": claim.status}
+    )

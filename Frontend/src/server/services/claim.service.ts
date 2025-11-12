@@ -115,3 +115,15 @@ export const uploadAttachment = async (claimId: string, file: File) => {
   });
   return res.data;
 };
+
+export const getClaimAudit = async (id: string) => {
+  const res = await api.get(`claims/${id}/audit/`);
+  return (res.data?.results ?? []) as Array<{
+    id: string;
+    action: string;           // submitted | reviewed | approved | rejected | paid | attachment_uploaded | created
+    meta?: any;               // includes { note, role, ... }
+    created_at: string;
+    reviewer?: { id: number; username: string; email: string; name?: string };
+    role?: string;
+  }>;
+};

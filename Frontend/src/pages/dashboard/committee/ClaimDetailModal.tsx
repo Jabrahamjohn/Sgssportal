@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import {
   getCommitteeClaimDetail,
-  setClaimStatus,
+  setClaimStatus, getClaimAudit,
 } from "~/server/services/claim.service";
 import { format } from "date-fns";
 import  Button  from "~/components/controls/button";
@@ -35,13 +35,30 @@ export default function ClaimDetailModal({ claimId, onClose }: Props) {
   const [error, setError] = useState("");
 
   useEffect(() => {
+  let cancel = false;
+  (async () => {
     if (!claimId) return;
     setLoading(true);
-    getCommitteeClaimDetail(claimId)
-      .then(setData)
-      .catch(() => setError("Failed to fetch claim details."))
-      .finally(() => setLoading(false));
-  }, [claimId]);
+    setError("");
+    try {
+      const detail = await getCommitteeClaimDetail(claimId);
+      let reviews = detail.reviews || [];
+      // If backend doesn’t include reviews, fetch from /audit/
+      if (!Array.isArray(reviews) || !reviews.length) {
+        reviews = await getClaimAudit(claimId);
+      }
+      if (!cancel) setData({ ...detail, reviews });
+    } catch (e) {
+      if (!cancel) setError("Failed to fetch claim details.");
+    } finally {
+      if (!cancel) setLoading(false);
+    }
+  })();
+  return () => {
+    cancel = true;
+  };
+}, [claimId]);
+
 
   const handleAction = async (status: "approved" | "rejected" | "paid") => {
     if (!claimId) return;

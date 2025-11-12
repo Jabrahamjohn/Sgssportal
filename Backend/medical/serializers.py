@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (
-    Member, MembershipType, Claim, ClaimItem, ClaimReview,
+    Member, MembershipType, Claim, ClaimItem, ClaimReview, AuditLog,
     Notification, ReimbursementScale, Setting, ChronicRequest, ClaimAttachment
 )
 
@@ -126,3 +126,31 @@ class ChronicRequestSerializer(serializers.ModelSerializer):
             "status", "created_at"
         ]
         read_only_fields = ["id", "created_at", "member_user_email"]
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    reviewer = serializers.SerializerMethodField()
+    role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AuditLog
+        fields = ["id", "action", "meta", "created_at", "reviewer", "role"]
+
+    def get_reviewer(self, obj):
+        if not obj.actor:
+            return None
+        return {
+            "id": obj.actor.id,
+            "username": obj.actor.username,
+            "email": obj.actor.email,
+            "name": f"{obj.actor.first_name} {obj.actor.last_name}".strip() or obj.actor.username,
+        }
+
+    def get_role(self, obj):
+        if not obj.actor:
+            return obj.meta.get("role")
+        # First group name or fallback
+        try:
+            return obj.actor.groups.values_list("name", flat=True).first() or ("admin" if obj.actor.is_superuser else "member")
+        except Exception:
+            return "member"

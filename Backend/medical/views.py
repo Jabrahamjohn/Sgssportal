@@ -1,9 +1,11 @@
 # Backend/medical/views.py
 from django.contrib.auth import authenticate, login, logout, get_user_model
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status 
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.views import APIView
 from django.db import transaction
 from django.utils import timezone
 from django.http import JsonResponse
@@ -598,3 +600,26 @@ def get_committee_claim_detail(request, pk):
     data = serializer.data
     data["reviews"] = reviews
     return Response(data)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def upload_summary_pdf(request, claim_id):
+    """
+    Receives generated PDF summary for a claim and stores it as ClaimAttachment.
+    """
+    try:
+        claim = Claim.objects.get(id=claim_id, member__user=request.user)
+    except Claim.DoesNotExist:
+        return Response({"detail": "Claim not found."}, status=404)
+
+    file = request.FILES.get("file")
+    if not file:
+        return Response({"detail": "No file uploaded."}, status=400)
+
+    ClaimAttachment.objects.create(
+        claim=claim,
+        file=file,
+        content_type="application/pdf",
+        uploaded_by=request.user,
+    )
+    return Response({"detail": "PDF uploaded successfully."}, status=status.HTTP_201_CREATED)

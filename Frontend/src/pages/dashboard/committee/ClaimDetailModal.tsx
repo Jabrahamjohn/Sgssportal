@@ -1,3 +1,4 @@
+// Frontend/src/pages/dashboard/committee/ClaimDetailModal.tsx
 import React, { useEffect, useState } from "react";
 import {
   X,
@@ -96,6 +97,10 @@ export default function ClaimDetailModal({ claimId, onClose }: Props) {
                 <h2 className="text-lg font-semibold text-gray-800">
                   Claim Details
                 </h2>
+                <p className="text-xs text-gray-500">
+                  ID: {data.claim.id?.slice(0, 8)} — Submitted {format(new Date(data.claim.created_at), "dd MMM yyyy")}
+                </p>
+
                 {data && (
                   <Badge variant={statusColor(data.claim.status)}>
                     {data.claim.status.toUpperCase()}
@@ -212,27 +217,38 @@ export default function ClaimDetailModal({ claimId, onClose }: Props) {
 
                 {/* 🔹 Attachments */}
                 {data.attachments?.length > 0 && (
-                  <section>
-                    <h3 className="text-base font-semibold mb-2 text-gray-800 flex items-center gap-2">
-                      <Paperclip className="w-4 h-4 text-blue-600" />
-                      Attachments
-                    </h3>
-                    <ul className="list-disc list-inside text-sm text-gray-600">
-                      {data.attachments.map((f: any) => (
-                        <li key={f.id}>
+                <div className="mt-4">
+                  <h4 className="font-semibold mb-2">Attachments</h4>
+                  <ul className="space-y-1">
+                    {data.attachments.map((a: any) => (
+                      <li key={a.id} className="flex justify-between items-center border-b pb-1">
+                        <span className="text-sm text-gray-700 truncate">{a.file?.split("/").pop()}</span>
+                        {a.content_type === "application/pdf" ? (
                           <a
-                            href={f.file}
+                            href={a.file}
                             target="_blank"
                             rel="noreferrer"
                             className="text-blue-600 hover:underline"
                           >
-                            {f.file?.split("/").pop()}
+                            View PDF
                           </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
+                        ) : (
+                          <a
+                            href={a.file}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            Download
+                          </a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
                 )}
+
+
 
                 {/* 🔹 Totals */}
                 <section className="grid md:grid-cols-3 gap-4 text-sm border-t pt-4">
@@ -298,7 +314,7 @@ export default function ClaimDetailModal({ claimId, onClose }: Props) {
     Claim Progress & Review History
   </h3>
   <div className="relative border-l-2 border-blue-200 pl-6 space-y-5">
-    {data.reviews?.length ? (
+    {Array.isArray(data.reviews) && data.reviews.length ? (
       data.reviews.map((rev: any, idx: number) => {
         const actionColor =
           rev.action === "approved"

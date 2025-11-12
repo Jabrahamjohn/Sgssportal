@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 import jsPDF from "jspdf";
 
-function generateClaimPDF({ type, total, fundShare, memberShare, limit, formData }: any) {
+async function generateClaimPDF({ type, total, fundShare, memberShare, limit, formData, claimId }: any) {
   const doc = new jsPDF();
   const now = new Date().toLocaleString();
 
@@ -19,25 +19,33 @@ function generateClaimPDF({ type, total, fundShare, memberShare, limit, formData
 
   doc.setFontSize(10);
   doc.text(`Generated on: ${now}`, 20, 35);
-
-  doc.text("Claim Details:", 20, 50);
-  doc.text(`Claim Type: ${type}`, 20, 58);
-  doc.text(`Diagnosis / Notes: ${formData.diagnosis || "N/A"}`, 20, 65);
-
-  doc.text(`Total Claimed: Ksh ${total.toLocaleString()}`, 20, 80);
-  doc.text(`Fund Liability (80%): Ksh ${fundShare.toLocaleString()}`, 20, 87);
-  doc.text(`Member Share (20%): Ksh ${memberShare.toLocaleString()}`, 20, 94);
-  doc.text(`Claim Limit (Byelaws §6.3): Ksh ${limit.toLocaleString()}`, 20, 101);
-
+  doc.text(`Claim Type: ${type}`, 20, 50);
+  doc.text(`Diagnosis / Notes: ${formData.diagnosis || "N/A"}`, 20, 57);
+  doc.text(`Total Claimed: Ksh ${total.toLocaleString()}`, 20, 72);
+  doc.text(`Fund (80%): Ksh ${fundShare.toLocaleString()}`, 20, 79);
+  doc.text(`Member (20%): Ksh ${memberShare.toLocaleString()}`, 20, 86);
+  doc.text(`Limit (Byelaws §6.3): Ksh ${limit.toLocaleString()}`, 20, 93);
   doc.setFont("helvetica", "italic");
-  doc.text("This summary follows SGSS Medical Fund Byelaws (May 2024), Section 6.", 20, 115);
+  doc.text("This summary follows SGSS Medical Fund Byelaws (May 2024), Section 6.", 20, 108);
 
-  doc.line(20, 120, 190, 120);
-  doc.text("Claimant Signature: ____________________", 20, 135);
-  doc.text("Committee Review: ____________________", 20, 145);
+  const blob = doc.output("blob");
 
+  // 🔹 Auto-download for claimant
   doc.save(`SGSS_Claim_Summary_${Date.now()}.pdf`);
+
+  // 🔹 Upload copy to backend
+  const form = new FormData();
+  form.append("file", blob, "claim_summary.pdf");
+  try {
+    await api.post(`claims/${claimId}/upload_summary/`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    console.log("✅ PDF summary uploaded to backend");
+  } catch (err) {
+    console.warn("⚠️ PDF upload failed", err);
+  }
 }
+
 
 
 /* ---------------------------------------------------------------------- */

@@ -268,6 +268,21 @@ class ReimbursementScaleViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsCommittee]
 
 
+# ============================================
+#                REPORTS (placeholder)
+# ============================================
+
+class ReportViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        return Response({
+            "message": "Reporting endpoints coming soon.",
+            "available": []
+        })
+
+
+
 # ============================================================
 #                USER & MEMBER INFO
 # ============================================================

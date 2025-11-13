@@ -1,3 +1,4 @@
+// Frontend/src/pages/dashboard/member/claims-new.tsx
 import React, { useState, useMemo, useEffect } from "react";
 import api from "~/config/api";
 import  Button  from "~/components/controls/button";

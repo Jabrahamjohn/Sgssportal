@@ -51,3 +51,12 @@
 🔹 Notifications: auto-sent when status changes  
 🔹 Benefit balance: computed yearly per member  
 🔹 CSRF + sessions handled under `/auth/`
+
+
+Members → Claims → Items → Attachments → Reviews → AuditLog → Payments  
+   |         |           |            |             |  
+   |         |           |            |             └── Committee + Admin actions  
+   |         |           |            └──────────────── Automated PDF + Velo  
+   |         |           └───────────────────────────── Member itemised charges  
+   |         └───────────────────────────────────────── Claim submission  
+   └──────────────────────────────────────────────────── Registration & Auth  

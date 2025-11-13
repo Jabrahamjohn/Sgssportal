@@ -65,6 +65,11 @@ class ClaimViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
+
+        #Fixed Swagger issue
+        if getattr(self, 'swagger_fake_view', False):
+            return qs.none()
+        
         if user.is_superuser or user.groups.filter(name__in=["Admin", "Committee"]).exists():
             return qs
         return qs.filter(member__user=user)
@@ -213,8 +218,12 @@ class ChronicRequestViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
         qs = super().get_queryset()
+        user = self.request.user
+
+        if getattr(self, 'swagger_fake_view', False):
+            return qs.none()
+        
         if user.is_superuser or user.groups.filter(name__in=["Admin", "Committee"]).exists():
             return qs
         return qs.filter(member__user=user)
@@ -242,7 +251,10 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Notification.objects.filter(recipient=self.request.user).order_by("-created_at")
+        if getattr(self, 'swagger_fake_view', False):
+            return Notification.objects.none()
+
+        return Notification.objects.filter(recipient=self.request.user).order_by('-created_at')
 
     @action(detail=True, methods=["post"])
     def mark_read(self, request, pk=None):

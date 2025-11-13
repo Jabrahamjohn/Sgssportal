@@ -424,6 +424,9 @@ def login_view(request):
             print(f"🟢 Auto-created Member profile for {user.username}")
 
         return Response({"detail": "Login successful."}, status=status.HTTP_200_OK)
+        response = Response({"detail": "Login successful."})
+        response.set_cookie("csrftoken", get_token(request), httponly=False, samesite="Lax")
+        return response
 
     # ❌ Invalid credentials
     return Response(
@@ -431,8 +434,8 @@ def login_view(request):
         status=status.HTTP_401_UNAUTHORIZED,
     )
 
-
-@csrf_exempt  # <-- this must be directly on top and no DRF decorator above
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def logout_view(request):
     """Logs out the user and reissues CSRF cookie manually (CSRF bypass)."""
     if request.method != "POST":
@@ -444,9 +447,10 @@ def logout_view(request):
     response.set_cookie(
         "csrftoken",
         new_token,
+        get_token(request),
         httponly=False,
         secure=False,
-        samesite=None,
+        samesite="Lax",
     )
     return response
 
@@ -468,8 +472,8 @@ def csrf_cookie(request):
     token = get_token(request)
     response = Response({"csrfToken": token})
     response.set_cookie(
-        "csrftoken",
-        token,
+        key="csrftoken",
+        value=token,
         httponly=False,
         secure=False,
         samesite="Lax",

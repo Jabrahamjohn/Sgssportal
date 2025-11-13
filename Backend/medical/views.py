@@ -468,11 +468,11 @@ def csrf_cookie(request):
     token = get_token(request)
     response = Response({"csrfToken": token})
     response.set_cookie(
-        key="csrftoken",
-        value=token,
+        "csrftoken",
+        token,
         httponly=False,
         secure=False,
-        samesite=None,
+        samesite="Lax",
     )
     return response
 

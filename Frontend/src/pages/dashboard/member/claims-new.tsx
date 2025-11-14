@@ -1,16 +1,23 @@
 // Frontend/src/pages/dashboard/member/claims-new.tsx
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import api from "~/config/api";
-import  Button  from "~/components/controls/button";
-import  Input  from "~/components/controls/input";
-import  Alert  from "~/components/controls/alert";
+import Button from "~/components/controls/button";
+import Input from "~/components/controls/input";
+import Alert from "~/components/controls/alert";
 import Modal from "~/components/controls/modal";
 import { useNavigate } from "react-router-dom";
 
-
 import jsPDF from "jspdf";
 
-async function generateClaimPDF({ type, total, fundShare, memberShare, limit, formData, claimId }: any) {
+async function generateClaimPDF({
+  type,
+  total,
+  fundShare,
+  memberShare,
+  limit,
+  formData,
+  claimId,
+}: any) {
   const doc = new jsPDF();
   const now = new Date().toLocaleString();
 
@@ -27,7 +34,11 @@ async function generateClaimPDF({ type, total, fundShare, memberShare, limit, fo
   doc.text(`Member (20%): Ksh ${memberShare.toLocaleString()}`, 20, 86);
   doc.text(`Limit (Byelaws §6.3): Ksh ${limit.toLocaleString()}`, 20, 93);
   doc.setFont("helvetica", "italic");
-  doc.text("This summary follows SGSS Medical Fund Byelaws (May 2024), Section 6.", 20, 108);
+  doc.text(
+    "This summary follows SGSS Medical Fund Byelaws (May 2024), Section 6.",
+    20,
+    108
+  );
 
   const blob = doc.output("blob");
 
@@ -47,14 +58,14 @@ async function generateClaimPDF({ type, total, fundShare, memberShare, limit, fo
   }
 }
 
-
-
 /* ---------------------------------------------------------------------- */
 /* 🌍 Claim Form with Summary Preview + Balance Check                     */
 /* ---------------------------------------------------------------------- */
 
 export default function NewClaim() {
-  const [type, setType] = useState("outpatient");
+  const [type, setType] = useState<"outpatient" | "inpatient" | "chronic">(
+    "outpatient"
+  );
   const [formData, setFormData] = useState<any>({});
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
@@ -74,7 +85,8 @@ export default function NewClaim() {
   const handleChange = (key: string, value: any) =>
     setFormData((prev: any) => ({ ...prev, [key]: value }));
 
-  const { total, limit, overLimit, fundShare, memberShare } = computeClaimTotals(formData, type);
+  const { total, limit, overLimit, fundShare, memberShare } =
+    computeClaimTotals(formData, type);
 
   const canSubmit = !overLimit && total > 0;
 
@@ -83,6 +95,7 @@ export default function NewClaim() {
     setBusy(true);
     setErr("");
     try {
+      // NOTE: backend ClaimSerializer.create() expects claim_type + details + status
       const res = await api.post("claims/", {
         claim_type: type,
         details: formData,
@@ -90,14 +103,20 @@ export default function NewClaim() {
       });
 
       const claimId = res.data.id;
+
+      // Upload attachments (if any)
       for (const f of files) {
         const form = new FormData();
         form.append("file", f);
-        await api.post(`claims/${claimId}/attachments/`, form);
+        await api.post(`claim-attachments/`, form, {
+          headers: { "Content-Type": "multipart/form-data" },
+          params: { claim: claimId },
+        });
       }
 
       nav("/dashboard/member/claims");
     } catch (e: any) {
+      console.error(e);
       setErr(e.response?.data?.detail || "Failed to submit claim");
     } finally {
       setBusy(false);
@@ -134,7 +153,9 @@ export default function NewClaim() {
           <select
             className="border rounded px-2 py-2 w-full"
             value={type}
-            onChange={(e) => setType(e.target.value)}
+            onChange={(e) =>
+              setType(e.target.value as "outpatient" | "inpatient" | "chronic")
+            }
           >
             <option value="outpatient">Outpatient</option>
             <option value="inpatient">Inpatient</option>
@@ -173,21 +194,41 @@ export default function NewClaim() {
 
       {/* 🔍 Summary Modal */}
       {showSummary && (
-        <Modal open onClose={() => setShowSummary(false)} title="Claim Summary Preview">
+        <Modal
+          open
+          onClose={() => setShowSummary(false)}
+          title="Claim Summary Preview"
+        >
           <div className="space-y-4">
             <p className="text-gray-700">
-              Please review your claim details before submission. Ensure all entries
-              comply with the <strong>SGSS Medical Fund Byelaws (2024)</strong>.
+              Please review your claim details before submission. Ensure all
+              entries comply with the{" "}
+              <strong>SGSS Medical Fund Byelaws (2024)</strong>.
             </p>
 
             <div className="border rounded p-3 bg-gray-50">
-              <p><strong>Claim Type:</strong> {type}</p>
-              <p><strong>Total Claimed:</strong> Ksh {total.toLocaleString()}</p>
-              <p><strong>Fund Liability (80%):</strong> Ksh {fundShare.toLocaleString()}</p>
-              <p><strong>Member Share (20%):</strong> Ksh {memberShare.toLocaleString()}</p>
-              <p><strong>Annual Limit:</strong> Ksh {limit.toLocaleString()}</p>
+              <p>
+                <strong>Claim Type:</strong> {type}
+              </p>
+              <p>
+                <strong>Total Claimed:</strong> Ksh {total.toLocaleString()}
+              </p>
+              <p>
+                <strong>Fund Liability (80%):</strong> Ksh{" "}
+                {fundShare.toLocaleString()}
+              </p>
+              <p>
+                <strong>Member Share (20%):</strong> Ksh{" "}
+                {memberShare.toLocaleString()}
+              </p>
+              <p>
+                <strong>Annual Limit:</strong> Ksh {limit.toLocaleString()}
+              </p>
               {balance !== null && (
-                <p><strong>Remaining Balance:</strong> Ksh {balance.toLocaleString()}</p>
+                <p>
+                  <strong>Remaining Balance:</strong> Ksh{" "}
+                  {balance.toLocaleString()}
+                </p>
               )}
             </div>
 
@@ -216,6 +257,12 @@ export default function NewClaim() {
 /* ---------------------------------------------------------------------- */
 /* 🧮 Computation Helper                                                   */
 /* ---------------------------------------------------------------------- */
+
+function toNumber(v: any): number {
+  const n = typeof v === "string" ? parseFloat(v) : v;
+  return isNaN(n as number) || n == null ? 0 : (n as number);
+}
+
 function computeClaimTotals(data: any, type: string) {
   const isCritical = !!data.critical_illness;
   const baseLimit = 250000;
@@ -223,25 +270,47 @@ function computeClaimTotals(data: any, type: string) {
   const limit = baseLimit + criticalBoost;
 
   let total = 0;
+
   if (type === "outpatient") {
-    const { consultation_fee = 0, medicine_cost = 0, investigation_cost = 0, procedure_cost = 0 } = data;
-    total = consultation_fee + medicine_cost + investigation_cost + procedure_cost;
+    // Outpatient form sections map to the official form:
+    const consultation_fee = toNumber(data.consultation_fee); // total consultations
+    const house_visit_cost = toNumber(data.house_visit_cost);
+    const medicine_cost = toNumber(data.medicine_cost);
+    const investigation_cost = toNumber(data.investigation_cost);
+    const procedure_cost = toNumber(data.procedure_cost);
+
+    total =
+      consultation_fee +
+      house_visit_cost +
+      medicine_cost +
+      investigation_cost +
+      procedure_cost;
   } else if (type === "inpatient") {
-    const {
-      bed_charge_per_day = 0,
-      stay_days = 1,
-      nhif_total = 0,
-      inpatient_total = 0,
-      doctor_total = 0,
-      claimable_total = 0,
-      discounts_total = 0,
-    } = data;
+    const bed_charge_per_day = toNumber(data.bed_charge_per_day);
+    const stay_days = toNumber(data.stay_days || 1);
+    const nhif_total = toNumber(data.nhif_total);
+    const inpatient_total = toNumber(data.inpatient_total);
+    const doctor_total = toNumber(data.doctor_total);
+    const claimable_total = toNumber(data.claimable_total);
+    const discounts_total = toNumber(data.discounts_total);
+
     const accommodation = bed_charge_per_day * stay_days - nhif_total;
-    total = accommodation + inpatient_total + doctor_total + claimable_total - discounts_total;
-    if (isCritical) total += 200000;
+    total =
+      accommodation +
+      inpatient_total +
+      doctor_total +
+      claimable_total -
+      discounts_total;
+
+    if (isCritical) {
+      // note: this matches your existing "top-up" behaviour;
+      // final Byelaw enforcement will be in Step 3 in backend.
+      total += 200000;
+    }
   } else if (type === "chronic") {
-    total = (data.medicines || []).reduce(
-      (sum: number, m: any) => sum + (m.cost || 0),
+    const medicines = data.medicines || [];
+    total = medicines.reduce(
+      (sum: number, m: any) => sum + toNumber(m.cost),
       0
     );
   }
@@ -249,45 +318,233 @@ function computeClaimTotals(data: any, type: string) {
   const fundShare = total * 0.8;
   const memberShare = total * 0.2;
   const overLimit = total > limit;
+
   return { total, fundShare, memberShare, limit, overLimit };
 }
 
 /* ---------------------------------------------------------------------- */
-/* 📄 Sub-forms (same as before, trimmed for brevity)                      */
+/* 📄 Sub-forms (aligned with SGSS PDFs, but aggregated per section)      */
 /* ---------------------------------------------------------------------- */
 
 function OutpatientForm({ data, onChange }: any) {
-  const { total, fundShare, memberShare } = computeClaimTotals(data, "outpatient");
+  const { fundShare, memberShare } = computeClaimTotals(data, "outpatient");
+
   return (
-    <div className="space-y-3">
-      <Input label="Diagnosis" value={data.diagnosis || ""} onChange={(e) => onChange("diagnosis", e.target.value)} />
-      <Input label="Consultation Fee (Ksh)" type="number" value={data.consultation_fee || ""} onChange={(e) => onChange("consultation_fee", Number(e.target.value))} />
-      <Input label="Medicine Cost (Ksh)" type="number" value={data.medicine_cost || ""} onChange={(e) => onChange("medicine_cost", Number(e.target.value))} />
-      <Input label="Investigation Cost (Ksh)" type="number" value={data.investigation_cost || ""} onChange={(e) => onChange("investigation_cost", Number(e.target.value))} />
-      <Input label="Procedure Cost (Ksh)" type="number" value={data.procedure_cost || ""} onChange={(e) => onChange("procedure_cost", Number(e.target.value))} />
+    <div className="space-y-4">
+      {/* Part A: Consultations */}
+      <div className="border rounded p-3">
+        <h4 className="font-semibold mb-2">Part A – Consultations</h4>
+        <div className="grid md:grid-cols-2 gap-3">
+          <Input
+            label="Date of 1st Visit"
+            type="date"
+            value={data.date_of_first_visit || ""}
+            onChange={(e) =>
+              onChange("date_of_first_visit", e.target.value || "")
+            }
+          />
+          <Input
+            label="Diagnosis"
+            value={data.diagnosis || ""}
+            onChange={(e) => onChange("diagnosis", e.target.value)}
+          />
+          <Input
+            label="Number of Consultations"
+            type="number"
+            value={data.consultations_count ?? ""}
+            onChange={(e) =>
+              onChange("consultations_count", Number(e.target.value || 0))
+            }
+          />
+          <Input
+            label="Total Consultation Fees (Ksh)"
+            type="number"
+            value={data.consultation_fee ?? ""}
+            onChange={(e) =>
+              onChange("consultation_fee", Number(e.target.value || 0))
+            }
+          />
+        </div>
+
+        <div className="mt-3 flex items-center gap-3">
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={!!data.has_house_visit}
+              onChange={(e) => onChange("has_house_visit", e.target.checked)}
+            />
+            House Visit Included?
+          </label>
+          <Input
+            label="House Visit Cost (Ksh)"
+            type="number"
+            value={data.house_visit_cost ?? ""}
+            onChange={(e) =>
+              onChange("house_visit_cost", Number(e.target.value || 0))
+            }
+          />
+        </div>
+      </div>
+
+      {/* Part B: Medicines / Injections */}
+      <div className="border rounded p-3">
+        <h4 className="font-semibold mb-2">Part B – Medicines / Injections</h4>
+        <Input
+          label="Total Medicines / Injections Cost (Ksh)"
+          type="number"
+          value={data.medicine_cost ?? ""}
+          onChange={(e) =>
+            onChange("medicine_cost", Number(e.target.value || 0))
+          }
+        />
+      </div>
+
+      {/* Part C: Investigations */}
+      <div className="border rounded p-3">
+        <h4 className="font-semibold mb-2">Part C – Investigations</h4>
+        <Input
+          label="Total Investigations Cost (Ksh)"
+          type="number"
+          value={data.investigation_cost ?? ""}
+          onChange={(e) =>
+            onChange("investigation_cost", Number(e.target.value || 0))
+          }
+        />
+      </div>
+
+      {/* Part D: Procedures */}
+      <div className="border rounded p-3">
+        <h4 className="font-semibold mb-2">Part D – Procedures</h4>
+        <Input
+          label="Total Procedures Cost (Ksh)"
+          type="number"
+          value={data.procedure_cost ?? ""}
+          onChange={(e) =>
+            onChange("procedure_cost", Number(e.target.value || 0))
+          }
+        />
+      </div>
+
       <div className="text-right border-t pt-2 text-sm">
-        Fund: Ksh {fundShare.toLocaleString()} | Member: Ksh {memberShare.toLocaleString()}
+        Fund: Ksh {fundShare.toLocaleString()} | Member: Ksh{" "}
+        {memberShare.toLocaleString()}
       </div>
     </div>
   );
 }
 
 function InpatientForm({ data, onChange }: any) {
-  const { total, fundShare, memberShare } = computeClaimTotals(data, "inpatient");
+  const { fundShare, memberShare } = computeClaimTotals(data, "inpatient");
+
   return (
-    <div className="space-y-3">
-      <Input label="Hospital Name" value={data.hospital_name || ""} onChange={(e) => onChange("hospital_name", e.target.value)} />
-      <Input label="Bed Charge/Day (Ksh)" type="number" value={data.bed_charge_per_day || ""} onChange={(e) => onChange("bed_charge_per_day", Number(e.target.value))} />
-      <Input label="Days Stayed" type="number" value={data.stay_days || ""} onChange={(e) => onChange("stay_days", Number(e.target.value))} />
-      <Input label="NHIF Total (Ksh)" type="number" value={data.nhif_total || ""} onChange={(e) => onChange("nhif_total", Number(e.target.value))} />
-      <Input label="Inpatient Total (Ksh)" type="number" value={data.inpatient_total || ""} onChange={(e) => onChange("inpatient_total", Number(e.target.value))} />
-      <Input label="Doctor Charges (Ksh)" type="number" value={data.doctor_total || ""} onChange={(e) => onChange("doctor_total", Number(e.target.value))} />
-      <div className="flex items-center gap-2">
-        <input type="checkbox" checked={data.critical_illness || false} onChange={(e) => onChange("critical_illness", e.target.checked)} />
-        <span className="text-sm">Critical Illness (+200 000 Ksh Top-up)</span>
+    <div className="space-y-4">
+      {/* Part A: Diagnosis & Hospital Stay */}
+      <div className="border rounded p-3 space-y-3">
+        <h4 className="font-semibold mb-2">Part A – Diagnosis & Stay</h4>
+        <Input
+          label="Hospital Name"
+          value={data.hospital_name || ""}
+          onChange={(e) => onChange("hospital_name", e.target.value)}
+        />
+        <div className="grid md:grid-cols-2 gap-3">
+          <Input
+            label="Date of Admission"
+            type="date"
+            value={data.date_of_admission || ""}
+            onChange={(e) =>
+              onChange("date_of_admission", e.target.value || "")
+            }
+          />
+          <Input
+            label="Date of Discharge"
+            type="date"
+            value={data.date_of_discharge || ""}
+            onChange={(e) =>
+              onChange("date_of_discharge", e.target.value || "")
+            }
+          />
+        </div>
+        <div className="grid md:grid-cols-3 gap-3">
+          <Input
+            label="Bed Charge per Day (Ksh)"
+            type="number"
+            value={data.bed_charge_per_day ?? ""}
+            onChange={(e) =>
+              onChange("bed_charge_per_day", Number(e.target.value || 0))
+            }
+          />
+          <Input
+            label="Number of Days Stayed"
+            type="number"
+            value={data.stay_days ?? ""}
+            onChange={(e) =>
+              onChange("stay_days", Number(e.target.value || 0))
+            }
+          />
+          <Input
+            label="NHIF Total (Ksh)"
+            type="number"
+            value={data.nhif_total ?? ""}
+            onChange={(e) =>
+              onChange("nhif_total", Number(e.target.value || 0))
+            }
+          />
+        </div>
       </div>
+
+      {/* Part D/E/F/G Totals */}
+      <div className="border rounded p-3 space-y-3">
+        <h4 className="font-semibold mb-2">
+          Parts D–G – Inpatient, Doctors, Claimable, Discounts
+        </h4>
+        <Input
+          label="Total Inpatient Charges (Part D) – Ksh"
+          type="number"
+          value={data.inpatient_total ?? ""}
+          onChange={(e) =>
+            onChange("inpatient_total", Number(e.target.value || 0))
+          }
+        />
+        <Input
+          label="Total Doctor Charges (Part E) – Ksh"
+          type="number"
+          value={data.doctor_total ?? ""}
+          onChange={(e) =>
+            onChange("doctor_total", Number(e.target.value || 0))
+          }
+        />
+        <Input
+          label="Other Claimable Charges (Part F) – Ksh"
+          type="number"
+          value={data.claimable_total ?? ""}
+          onChange={(e) =>
+            onChange("claimable_total", Number(e.target.value || 0))
+          }
+        />
+        <Input
+          label="Discounts / Waivers (Part G) – Ksh"
+          type="number"
+          value={data.discounts_total ?? ""}
+          onChange={(e) =>
+            onChange("discounts_total", Number(e.target.value || 0))
+          }
+        />
+
+        <div className="flex items-center gap-2 mt-2">
+          <input
+            type="checkbox"
+            checked={data.critical_illness || false}
+            onChange={(e) => onChange("critical_illness", e.target.checked)}
+          />
+          <span className="text-sm">
+            Critical Illness (Byelaws critical top-up applicable)
+          </span>
+        </div>
+      </div>
+
       <div className="text-right border-t pt-2 text-sm">
-        Fund: Ksh {fundShare.toLocaleString()} | Member: Ksh {memberShare.toLocaleString()}
+        Fund: Ksh {fundShare.toLocaleString()} | Member: Ksh{" "}
+        {memberShare.toLocaleString()}
       </div>
     </div>
   );
@@ -296,20 +553,61 @@ function InpatientForm({ data, onChange }: any) {
 function ChronicForm({ data, onChange }: any) {
   const medicines = data.medicines || [];
   const setMed = (i: number, k: string, v: any) =>
-    onChange("medicines", medicines.map((m: any, idx: number) => (idx === i ? { ...m, [k]: v } : m)));
-  const addMed = () => onChange("medicines", [...medicines, { name: "", dosage: "", cost: 0 }]);
+    onChange(
+      "medicines",
+      medicines.map((m: any, idx: number) =>
+        idx === i ? { ...m, [k]: v } : m
+      )
+    );
+  const addMed = () =>
+    onChange("medicines", [
+      ...medicines,
+      { name: "", strength: "", dosage: "", duration: "", cost: 0 },
+    ]);
+
   const { total } = computeClaimTotals(data, "chronic");
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <h4 className="font-semibold mb-2">
+        Chronic Illness Medicines (per official requisition form)
+      </h4>
       {medicines.map((m: any, i: number) => (
-        <div key={i} className="grid md:grid-cols-3 gap-2 border p-2 rounded">
-          <Input placeholder="Medicine" value={m.name} onChange={(e) => setMed(i, "name", e.target.value)} />
-          <Input placeholder="Dosage" value={m.dosage} onChange={(e) => setMed(i, "dosage", e.target.value)} />
-          <Input type="number" placeholder="Cost" value={m.cost} onChange={(e) => setMed(i, "cost", Number(e.target.value))} />
+        <div key={i} className="grid md:grid-cols-5 gap-2 border p-2 rounded">
+          <Input
+            label="Name of Medicine"
+            value={m.name}
+            onChange={(e) => setMed(i, "name", e.target.value)}
+          />
+          <Input
+            label="Strength"
+            value={m.strength || ""}
+            onChange={(e) => setMed(i, "strength", e.target.value)}
+          />
+          <Input
+            label="Dosage"
+            value={m.dosage || ""}
+            onChange={(e) => setMed(i, "dosage", e.target.value)}
+          />
+          <Input
+            label="Duration"
+            value={m.duration || ""}
+            onChange={(e) => setMed(i, "duration", e.target.value)}
+          />
+          <Input
+            label="Cost (Ksh)"
+            type="number"
+            value={m.cost ?? ""}
+            onChange={(e) => setMed(i, "cost", Number(e.target.value || 0))}
+          />
         </div>
       ))}
-      <Button variant="outline" onClick={addMed}>+ Add Medicine</Button>
-      <div className="text-right text-sm border-t pt-2">Total: Ksh {total.toLocaleString()}</div>
+      <Button variant="outline" onClick={addMed}>
+        + Add Medicine
+      </Button>
+      <div className="text-right text-sm border-t pt-2">
+        Total: Ksh {total.toLocaleString()}
+      </div>
     </div>
   );
 }

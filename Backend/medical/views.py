@@ -81,23 +81,29 @@ class ClaimViewSet(viewsets.ModelViewSet):
         return qs.filter(member__user=user)
 
     @transaction.atomic
-    def perform_create(self, serializer):
+    def perform_create(self, serializer):    
         claim = serializer.save()
 
-        # Calculate totals
+        # ENFORCE: Byelaws require submitted claims to have a submission timestamp
+        if claim.status == "submitted" and claim.submitted_at is None:
+            claim.submitted_at = timezone.now()
+            claim.save(update_fields=["submitted_at"])
+
+        # Compute totals properly
         claim.recalc_total()
         claim.compute_payable()
 
-        # Audit log
+        # Audit trail: clean + standard
+        action = "submitted" if claim.status == "submitted" else "created"
         log_claim_event(
             claim=claim,
             actor=self.request.user,
-            action="submitted",
-            note="Claim submitted by member",
-            role=self.request.user.groups.values_list("name", flat=True).first()
-                or ("admin" if self.request.user.is_superuser else "member"),
+            action=action,
+            note="Claim submitted" if action == "submitted" else "Claim created",
+            role=self.request.user.groups.values_list("name", flat=True).first(),
             meta={"claim_id": str(claim.id)}
         )
+
 
 
     @transaction.atomic
@@ -369,17 +375,18 @@ def benefit_balance(request):
     year_start = date.today().replace(month=1, day=1)
     year_end = date.today().replace(month=12, day=31)
 
-    # Sum approved and paid claims within current year
+    # Sum approved and paid claims within current year (fund share, not total bill)
     total_used = (
         Claim.objects.filter(
             member=member,
             status__in=["approved", "paid"],
             created_at__range=[year_start, year_end],
         )
-        .aggregate(total=Sum("total_claimed"))
+        .aggregate(total=Sum("total_payable"))
         .get("total")
         or 0
     )
+
 
     # Determine annual limit
     critical_topup = 200000 if member.claims.filter(status="approved", claim_type="inpatient", total_claimed__gte=200000).exists() else 0

@@ -62,6 +62,12 @@ class ClaimViewSet(viewsets.ModelViewSet):
     serializer_class = ClaimSerializer
     permission_classes = [permissions.IsAuthenticated, IsClaimOwnerOrCommittee]
 
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["request"] = self.request
+        return ctx
+
+    
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
@@ -77,11 +83,22 @@ class ClaimViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def perform_create(self, serializer):
         claim = serializer.save()
-        if claim.status == "submitted" and claim.submitted_at is None:
-            claim.submitted_at = timezone.now()
-            claim.save(update_fields=["submitted_at"])
+
+        # Calculate totals
         claim.recalc_total()
         claim.compute_payable()
+
+        # Audit log
+        log_claim_event(
+            claim=claim,
+            actor=self.request.user,
+            action="submitted",
+            note="Claim submitted by member",
+            role=self.request.user.groups.values_list("name", flat=True).first()
+                or ("admin" if self.request.user.is_superuser else "member"),
+            meta={"claim_id": str(claim.id)}
+        )
+
 
     @transaction.atomic
     def perform_update(self, serializer):
@@ -693,23 +710,3 @@ def upload_summary_pdf(request, claim_id):
     )
     return Response({"detail": "PDF uploaded successfully."}, status=status.HTTP_201_CREATED)
 
-
-@transaction.atomic
-def perform_create(self, serializer):
-    claim = serializer.save()
-    if claim.status == "submitted" and claim.submitted_at is None:
-        claim.submitted_at = timezone.now()
-        claim.save(update_fields=["submitted_at"])
-    claim.recalc_total()
-    claim.compute_payable()
-
-    # 🧾 Audit: claim created / submitted
-    action = "submitted" if claim.status == "submitted" else "created"
-    log_claim_event(
-        claim=claim,
-        actor=self.request.user if self.request.user.is_authenticated else None,
-        action=action,
-        note="Claim created by member" if action == "created" else "Claim submitted by member",
-        role=None,
-        meta={"claim_id": str(claim.id), "status": claim.status}
-    )

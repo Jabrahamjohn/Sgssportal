@@ -1,6 +1,7 @@
 # Backend/medical/serializers.py
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview, AuditLog,
     Notification, ReimbursementScale, Setting, ChronicRequest, ClaimAttachment
@@ -81,16 +82,41 @@ class ClaimSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "total_claimed", "total_payable", "member_payable", "created_at"]
 
-    def validate(self, data):
-        # Let model.clean() raise detailed ValidationError as needed
-        instance = Claim(**{**getattr(self, "initial_data", {}), **data})
-        instance.member = data.get("member", getattr(self.instance, "member", None))
-        instance.claim_type = data.get("claim_type", getattr(self.instance, "claim_type", None))
-        instance.date_of_first_visit = data.get("date_of_first_visit", getattr(self.instance, "date_of_first_visit", None))
-        instance.date_of_discharge = data.get("date_of_discharge", getattr(self.instance, "date_of_discharge", None))
-        instance.submitted_at = data.get("submitted_at", getattr(self.instance, "submitted_at", None))
-        instance.clean()
-        return data
+    def create(self, validated_data):
+        """Map frontend 'details' JSON into real model fields automatically."""
+        request = self.context["request"]
+
+        # attach logged-in member
+        validated_data["member"] = Member.objects.get(user=request.user)
+
+        details = self.initial_data.get("details", {})
+        claim_type = validated_data.get("claim_type")
+
+        # OUTPATIENT
+        if claim_type == "outpatient":
+            validated_data["notes"] = details.get("diagnosis")
+            validated_data["date_of_first_visit"] = details.get(
+                "date_of_first_visit"
+            ) or timezone.now().date()
+
+        # INPATIENT
+        elif claim_type == "inpatient":
+            validated_data["notes"] = details.get("hospital_name")
+            validated_data["date_of_discharge"] = details.get(
+                "date_of_discharge"
+            ) or timezone.now().date()
+
+        # CHRONIC
+        elif claim_type == "chronic":
+            validated_data["notes"] = "Chronic illness claim"
+            validated_data["date_of_first_visit"] = timezone.now().date()
+
+        # all new claims start as submitted
+        validated_data["status"] = "submitted"
+        validated_data["submitted_at"] = timezone.now()
+
+        return super().create(validated_data)
+
 
 
 class NotificationSerializer(serializers.ModelSerializer):

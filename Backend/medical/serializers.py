@@ -2,6 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from datetime import datetime, date
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview, AuditLog,
     Notification, ReimbursementScale, Setting, ChronicRequest, ClaimAttachment
@@ -74,13 +75,6 @@ class ClaimSerializer(serializers.ModelSerializer):
     attachments = ClaimAttachmentSerializer(many=True, read_only=True)
     member_user_email = serializers.EmailField(source="member.user.email", read_only=True)
 
-    # frontend will send:
-    # {
-    #   claim_type: "outpatient",
-    #   details: {...},
-    #   status: "submitted"
-    # }
-
     details = serializers.DictField(write_only=True, required=False)
 
     class Meta:
@@ -100,133 +94,101 @@ class ClaimSerializer(serializers.ModelSerializer):
             "created_at", "submitted_at"
         ]
 
-    # ---------------------------
-    # CREATE CLAIM (MAIN LOGIC)
-    # ---------------------------
+    # -----------------------
+    # SAFE DATE PARSER
+    # -----------------------
+    def _parse_date(self, val):
+        if not val:
+            return None
+        if isinstance(val, date):
+            return val
+        try:
+            return datetime.fromisoformat(val).date()
+        except Exception:
+            return None
+
+    # -----------------------
+    # CREATE CLAIM
+    # -----------------------
     def create(self, validated_data):
         request = self.context["request"]
-
-        # attach logged-in member
         member = Member.objects.get(user=request.user)
         validated_data["member"] = member
 
-        # extract "details"
         details = validated_data.pop("details", {}) or {}
-
         claim_type = validated_data.get("claim_type")
 
-        # Map fields based on claim type
         if claim_type == "outpatient":
-            validated_data["date_of_first_visit"] = details.get("date_of_first_visit")
+            validated_data["date_of_first_visit"] = self._parse_date(
+                details.get("date_of_first_visit")
+            )
             validated_data["notes"] = details.get("diagnosis") or "Outpatient treatment"
 
         elif claim_type == "inpatient":
-            validated_data["date_of_discharge"] = details.get("date_of_discharge")
+            validated_data["date_of_discharge"] = self._parse_date(
+                details.get("date_of_discharge")
+            )
             validated_data["notes"] = details.get("hospital_name") or "Inpatient treatment"
 
         elif claim_type == "chronic":
             validated_data["notes"] = "Chronic medication request"
 
-        # Set submitted_at automatically
+        # Auto-submission timestamp
         if validated_data.get("status") == "submitted":
             validated_data["submitted_at"] = timezone.now()
 
-        # Create the claim
-        claim = super().create(validated_data)
+        return super().create(validated_data)
 
-        return claim
-    
+    # -----------------------
+    # VALIDATION (BYELAWS)
+    # -----------------------
     def validate(self, attrs):
-        """
-        Run full byelaw validation by constructing a temporary Claim instance
-        and calling its .clean() before saving.
-        This enforces:
-          - 60 day waiting period (Member.is_active_for_claims)
-          - 90 day submission window (Outpatient/Inpatient)
-        """
         from django.core.exceptions import ValidationError as DjangoValidationError
 
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return attrs
 
-        # Logged in member (required for any claim)
         try:
             member = Member.objects.get(user=request.user)
         except Member.DoesNotExist:
-            raise serializers.ValidationError({"detail": "Member profile not found for this user."})
+            raise serializers.ValidationError({"detail": "Member profile not found."})
 
         details = attrs.get("details") or {}
         claim_type = attrs.get("claim_type") or getattr(self.instance, "claim_type", None)
         status = attrs.get("status") or getattr(self.instance, "status", "draft")
 
-        # Build a temporary Claim instance with the values that will be used
-        if self.instance is not None:
-            # updating
-            candidate = self.instance
-        else:
-            candidate = Claim(member=member)
-
+        # Build temporary claim
+        candidate = self.instance or Claim(member=member)
         candidate.claim_type = claim_type
 
-        # Dates (mirror create() logic)
+        # Set dates safely
         if claim_type == "outpatient":
-            candidate.date_of_first_visit = (
+            candidate.date_of_first_visit = self._parse_date(
                 details.get("date_of_first_visit")
-                or candidate.date_of_first_visit
-            )
-        elif claim_type == "inpatient":
-            candidate.date_of_discharge = (
-                details.get("date_of_discharge")
-                or candidate.date_of_discharge
-            )
+            ) or candidate.date_of_first_visit
 
-        # Submitted_at: if status will be submitted, we assume it is submitted now
-        if status == "submitted":
-            candidate.submitted_at = candidate.submitted_at or timezone.now()
-        else:
-            candidate.submitted_at = candidate.submitted_at  # leave as is
+        elif claim_type == "inpatient":
+            candidate.date_of_discharge = self._parse_date(
+                details.get("date_of_discharge")
+            ) or candidate.date_of_discharge
+
+        # Submitted timestamp
+        if status == "submitted" and not candidate.submitted_at:
+            candidate.submitted_at = timezone.now()
 
         candidate.status = status
 
-        # 🔍 Now run model-level validation
+        # Run model clean()
         try:
             candidate.clean()
         except DjangoValidationError as e:
-            # Convert Django ValidationError to DRF ValidationError
-            raise serializers.ValidationError(e.message_dict if hasattr(e, "message_dict") else e.messages)
+            raise serializers.ValidationError(
+                e.message_dict if hasattr(e, "message_dict") else e.messages
+            )
 
         return attrs
 
-    def clean(self):
-        from django.core.exceptions import ValidationError
-        today = timezone.now().date()
-        claim_t = (self.claim_type or '').lower()
-
-        # Ensure submitted_at exists if status is submitted/approved/etc
-        if self.status in ["submitted", "reviewed", "approved", "rejected", "paid"] and not self.submitted_at:
-            self.submitted_at = timezone.now()
-
-        if claim_t == 'outpatient':
-            if not self.date_of_first_visit:
-                raise ValidationError("Outpatient claims require date_of_first_visit.")
-            if self.submitted_at and (self.submitted_at.date() - self.date_of_first_visit).days > 90:
-                raise ValidationError("Outpatient claims must be submitted within 90 days of first visit.")
-        elif claim_t == 'inpatient':
-            if not self.date_of_discharge:
-                raise ValidationError("Inpatient claims require date_of_discharge.")
-            if self.submitted_at and (self.submitted_at.date() - self.date_of_discharge).days > 90:
-                raise ValidationError("Inpatient claims must be submitted within 90 days of discharge.")
-
-        # 2) Membership active (60 days waiting, not expired)
-        if self.member and not self.member.is_active_for_claims():
-            raise ValidationError("Membership waiting period (60 days) not satisfied or membership expired.")
-
-    # ---------------------------
-    # UPDATE (rarely used by members)
-    # ---------------------------
-    def update(self, instance, validated_data):
-        return super().update(instance, validated_data)
 
 
 class NotificationSerializer(serializers.ModelSerializer):

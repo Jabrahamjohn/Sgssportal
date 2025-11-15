@@ -1,4 +1,5 @@
 // frontend/src/server/services/claim.service.ts
+import { Files } from "lucide-react";
 import api from "~/config/api";
 
 export type CommitteeClaimRow = {
@@ -88,19 +89,19 @@ export const addItem = async (
 // --------------------------------------------------
 // UPLOAD ATTACHMENT
 // --------------------------------------------------
-export const uploadAttachment = async (claimId: string, file: File) => {
-  const formData = new FormData();
-  formData.append("claim", claimId);
-  formData.append("file", file);
+export const uploadAttachment = async (claimId: string, files: File[]) => {
+  for (const f of files) {
+  const fd = new FormData();
+  fd.append("file", f);
+  fd.append("claim", claimId);  // Required field for backend
 
-  const res = await api.post("claim-attachments/", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+  await api.post("claim-attachments/", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
   });
+}
 
-  return res.data;
 };
+
 
 // --------------------------------------------------
 // CLAIM AUDIT LOG

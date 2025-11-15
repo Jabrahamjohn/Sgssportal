@@ -1,12 +1,12 @@
 # Backend/medical/urls.py
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
-# ============================================================
-# Router for all ViewSets (Auto-generates REST endpoints)
-# ============================================================
 router = DefaultRouter()
+
+# --- AUTO REST ROUTES ---
 router.register(r'memberships', views.MembershipTypeViewSet, basename='membership-types')
 router.register(r'members', views.MemberViewSet, basename='members')
 router.register(r'claims', views.ClaimViewSet, basename='claims')
@@ -18,19 +18,16 @@ router.register(r'notifications', views.NotificationViewSet, basename='notificat
 router.register(r'settings', views.SettingViewSet, basename='settings')
 router.register(r'reimbursement-scales', views.ReimbursementScaleViewSet, basename='reimbursement-scales')
 
-# ============================================================
-# Manual Endpoints (Non-ViewSet)
-# ============================================================
 urlpatterns = [
-    # 🔐 Authentication-related user info
-    path('auth/me/', views.me, name='me'),
+    # user/member info  
+    path("auth/me/", views.me, name="me"),
+    path("members/me/", views.my_member, name="my-member"),
+    path("members/me/benefit_balance/", views.benefit_balance, name="benefit-balance"),
 
-    # 👤 Member-specific info (current logged-in user)
-    path("me/", views.my_member, name="my-member"),
+    # manual committee endpoints
+    path("claims/committee/", views.committee_claims),
+    path("claims/committee/<uuid:pk>/", views.committee_claim_detail),
 
-    # 🌍 Include all router-based endpoints
-    path('', include(router.urls)),
-
-    #  claims 
-    
+    # include router
+    path("", include(router.urls)),
 ]

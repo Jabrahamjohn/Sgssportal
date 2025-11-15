@@ -106,13 +106,15 @@ export default function NewClaim() {
 
       // Upload attachments (if any)
       for (const f of files) {
-        const form = new FormData();
-        form.append("file", f);
-        await api.post(`claim-attachments/`, form, {
+        const fd = new FormData();
+        fd.append("file", f);
+        fd.append("claim", claimId); // REQUIRED
+
+        await api.post("claim-attachments/", fd, {
           headers: { "Content-Type": "multipart/form-data" },
-          params: { claim: claimId },
         });
       }
+
 
       nav("/dashboard/member/claims");
     } catch (e: any) {

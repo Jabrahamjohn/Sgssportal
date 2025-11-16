@@ -115,8 +115,12 @@ class ClaimSerializer(serializers.ModelSerializer):
         member = Member.objects.get(user=request.user)
         validated_data["member"] = member
 
+        # Pull out details from payload
         details = validated_data.pop("details", {}) or {}
         claim_type = validated_data.get("claim_type")
+
+        # 🔹 Persist the structured form payload on the model
+        validated_data["details"] = details
 
         if claim_type == "outpatient":
             validated_data["date_of_first_visit"] = self._parse_date(
@@ -146,8 +150,8 @@ class ClaimSerializer(serializers.ModelSerializer):
         validated_data["total_payable"] = temp.total_payable
         validated_data["member_payable"] = temp.member_payable
 
-
         return super().create(validated_data)
+
 
     # -----------------------
     # VALIDATION (BYELAWS)
@@ -170,7 +174,11 @@ class ClaimSerializer(serializers.ModelSerializer):
 
         # Build temporary claim
         candidate = self.instance or Claim(member=member)
+        candidate.member = member
         candidate.claim_type = claim_type
+
+        # 🔹 Ensure the rule-engine sees the same structured payload
+        candidate.details = details or getattr(candidate, "details", {}) or {}
 
         # Set dates safely
         if claim_type == "outpatient":
@@ -189,7 +197,7 @@ class ClaimSerializer(serializers.ModelSerializer):
 
         candidate.status = status
 
-        # Run model clean()
+        # First, run model-level clean() (90-day + 60-day rules)
         try:
             candidate.clean()
         except DjangoValidationError as e:
@@ -197,13 +205,11 @@ class ClaimSerializer(serializers.ModelSerializer):
                 e.message_dict if hasattr(e, "message_dict") else e.messages
             )
 
-                # -------------------------------------------------------
-        # NEW: Compute claim amounts + enforce annual limit
+        # -------------------------------------------------------
+        # Compute claim amounts + enforce annual limit
         # -------------------------------------------------------
         try:
-            # Generate totals
             candidate.compute_fund_distribution()
-            # Enforce annual limit
             candidate.enforce_annual_limit()
         except DjangoValidationError as e:
             raise serializers.ValidationError(

@@ -102,6 +102,9 @@ class Claim(models.Model):
     submitted_at = models.DateTimeField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
 
+    # Store structured form payload (outpatient / inpatient / chronic)
+    details = models.JSONField(default=dict, blank=True)
+
     # Bylaws extras
     excluded = models.BooleanField(default=False)
     override_amount = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
@@ -134,16 +137,15 @@ class Claim(models.Model):
         if self.member and not self.member.is_active_for_claims():
             raise ValidationError("Membership waiting period (60 days) not satisfied or membership expired.")
 
-    # -------------------------------------------------------------------
-    # SGSS BYELAW RULE ENGINE HELPERS
+        # -------------------------------------------------------------------
+    # SGSS BYELAW RULE ENGINE HELPERS (MUST BE INSIDE CLASS)
     # -------------------------------------------------------------------
     def calculate_total_claimed(self):
-        """Compute the raw total based on claim type details/items."""
+        """Compute the raw total based on claim type + details."""
         total = 0
+        d = self.details or {}
 
-        # 1) Outpatient (consultations, medicines, investigations, procedures)
         if self.claim_type == "outpatient":
-            d = self.details or {}
             total = (
                 (d.get("consultation_fee") or 0)
                 + (d.get("house_visit_cost") or 0)
@@ -152,13 +154,10 @@ class Claim(models.Model):
                 + (d.get("procedure_cost") or 0)
             )
 
-        # 2) Inpatient (accommodation, inpatient, doctor, claimable, discounts)
         elif self.claim_type == "inpatient":
-            d = self.details or {}
-            stay_days = (d.get("stay_days") or 1)
+            stay_days = d.get("stay_days") or 1
             accommodation = (d.get("bed_charge_per_day") or 0) * stay_days
             nhif = d.get("nhif_total") or 0
-
             accommodation = max(accommodation - nhif, 0)
 
             total = (
@@ -169,24 +168,21 @@ class Claim(models.Model):
                 - (d.get("discounts_total") or 0)
             )
 
-        # 3) Chronic illness medicines
         elif self.claim_type == "chronic":
-            meds = (self.details or {}).get("medicines", [])
+            meds = d.get("medicines", [])
             total = sum(m.get("cost") or 0 for m in meds)
 
         return max(total, 0)
 
-
     def compute_fund_distribution(self):
-        """Compute fund liability (80%) and member (20%)."""
+        """Compute fund liability (80%) and member liability (20%)."""
         total = self.calculate_total_claimed()
         self.total_claimed = total
         self.total_payable = total * 0.8
         self.member_payable = total * 0.2
 
-
     def enforce_annual_limit(self):
-        """Ensure annual limit (250k + 200k critical)."""
+        """Enforce annual limit (250k + 200k critical top-up)."""
         from django.db.models import Sum
         year = timezone.now().year
 
@@ -200,11 +196,16 @@ class Claim(models.Model):
         )
 
         base_limit = 250000
-        critical_boost = 200000 if self.claim_type == "inpatient" and (self.details or {}).get("critical_illness") else 0
+        critical_boost = 200000 if (
+            self.claim_type == "inpatient" and
+            (self.details or {}).get("critical_illness")
+        ) else 0
+
         limit = base_limit + critical_boost
 
-        if previous + (self.total_payable or 0) > limit:
+        if previous + float(self.total_payable or 0) > limit:
             raise ValidationError("Annual limit exceeded.")
+
 
 
     @transaction.atomic

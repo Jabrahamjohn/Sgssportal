@@ -134,6 +134,79 @@ class Claim(models.Model):
         if self.member and not self.member.is_active_for_claims():
             raise ValidationError("Membership waiting period (60 days) not satisfied or membership expired.")
 
+    # -------------------------------------------------------------------
+    # SGSS BYELAW RULE ENGINE HELPERS
+    # -------------------------------------------------------------------
+    def calculate_total_claimed(self):
+        """Compute the raw total based on claim type details/items."""
+        total = 0
+
+        # 1) Outpatient (consultations, medicines, investigations, procedures)
+        if self.claim_type == "outpatient":
+            d = self.details or {}
+            total = (
+                (d.get("consultation_fee") or 0)
+                + (d.get("house_visit_cost") or 0)
+                + (d.get("medicine_cost") or 0)
+                + (d.get("investigation_cost") or 0)
+                + (d.get("procedure_cost") or 0)
+            )
+
+        # 2) Inpatient (accommodation, inpatient, doctor, claimable, discounts)
+        elif self.claim_type == "inpatient":
+            d = self.details or {}
+            stay_days = (d.get("stay_days") or 1)
+            accommodation = (d.get("bed_charge_per_day") or 0) * stay_days
+            nhif = d.get("nhif_total") or 0
+
+            accommodation = max(accommodation - nhif, 0)
+
+            total = (
+                accommodation
+                + (d.get("inpatient_total") or 0)
+                + (d.get("doctor_total") or 0)
+                + (d.get("claimable_total") or 0)
+                - (d.get("discounts_total") or 0)
+            )
+
+        # 3) Chronic illness medicines
+        elif self.claim_type == "chronic":
+            meds = (self.details or {}).get("medicines", [])
+            total = sum(m.get("cost") or 0 for m in meds)
+
+        return max(total, 0)
+
+
+    def compute_fund_distribution(self):
+        """Compute fund liability (80%) and member (20%)."""
+        total = self.calculate_total_claimed()
+        self.total_claimed = total
+        self.total_payable = total * 0.8
+        self.member_payable = total * 0.2
+
+
+    def enforce_annual_limit(self):
+        """Ensure annual limit (250k + 200k critical)."""
+        from django.db.models import Sum
+        year = timezone.now().year
+
+        previous = (
+            Claim.objects.filter(
+                member=self.member,
+                status__in=["approved", "paid"],
+                submitted_at__year=year
+            ).aggregate(Sum("total_payable"))["total_payable__sum"]
+            or 0
+        )
+
+        base_limit = 250000
+        critical_boost = 200000 if self.claim_type == "inpatient" and (self.details or {}).get("critical_illness") else 0
+        limit = base_limit + critical_boost
+
+        if previous + (self.total_payable or 0) > limit:
+            raise ValidationError("Annual limit exceeded.")
+
+
     @transaction.atomic
     def recalc_total(self):
         """Safely recompute claim total."""

@@ -137,6 +137,16 @@ class ClaimSerializer(serializers.ModelSerializer):
         if validated_data.get("status") == "submitted":
             validated_data["submitted_at"] = timezone.now()
 
+        # NEW: Auto-compute totals BEFORE saving
+        temp = Claim(**validated_data)
+        temp.member = member
+        temp.compute_fund_distribution()
+
+        validated_data["total_claimed"] = temp.total_claimed
+        validated_data["total_payable"] = temp.total_payable
+        validated_data["member_payable"] = temp.member_payable
+
+
         return super().create(validated_data)
 
     # -----------------------
@@ -185,6 +195,19 @@ class ClaimSerializer(serializers.ModelSerializer):
         except DjangoValidationError as e:
             raise serializers.ValidationError(
                 e.message_dict if hasattr(e, "message_dict") else e.messages
+            )
+
+                # -------------------------------------------------------
+        # NEW: Compute claim amounts + enforce annual limit
+        # -------------------------------------------------------
+        try:
+            # Generate totals
+            candidate.compute_fund_distribution()
+            # Enforce annual limit
+            candidate.enforce_annual_limit()
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(
+                {"detail": e.message if hasattr(e, "message") else e.messages}
             )
 
         return attrs

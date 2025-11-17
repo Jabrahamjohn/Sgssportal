@@ -15,6 +15,18 @@ export type CommitteeClaimRow = {
   submitted_at?: string | null;
 };
 
+// Detect committee user based on groups from /auth/me/
+export async function isCommitteeUser(): Promise<boolean> {
+  try {
+    const res = await api.get("auth/me/");
+    const groups = res.data.groups || [];
+    return groups.includes("committee") || groups.includes("admin");
+  } catch {
+    return false;
+  }
+}
+
+
 // --------------------------------------------------
 // COMMITTEE LIST
 // --------------------------------------------------
@@ -38,10 +50,19 @@ export const listClaims = async () => {
 // --------------------------------------------------
 // COMMITTEE: CLAIM DETAIL
 // --------------------------------------------------
-export const getCommitteeClaimDetail = async (id: string) => {
-  const res = await api.get(`claims/committee/${id}/`);
+export const getClaimDetail = async (id: string) => {
+  const committee = await isCommitteeUser();
+
+  if (committee) {
+    const res = await api.get(`claims/committee/${id}/`);
+    return res.data;
+  }
+
+  // Normal member view
+  const res = await api.get(`claims/${id}/`);
   return res.data;
 };
+
 
 // --------------------------------------------------
 // COMMITTEE: CHANGE STATUS

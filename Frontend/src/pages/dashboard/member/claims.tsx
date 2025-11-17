@@ -2,14 +2,15 @@
 import React, { useEffect, useState } from "react";
 import { listClaims } from "~/server/services/claim.service";
 import type { Claim } from "~/types/claim";
-import ClaimDetailModal from "../committee/ClaimDetailModal"; // reuse modal
 import Badge from "~/components/controls/badge";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function ClaimsList() {
   const [data, setData] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
+
+  const nav = useNavigate();
 
   useEffect(() => {
     listClaims().then(setData).finally(() => setLoading(false));
@@ -61,7 +62,8 @@ export default function ClaimsList() {
               <tr
                 key={c.id}
                 className="border-t hover:bg-blue-50 cursor-pointer"
-                onClick={() => setSelected(c.id)}
+                onClick={() => nav(`/dashboard/member/claims/${c.id}`)}
+
               >
                 <td className="p-2">{c.id.slice(0, 8)}…</td>
                 <td className="p-2 capitalize">{c.claim_type}</td>
@@ -90,10 +92,7 @@ export default function ClaimsList() {
         </table>
       </div>
 
-      {/* Modal */}
-      {selected && (
-        <ClaimDetailModal claimId={selected} onClose={() => setSelected(null)} />
-      )}
+      
     </div>
   );
 }

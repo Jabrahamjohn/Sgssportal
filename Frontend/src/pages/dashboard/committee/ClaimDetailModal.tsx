@@ -9,7 +9,7 @@ import {
   User,
   Hospital,
 } from "lucide-react";
-import { getCommitteeClaimDetail, setClaimStatus, getClaimAudit } from "~/server/services/claim.service";
+import { getClaimDetail, setClaimStatus, getClaimAudit } from "~/server/services/claim.service";
 import { format } from "date-fns";
 import Button from "~/components/controls/button";
 import Badge from "~/components/controls/badge";

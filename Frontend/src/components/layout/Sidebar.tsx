@@ -1,5 +1,5 @@
 // Frontend/src/components/layout/Sidebar.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   Home,
@@ -11,12 +11,26 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "~/store/contexts/AuthContext";
+import { api } from "~/config/api";
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { auth } = useAuth();
 
   const toggleSidebar = () => setCollapsed((p) => !p);
+
+  const [me, setMe] = useState<any>(null);
+
+  useEffect(() => {
+    api.get("auth/me/").then((res) => setMe(res.data));
+  }, []);
+
+  const isCommittee =
+    me?.role === "Committee" ||
+    me?.groups?.includes("Committee") ||
+    me?.groups?.includes("Admin") ||
+    me?.is_superuser;
+
 
   const navItem =
     "flex items-center gap-3 px-4 py-2.5 rounded-xl transition font-medium text-sm";

@@ -19,6 +19,7 @@ import NotFound from "./pages/404";
 // Add below imports
 import { useAuth } from "~/store/contexts/AuthContext";
 import MemberClaimDetail from "./pages/dashboard/member/claim-detail";
+import ClaimView from "./pages/dashboard/member/claim-view";
 
 function RoleRedirect() {
   const { auth } = useAuth();
@@ -77,7 +78,8 @@ export default function AppRouter() {
             path="dashboard/member/claims/:id"
             element={<MemberClaimDetail />}
           />
-
+          
+          <Route path="dashboard/member/claims/:id" element={<ClaimView />} />
           <Route path="dashboard/member/claims" element={<ClaimsList />} />
           <Route path="dashboard/member/claims/new" element={<NewClaim />} />
           <Route path="dashboard/member/chronic" element={<ChronicPage />} />

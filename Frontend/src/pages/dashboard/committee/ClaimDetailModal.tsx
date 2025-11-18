@@ -1,79 +1,57 @@
+// Frontend/src/pages/dashboard/committee/ClaimDetailModal.tsx
 import React, { useEffect, useState } from "react";
-import {
-  X,
-  FileText,
-  Paperclip,
-  Check,
-  XCircle,
-  DollarSign,
-  User,
-  Hospital,
-} from "lucide-react";
-import { getClaimDetail, setClaimStatus, getClaimAudit } from "~/server/services/claim.service";
-import { format } from "date-fns";
-import Button from "~/components/controls/button";
+import Modal from "~/components/controls/modal";
 import Badge from "~/components/controls/badge";
-import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "~/store/contexts/AuthContext";
+import Button from "~/components/controls/button";
+import {
+  getCommitteeClaimDetail,
+  getClaimAudit,
+  setClaimStatus,
+} from "~/server/services/claim.service";
 
-// Added: Modal header for accessibility/focus
-const MODAL_HEADER_ID = "claim-detail-modal-header";
-
-interface Props {
-  claimId: string | null;
+type Props = {
+  claimId: string;
   onClose: () => void;
-}
+};
 
 export default function ClaimDetailModal({ claimId, onClose }: Props) {
-  const { auth } = useAuth();
-  const isCommittee = ["committee", "admin"].includes(auth.role || "member");
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [claim, setClaim] = useState<any>(null);
+  const [audit, setAudit] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
 
   useEffect(() => {
-    let cancel = false;
-    (async () => {
-      if (!claimId) return;
+    let cancelled = false;
+
+    async function load() {
       setLoading(true);
-      setError("");
+      setErr("");
       try {
-        const detail = await getCommitteeClaimDetail(claimId);
-        let reviews = detail.reviews || [];
-        if (!Array.isArray(reviews) || !reviews.length) {
-          reviews = await getClaimAudit(claimId);
+        const [c, a] = await Promise.all([
+          getCommitteeClaimDetail(claimId),
+          getClaimAudit(claimId),
+        ]);
+        if (!cancelled) {
+          setClaim(c);
+          setAudit(a);
         }
-        if (!cancel) setData({ ...detail, reviews });
-      } catch (e) {
-        if (!cancel) setError("Failed to fetch claim details.");
+      } catch (e: any) {
+        console.error(e);
+        if (!cancelled) setErr("Failed to load claim detail.");
       } finally {
-        if (!cancel) setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    })();
+    }
+
+    load();
     return () => {
-      cancel = true;
+      cancelled = true;
     };
   }, [claimId]);
 
-  const handleAction = async (status: "approved" | "rejected" | "paid") => {
-    if (!claimId) return;
-    setActionLoading(true);
-    try {
-      await setClaimStatus(claimId, status);
-      onClose();
-    } catch {
-      setError("Failed to update claim status.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  if (!claimId) return null;
-
-  // Enriched badge styling for statuses
-  const statusColor = (status: string) => {
-    switch (status) {
+  const statusColor = (s: string) => {
+    switch (s) {
       case "approved":
         return "success";
       case "rejected":
@@ -87,310 +65,259 @@ export default function ClaimDetailModal({ claimId, onClose }: Props) {
     }
   };
 
+  const changeStatus = async (
+    status: "reviewed" | "approved" | "rejected" | "paid"
+  ) => {
+    setBusy(true);
+    setErr("");
+    try {
+      const updated = await setClaimStatus(claimId, status);
+      setClaim(updated);
+    } catch (e: any) {
+      console.error(e);
+      setErr("Failed to update claim status.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <AnimatePresence>
-      <motion.div
-        key={claimId}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-1 md:px-4"
-        aria-labelledby={MODAL_HEADER_ID}
-        role="dialog"
-        tabIndex={-1}
-      >
-        {/* Modal content */}
-        <motion.div
-          initial={{ scale: 0.96, y: 32, opacity: 0 }}
-          animate={{ scale: 1, y: 0, opacity: 1 }}
-          exit={{ scale: 0.96, y: 32, opacity: 0 }}
-          transition={{ type: "spring", duration: 0.25 }}
-          className="bg-white w-full max-w-4xl rounded-3xl shadow-xl overflow-hidden border border-blue-100"
-        >
-          {/* Header */}
-          <header
-            id={MODAL_HEADER_ID}
-            className="flex justify-between items-center px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-white"
-          >
-            <div className="flex items-center gap-3">
-              <FileText className="w-5 h-5 text-blue-600" />
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800 tracking-tight">
-                  Claim Details
-                </h2>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span>
-                    ID: {data?.claim.id?.slice(0, 8) || "—"}
-                  </span>
-                  <span className="hidden sm:inline mx-1">·</span>
-                  <span>
-                    Submitted {data?.claim?.created_at ? format(new Date(data.claim.created_at), "dd MMM yyyy") : "—"}
-                  </span>
-                  {data && (
-                    <Badge variant={statusColor(data.claim.status)}>
-                      {data.claim.status.toUpperCase()}
-                    </Badge>
-                  )}
-                </div>
-              </div>
+    <Modal open onClose={onClose} title="Claim Detail (Committee View)">
+      {loading && <div className="p-4">Loading…</div>}
+      {!loading && !claim && (
+        <div className="p-4 text-red-600">Claim not found.</div>
+      )}
+
+      {!loading && claim && (
+        <div className="space-y-4">
+          {/* Header --------------------------------------------------- */}
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm text-gray-500">
+                Claim ID:{" "}
+                <span className="font-mono">
+                  {String(claim.id).slice(0, 8)}…
+                </span>
+              </p>
+              <p className="text-sm text-gray-500">
+                Member:{" "}
+                <strong>{claim.member_name || claim.member_user_email}</strong>
+              </p>
+              {claim.membership_type && (
+                <p className="text-xs text-gray-500">
+                  Membership: {claim.membership_type}
+                </p>
+              )}
             </div>
-            <Button
-              aria-label="Close details modal"
-              onClick={onClose}
-              className="p-2 rounded-full hover:bg-blue-50 active:bg-blue-100 transition"
-              variant="ghost"
-            >
-              <X className="w-5 h-5 text-gray-600" />
-            </Button>
-          </header>
+            <Badge variant={statusColor(claim.status)}>{claim.status}</Badge>
+          </div>
 
-          {/* Loading/Error */}
-          {loading ? (
-            <div className="p-10 text-center text-blue-600 font-medium">Loading details…</div>
-          ) : error ? (
-            <div className="p-10 text-center text-red-500 font-medium">{error}</div>
-          ) : (
-            data && (
-              <div className="p-6 space-y-10 overflow-y-auto max-h-[75vh] md:max-h-[70vh]">
-                {/* Member Info */}
-                <section className="grid md:grid-cols-3 gap-4 bg-gradient-to-r from-blue-50 to-white rounded-xl p-4 border">
-                  <div className="flex items-center gap-3">
-                    <User className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="text-xs uppercase text-blue-700 font-semibold tracking-wide">Member</p>
-                      <p className="font-semibold text-gray-800">{data.member.name}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase text-blue-700 font-semibold tracking-wide">Membership Type</p>
-                    <p className="font-semibold text-gray-800">{data.member.membership_type || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase text-blue-700 font-semibold tracking-wide">NHIF Number</p>
-                    <p className="font-semibold text-gray-800">{data.member.nhif_number || "—"}</p>
-                  </div>
-                </section>
+          {/* Financial summary ---------------------------------------- */}
+          <div className="grid md:grid-cols-3 gap-3">
+            <SummaryBox
+              label="Total Claimed"
+              value={claim.total_claimed}
+              emphasis="normal"
+            />
+            <SummaryBox
+              label="Fund Payable"
+              value={claim.total_payable}
+              emphasis="fund"
+            />
+            <SummaryBox
+              label="Member Share"
+              value={claim.member_payable}
+              emphasis="member"
+            />
+          </div>
 
-                {/* Claim Info */}
-                <section className="grid md:grid-cols-3 gap-4">
+          {/* Dates + basic info --------------------------------------- */}
+          <div className="grid md:grid-cols-2 gap-3 text-sm">
+            <InfoRow label="Claim Type" value={claim.claim_type} />
+            <InfoRow
+              label="Submitted At"
+              value={
+                claim.submitted_at
+                  ? new Date(claim.submitted_at).toLocaleString()
+                  : "—"
+              }
+            />
+            <InfoRow
+              label="Created At"
+              value={new Date(claim.created_at).toLocaleString()}
+            />
+            {claim.claim_type === "outpatient" && (
+              <InfoRow
+                label="Date of First Visit"
+                value={claim.date_of_first_visit || "—"}
+              />
+            )}
+            {claim.claim_type === "inpatient" && (
+              <InfoRow
+                label="Date of Discharge"
+                value={claim.date_of_discharge || "—"}
+              />
+            )}
+          </div>
+
+          {/* Attachments ---------------------------------------------- */}
+          <div>
+            <h4 className="font-semibold mb-1">Attachments</h4>
+            {!claim.attachments?.length && (
+              <p className="text-xs text-gray-500">No attachments.</p>
+            )}
+            <div className="space-y-1">
+              {claim.attachments?.map((att: any) => (
+                <div
+                  key={att.id}
+                  className="flex justify-between items-center text-xs border rounded p-2 bg-gray-50"
+                >
                   <div>
-                    <p className="text-sm text-gray-500">Claim Type</p>
-                    <p className="font-medium capitalize text-gray-800">{data.claim.type}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Date of Visit</p>
-                    <p className="font-medium text-gray-800">
-                      {data.claim.date_of_first_visit
-                        ? format(new Date(data.claim.date_of_first_visit), "dd MMM yyyy")
-                        : "—"}
+                    <p className="font-medium">
+                      {att.file?.split("/").pop() || "File"}
+                    </p>
+                    <p className="text-gray-500">
+                      Uploaded:{" "}
+                      {new Date(att.uploaded_at).toLocaleString()} by{" "}
+                      {att.uploaded_by_email || "member"}
                     </p>
                   </div>
+                  <a
+                    href={att.file}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline"
+                  >
+                    View / Download
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Notes / diagnosis ---------------------------------------- */}
+          {claim.notes && (
+            <div>
+              <h4 className="font-semibold mb-1">Notes / Diagnosis</h4>
+              <p className="text-sm whitespace-pre-wrap bg-gray-50 p-2 rounded border">
+                {claim.notes}
+              </p>
+            </div>
+          )}
+
+          {/* Audit trail ---------------------------------------------- */}
+          <div>
+            <h4 className="font-semibold mb-1">Audit Trail</h4>
+            {!audit.length && (
+              <p className="text-xs text-gray-500">No audit events yet.</p>
+            )}
+            <div className="max-h-40 overflow-y-auto border rounded">
+              {audit.map((log) => (
+                <div
+                  key={log.id}
+                  className="text-xs flex justify-between border-b px-2 py-1"
+                >
                   <div>
-                    <p className="text-sm text-gray-500">Created</p>
-                    <p className="font-medium text-gray-800">
-                      {format(new Date(data.claim.created_at), "dd MMM yyyy")}
-                    </p>
-                  </div>
-                </section>
-
-                {/* Itemized Charges */}
-                <section>
-                  <h3 className="flex items-center gap-2 text-base font-semibold mb-2 text-blue-800">
-                    <Hospital className="w-4 h-4 text-blue-600" />
-                    Itemized Charges
-                  </h3>
-                  <div className="overflow-x-auto rounded-lg border border-blue-100">
-                    <table className="min-w-full text-sm">
-                      <thead className="bg-gradient-to-r from-blue-50 to-white text-blue-700">
-                        <tr>
-                          <th className="text-left p-2 font-semibold">Category</th>
-                          <th className="text-left p-2 font-semibold">Description</th>
-                          <th className="text-right p-2 font-semibold">Amount</th>
-                          <th className="text-right p-2 font-semibold">Qty</th>
-                          <th className="text-right p-2 font-semibold">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.items.map((it: any) => (
-                          <tr key={it.id} className="border-t hover:bg-blue-50/30 transition">
-                            <td className="p-2">{it.category || "—"}</td>
-                            <td className="p-2">{it.description || "—"}</td>
-                            <td className="p-2 text-right">Ksh {Number(it.amount).toLocaleString()}</td>
-                            <td className="p-2 text-right">{it.quantity}</td>
-                            <td className="p-2 text-right font-semibold">Ksh {Number(it.line_total || it.amount).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-
-                {/* Attachments */}
-                {data.attachments?.length > 0 && (
-                  <section>
-                    <h4 className="font-semibold mb-2 text-blue-800 flex items-center gap-2">
-                      <Paperclip className="w-4 h-4 text-blue-500" /> Attachments
-                    </h4>
-                    <ul className="space-y-2">
-                      {data.attachments.map((a: any) => (
-                        <li key={a.id} className="flex justify-between items-center border-b last:border-b-0 pb-1">
-                          <span className="text-sm text-gray-700 truncate">{a.file?.split("/").pop()}</span>
-                          {a.content_type === "application/pdf" ? (
-                            <a
-                              href={a.file}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              View PDF
-                            </a>
-                          ) : (
-                            <a
-                              href={a.file}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              Download
-                            </a>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                )}
-
-                {/* Totals */}
-                <section className="grid md:grid-cols-3 gap-4 text-sm border-t pt-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Total Claimed</p>
-                    <p className="font-semibold text-gray-800">
-                      Ksh {Number(data.claim.total_claimed).toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Fund Payable</p>
-                    <p className="font-semibold text-green-700">
-                      Ksh {Number(data.claim.total_payable).toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Member Payable</p>
-                    <p className="font-semibold text-red-600">
-                      Ksh {Number(data.claim.member_payable).toLocaleString()}
-                    </p>
-                  </div>
-                </section>
-
-                {/* Action Buttons */}
-                <section className="flex flex-wrap gap-3 pt-4 border-t">
-                  {isCommittee ? (
-                    <>
-                      <Button
-                        disabled={actionLoading}
-                        onClick={() => handleAction("approved")}
-                        className="bg-gradient-to-r from-green-500 to-green-700 text-white flex items-center gap-2 shadow"
-                        aria-busy={actionLoading}
-                      >
-                        <Check className="w-4 h-4" />
-                        {actionLoading ? "Processing..." : "Approve"}
-                      </Button>
-                      <Button
-                        disabled={actionLoading}
-                        onClick={() => handleAction("rejected")}
-                        className="bg-gradient-to-r from-red-500 to-red-700 text-white flex items-center gap-2 shadow"
-                        aria-busy={actionLoading}
-                      >
-                        <XCircle className="w-4 h-4" />
-                        {actionLoading ? "Processing..." : "Reject"}
-                      </Button>
-                      <Button
-                        disabled={actionLoading}
-                        onClick={() => handleAction("paid")}
-                        className="bg-gradient-to-r from-blue-500 to-blue-700 text-white flex items-center gap-2 shadow"
-                        aria-busy={actionLoading}
-                      >
-                        <DollarSign className="w-4 h-4" />
-                        {actionLoading ? "Processing..." : "Mark Paid"}
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      onClick={onClose}
-                      className="bg-gray-700 text-white hover:bg-gray-800 ml-auto shadow"
-                    >
-                      Close
-                    </Button>
-                  )}
-                </section>
-
-                {/* Status Timeline (Audit Log) */}
-                <section className="mt-8 border-t pt-6">
-                  <h3 className="text-base font-semibold mb-4 text-blue-800">
-                    Claim Progress & Review History
-                  </h3>
-                  <div className="relative border-l-2 border-blue-200 pl-6 space-y-5">
-                    {Array.isArray(data.reviews) && data.reviews.length ? (
-                      data.reviews.map((rev: any, idx: number) => {
-                        // Modern timeline node: background colors & icons
-                        const actionColor =
-                          rev.action === "approved"
-                            ? "bg-green-600"
-                            : rev.action === "rejected"
-                            ? "bg-red-600"
-                            : rev.action === "paid"
-                            ? "bg-blue-600"
-                            : "bg-gray-400";
-                        const icon =
-                          rev.action === "approved"
-                            ? "✅"
-                            : rev.action === "rejected"
-                            ? "❌"
-                            : rev.action === "paid"
-                            ? "💰"
-                            : "📝";
-
-                        return (
-                          <div key={idx} className="flex items-start gap-3">
-                            <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white ${actionColor} shadow`}>
-                              {icon}
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-800 capitalize">
-                                {rev.action}{" "}
-                                <span className="text-sm text-blue-600 font-medium">
-                                  {rev.role && `by ${rev.role}`}
-                                </span>
-                              </p>
-                              {rev.reviewer && (
-                                <p className="text-sm text-blue-700">
-                                  Reviewer: {rev.reviewer.username || rev.reviewer.name}
-                                </p>
-                              )}
-                              {rev.note && (
-                                <p className="text-sm italic text-gray-600 mt-1">
-                                  “{rev.note}”
-                                </p>
-                              )}
-                              <p className="text-xs text-gray-400 mt-1">
-                                {format(new Date(rev.created_at), "dd MMM yyyy, hh:mm a")}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="text-sm text-gray-500 italic">
-                        No reviews recorded yet for this claim.
+                    <p className="font-medium">{log.action}</p>
+                    {log.reviewer && (
+                      <p className="text-gray-500">
+                        By {log.reviewer.name || log.reviewer.username} (
+                        {log.role || "member"})
                       </p>
                     )}
                   </div>
-                </section>
-              </div>
-            )
+                  <span className="text-gray-400">
+                    {new Date(log.created_at).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Error message -------------------------------------------- */}
+          {err && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1">
+              {err}
+            </p>
           )}
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+
+          {/* Actions -------------------------------------------------- */}
+          <div className="flex justify-between items-center pt-2">
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() => changeStatus("reviewed")}
+              >
+                Mark Reviewed
+              </Button>
+              <Button
+                variant="success"
+                disabled={busy}
+                onClick={() => changeStatus("approved")}
+              >
+                Approve
+              </Button>
+              <Button
+                variant="danger"
+                disabled={busy}
+                onClick={() => changeStatus("rejected")}
+              >
+                Reject
+              </Button>
+              <Button
+                variant="primary"
+                disabled={busy}
+                onClick={() => changeStatus("paid")}
+              >
+                Mark Paid
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/* ---------------------------------------------- */
+/* Small presentational helpers                   */
+/* ---------------------------------------------- */
+
+function SummaryBox({
+  label,
+  value,
+  emphasis,
+}: {
+  label: string;
+  value: number | string;
+  emphasis?: "fund" | "member" | "normal";
+}) {
+  const cls =
+    emphasis === "fund"
+      ? "text-green-700"
+      : emphasis === "member"
+      ? "text-red-700"
+      : "text-gray-900";
+
+  return (
+    <div className="border rounded bg-gray-50 p-3">
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className={`text-lg font-bold ${cls}`}>
+        Ksh {Number(value || 0).toLocaleString()}
+      </p>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between border rounded px-2 py-1 bg-gray-50">
+      <span className="text-gray-600 text-xs">{label}</span>
+      <span className="text-xs font-medium">{value || "—"}</span>
+    </div>
   );
 }

@@ -1,130 +1,87 @@
 // Frontend/src/pages/dashboard/committee/index.tsx
 import React, { useEffect, useState } from "react";
-import { listCommitteeClaims, setClaimStatus } from "~/server/services/claim.service";
-import Table from "~/components/controls/table";
-import Badge from "~/components/controls/badge";
-import Button from "~/components/controls/button";
-import ClaimDetailModal from "./ClaimDetailModal";
+import api from "~/config/api";
+import ClaimsTable from "./claims-table";
+import StatsCards from "./stats-cards";
 
-const statusColor = (s: string) => {
-  switch (s) {
-    case "submitted": return "warning";
-    case "reviewed": return "info";
-    case "approved": return "success";
-    case "rejected": return "danger";
-    case "paid": return "primary";
-    default: return "default";
-  }
+type MeResponse = {
+  id: number;
+  username: string;
+  email: string;
+  full_name: string;
+  role: string;            // "Member", "Committee", "Admin"
+  groups?: string[];       // ["Member", "Admin", "Committee"]
+  is_superuser?: boolean;
 };
 
 export default function CommitteeDashboard() {
-  const [rows, setRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({ status: "", type: "" });
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [me, setMe] = useState<MeResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [forbidden, setForbidden] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const data = await listCommitteeClaims({
-        status: filters.status || undefined,
-        type: filters.type || undefined,
-      });
-      setRows(data);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    api
+      .get("auth/me/")
+      .then((res) => {
+        const user = res.data as MeResponse;
+        setMe(user);
 
-  useEffect(() => { load(); }, [filters.status, filters.type]);
+        const groups = user.groups || [];
+        const isCommittee =
+          user.role === "Committee" ||
+          groups.includes("Committee") ||
+          groups.includes("Admin") ||
+          user.is_superuser;
 
-  const onSet = async (id: string, st: "reviewed"|"approved"|"rejected"|"paid") => {
-    await setClaimStatus(id, st);
-    await load();
-  };
+        if (!isCommittee) setForbidden(true);
+      })
+      .catch(() => {
+        setForbidden(true);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <div className="p-6">Loading…</div>;
+  }
+
+  if (forbidden || !me) {
+    return (
+      <div className="p-6 space-y-3">
+        <h2 className="text-xl font-semibold text-red-600">
+          Restricted – Committee Only
+        </h2>
+        <p className="text-sm text-gray-700">
+          This area is reserved for the{" "}
+          <strong>Medical Fund Committee / Admins</strong> to review and process
+          claims. Your account is currently in the{" "}
+          <strong>{me?.role || "Member"}</strong> role.
+        </p>
+        <p className="text-sm text-gray-600">
+          If you believe this is an error, please contact the SGSS Medical Fund
+          administrator.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 md:p-6">
-      {/* Filter Controls */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <select
-          className="border rounded px-2 py-1"
-          value={filters.status}
-          onChange={(e)=>setFilters(f=>({...f, status:e.target.value}))}
-        >
-          <option value="">All statuses</option>
-          <option value="submitted">Submitted</option>
-          <option value="reviewed">Reviewed</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-          <option value="paid">Paid</option>
-        </select>
-        <select
-          className="border rounded px-2 py-1"
-          value={filters.type}
-          onChange={(e)=>setFilters(f=>({...f, type:e.target.value}))}
-        >
-          <option value="">All types</option>
-          <option value="outpatient">Outpatient</option>
-          <option value="inpatient">Inpatient</option>
-          <option value="chronic">Chronic</option>
-        </select>
-        <Button onClick={load}>Refresh</Button>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold">
+          Medical Fund – Committee Claims
+        </h2>
+        <p className="text-sm text-gray-600">
+          Logged in as <strong>{me.full_name}</strong> (
+          <span className="font-mono">{me.email}</span>)
+        </p>
       </div>
 
-      {/* Table */}
-      <Table
-        loading={loading}
-        columns={[
-          { title: "Member", key: "member_name" },
-          { title: "Membership", key: "membership_type" },
-          { title: "Type", key: "claim_type" },
-          {
-            title: "Status",
-            key: "status",
-            render: (r:any)=> (
-              <Badge variant={statusColor(r.status)} className="capitalize">
-                {r.status}
-              </Badge>
-            )
-          },
-          {
-            title: "Claimed (Ksh)",
-            key: "total_claimed",
-            render: (r:any)=> Number(r.total_claimed).toLocaleString()
-          },
-          {
-            title: "Payable (Ksh)",
-            key: "total_payable",
-            render: (r:any)=> Number(r.total_payable).toLocaleString()
-          },
-          {
-            title: "Created",
-            key: "created_at",
-            render: (r:any)=> new Date(r.created_at).toLocaleDateString()
-          },
-          {
-            title: "Actions",
-            key: "actions",
-            render: (r:any)=> (
-              <div className="flex flex-wrap gap-1">
-                <Button size="sm" onClick={()=>setOpenId(r.id)}>Details</Button>
-                <Button size="sm" onClick={()=>onSet(r.id, "reviewed")}>Review</Button>
-                <Button size="sm" onClick={()=>onSet(r.id, "approved")}>Approve</Button>
-                <Button size="sm" onClick={()=>onSet(r.id, "rejected")}>Reject</Button>
-                <Button size="sm" onClick={()=>onSet(r.id, "paid")}>Mark Paid</Button>
-              </div>
-            )
-          }
-        ]}
-        data={rows}
-        rowKey="id"
-      />
+      {/* Top statistics for committee */}
+      <StatsCards />
 
-      {/* Modal */}
-      {openId && (
-        <ClaimDetailModal claimId={openId} onClose={() => setOpenId(null)} />
-      )}
+      {/* Main table of claims */}
+      <ClaimsTable />
     </div>
   );
 }

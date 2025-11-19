@@ -626,6 +626,23 @@ def set_claim_status(request, claim_id):
     return Response({"detail": f"Claim marked as {new_status}."})
 
 
+def notify(user, title, message, link=None, typ="system"):
+    Notification.objects.create(
+        recipient=user,
+        title=title,
+        message=message,
+        link=link,
+        type=typ
+    )
+
+
+@api_view(["POST"])
+def mark_notifications_read(request):
+    Notification.objects.filter(recipient=request.user, read=False)\
+        .update(read=True)
+    return Response({"ok": True})
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsCommittee])
 def committee_claim_detail(request, pk):

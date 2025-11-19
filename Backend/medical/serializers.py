@@ -3,6 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import datetime, date
+from djan.contrib.auth.models import Group
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview, AuditLog,
     Notification, ReimbursementScale, Setting, ChronicRequest, ClaimAttachment
@@ -149,6 +150,16 @@ class ClaimSerializer(serializers.ModelSerializer):
         validated_data["total_claimed"] = temp.total_claimed
         validated_data["total_payable"] = temp.total_payable
         validated_data["member_payable"] = temp.member_payable
+
+        committee_group = Group.objects.filter(name="Committee").first()
+        if committee_group:
+            for user in committee_group.user_set.all():
+                notify(
+                    user,
+                    "New Claim Submitted",
+                    f"A new {claim.claim_type} claim has been submitted by {member.user.get_full_name() or member.user.username}",
+                    link=f"/dashboard/committee/claims/{claim.id}/",
+                )
 
         return super().create(validated_data)
 

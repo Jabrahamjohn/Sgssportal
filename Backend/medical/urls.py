@@ -28,6 +28,9 @@ urlpatterns = [
     path("claims/committee/", views.committee_claims),
     path("claims/committee/<uuid:pk>/", views.committee_claim_detail),
 
+    path("notifications/mark-read/", views.mark_notifications_read),
+    
+
     # include router
     path("", include(router.urls)),
 ]

@@ -29,7 +29,10 @@ urlpatterns = [
     path("claims/committee/<uuid:pk>/", views.committee_claim_detail),
 
     path("notifications/mark-read/", views.mark_notifications_read),
-    
+    #path("notifications/mark-unread/", views.mark_notifications_unread),
+    path("claims/<uuid:claim_id>/upload_summary/", views.upload_summary_pdf),
+
+
 
     # include router
     path("", include(router.urls)),

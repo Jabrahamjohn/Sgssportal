@@ -84,6 +84,17 @@ class ClaimViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):    
         claim = serializer.save()
 
+
+        committee_group = Group.objects.filter(name="Committee").first()
+        if committee_group:
+            for user in committee_group.user_set.all():
+                notify(
+                    user,
+                    "New Claim Submitted",
+                    f"A new {claim.claim_type} claim has been submitted by {claim.member.user.get_full_name() or claim.member.user.username}",
+                    link=f"/dashboard/committee/claims/{claim.id}/",
+                )
+
         # ENFORCE: Byelaws require submitted claims to have a submission timestamp
         if claim.status == "submitted" and claim.submitted_at is None:
             claim.submitted_at = timezone.now()

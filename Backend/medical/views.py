@@ -745,3 +745,45 @@ def upload_summary_pdf(request, claim_id):
     )
     return Response({"detail": "PDF uploaded successfully."}, status=status.HTTP_201_CREATED)
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsCommittee])
+def export_claims_csv(request):
+    import csv
+    from django.http import HttpResponse
+
+    qs = Claim.objects.all().order_by("-created_at")
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="sgss_claims.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "ID", "Member", "Type", "Total Claimed",
+        "Total Payable", "Member Payable", "Status", "Created"
+    ])
+
+    for c in qs:
+        writer.writerow([
+            str(c.id),
+            c.member.user.get_full_name(),
+            c.claim_type,
+            c.total_claimed,
+            c.total_payable,
+            c.member_payable,
+            c.status,
+            c.created_at,
+        ])
+
+    return response
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsCommittee])
+def bulk_change_status(request):
+    ids = request.data.get("ids", [])
+    status_val = request.data.get("status")
+
+    if status_val not in dict(Claim.STATUS_CHOICES):
+        return Response({"detail": "Invalid status."}, status=400)
+
+    Claim.objects.filter(id__in=ids).update(status=status_val)
+    return Response({"detail": "Bulk update complete."})

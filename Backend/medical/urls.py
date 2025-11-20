@@ -32,6 +32,10 @@ urlpatterns = [
     #path("notifications/mark-unread/", views.mark_notifications_unread),
     path("claims/<uuid:claim_id>/upload_summary/", views.upload_summary_pdf),
 
+    path("reports/export/", views.export_claims_csv),
+    path("claims/bulk_status/", views.bulk_change_status),
+
+
 
 
     # include router

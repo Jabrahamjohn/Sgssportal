@@ -73,6 +73,7 @@ export default function NewClaim() {
   const [balance, setBalance] = useState<number | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const nav = useNavigate();
+  
 
   /* 🔹 Fetch remaining benefit balance from backend */
   useEffect(() => {
@@ -105,15 +106,37 @@ export default function NewClaim() {
       const claimId = res.data.id;
 
       // Upload attachments (if any)
-      for (const f of files) {
-        const fd = new FormData();
-        fd.append("file", f);
-        fd.append("claim", claimId); // REQUIRED
+      const [uploadProgress, setUploadProgress] = useState(0);
 
-        await api.post("claim-attachments/", fd, {
+      for (const f of files) {
+        const form = new FormData();
+        form.append("file", f);
+
+        await api.post(`claim-attachments/`, form, {
           headers: { "Content-Type": "multipart/form-data" },
+          params: { claim: claimId },
+          onUploadProgress: (e) => {
+            console.log("Progress:", Math.round((e.loaded * 100) / e.total));
+          },
         });
       }
+
+      onUploadProgress: (event) => {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percent);
+      }
+
+      {uploadProgress > 0 && uploadProgress < 100 && (
+        <div className="w-full bg-gray-100 rounded h-3">
+          <div
+            className="bg-purple-600 h-3 rounded"
+            style={{ width: `${uploadProgress}%` }}
+          />
+        </div>
+      )}
+
+
+
 
 
       nav("/dashboard/member/claims");

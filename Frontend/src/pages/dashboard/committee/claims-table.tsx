@@ -1,6 +1,8 @@
+// Frontend/src/pages/dashboard/committee/claims-table.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
 import { Link } from "react-router-dom";
+import { Button } from "~/components/controls/table/components";
 
 export default function ClaimsTable() {
   const [data, setData] = useState([]);
@@ -9,6 +11,20 @@ export default function ClaimsTable() {
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
   const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+
+  const toggle = (id: string) => {
+    setSelected((s) =>
+      s.includes(id) ? s.filter((x) => x !== id) : [...s, id]
+    );
+  };
+
+  async function bulkChange(status: string) {
+  await api.post("claims/bulk_status/", { ids: selected, status });
+  window.location.reload();
+  }
+
+
 
   const fetchData = () => {
     api
@@ -91,6 +107,13 @@ export default function ClaimsTable() {
           <tbody>
             {data.map((c) => (
               <tr key={c.id} className="border-t hover:bg-blue-50">
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(c.id)}
+                    onChange={() => toggle(c.id)}
+                  />
+                </td>
                 <td className="p-2">{c.member_name}</td>
                 <td className="p-2 capitalize">{c.claim_type}</td>
                 <td className="p-2">Ksh {Number(c.total_claimed).toLocaleString()}</td>
@@ -119,6 +142,23 @@ export default function ClaimsTable() {
             )}
           </tbody>
         </table>
+        <div className="flex gap-3 my-3">
+          <Button
+            onClick={() => bulkChange("approved")}
+            disabled={!selected.length}
+          >
+            Approve Selected
+          </Button>
+
+          <Button
+            variant="danger"
+            onClick={() => bulkChange("rejected")}
+            disabled={!selected.length}
+          >
+            Reject Selected
+          </Button>
+        </div>
+            
       </div>
     </div>
   );

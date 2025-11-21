@@ -472,22 +472,22 @@ def login_view(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
-    """Logs out the user and reissues CSRF cookie manually (CSRF bypass)."""
-    if request.method != "POST":
-        return JsonResponse({"detail": "Method not allowed"}, status=405)
-
+    """Logs out user and resets CSRF cookie properly."""
     logout(request)
+
+    # Generate a new CSRF token
     new_token = get_token(request)
+
     response = JsonResponse({"detail": "Logged out successfully."})
     response.set_cookie(
-        "csrftoken",
-        new_token,
-        get_token(request),
+        key="csrftoken",
+        value=new_token,
         httponly=False,
-        secure=False,
+        secure=False,   # change to True in production with HTTPS
         samesite="Lax",
     )
     return response
+
 
 
 # ============================================================

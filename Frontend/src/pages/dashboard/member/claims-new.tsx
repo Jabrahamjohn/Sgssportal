@@ -72,10 +72,9 @@ export default function NewClaim() {
   const [err, setErr] = useState("");
   const [balance, setBalance] = useState<number | null>(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const nav = useNavigate();
-  
 
-  /* 🔹 Fetch remaining benefit balance from backend */
   useEffect(() => {
     api
       .get("members/me/benefit_balance/")
@@ -91,53 +90,54 @@ export default function NewClaim() {
 
   const canSubmit = !overLimit && total > 0;
 
-  /* 🧾 Submit after confirmation */
   const handleSubmit = async () => {
     setBusy(true);
     setErr("");
+    setUploadProgress(null);
+
     try {
-      // NOTE: backend ClaimSerializer.create() expects claim_type + details + status
+      // create claim
       const res = await api.post("claims/", {
         claim_type: type,
         details: formData,
         status: "submitted",
       });
 
-      const claimId = res.data.id;
+      const claimId = res.data.id as string;
 
-      // Upload attachments (if any)
-      const [uploadProgress, setUploadProgress] = useState(0);
+      // upload attachments (if any)
+      if (files.length) {
+        for (const f of files) {
+          const form = new FormData();
+          form.append("file", f);
 
-      for (const f of files) {
-        const form = new FormData();
-        form.append("file", f);
+          await api.post("claim-attachments/", form, {
+            headers: { "Content-Type": "multipart/form-data" },
+            params: { claim: claimId },
+            onUploadProgress: (event) => {
+              if (!event.total) return;
+              const percent = Math.round((event.loaded / event.total) * 100);
+              setUploadProgress(percent);
+            },
+          });
+        }
+        setUploadProgress(null);
+      }
 
-        await api.post(`claim-attachments/`, form, {
-          headers: { "Content-Type": "multipart/form-data" },
-          params: { claim: claimId },
-          onUploadProgress: (e) => {
-            console.log("Progress:", Math.round((e.loaded * 100) / e.total));
-          },
+      // generate + upload PDF summary (best-effort)
+      try {
+        await generateClaimPDF({
+          type,
+          total,
+          fundShare,
+          memberShare,
+          limit,
+          formData,
+          claimId,
         });
+      } catch (e) {
+        console.warn("PDF generation failed", e);
       }
-
-      onUploadProgress: (event) => {
-        const percent = Math.round((event.loaded / event.total) * 100);
-        setUploadProgress(percent);
-      }
-
-      {uploadProgress > 0 && uploadProgress < 100 && (
-        <div className="w-full bg-gray-100 rounded h-3">
-          <div
-            className="bg-purple-600 h-3 rounded"
-            style={{ width: `${uploadProgress}%` }}
-          />
-        </div>
-      )}
-
-
-
-
 
       nav("/dashboard/member/claims");
     } catch (e: any) {
@@ -164,7 +164,6 @@ export default function NewClaim() {
     <div className="p-6 space-y-6">
       <h2 className="text-2xl font-semibold">New Claim</h2>
 
-      {/* Remaining Balance */}
       {balance !== null && (
         <Alert
           type="info"
@@ -198,6 +197,15 @@ export default function NewClaim() {
           multiple
           onChange={(e) => setFiles(Array.from(e.target.files || []))}
         />
+
+        {uploadProgress !== null && uploadProgress < 100 && (
+          <div className="mt-3 w-full bg-gray-100 rounded h-2">
+            <div
+              className="bg-purple-600 h-2 rounded"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        )}
       </div>
 
       {overLimit && (
@@ -217,7 +225,6 @@ export default function NewClaim() {
         </Button>
       </div>
 
-      {/* 🔍 Summary Modal */}
       {showSummary && (
         <Modal
           open
@@ -231,7 +238,7 @@ export default function NewClaim() {
               <strong>SGSS Medical Fund Byelaws (2024)</strong>.
             </p>
 
-            <div className="border rounded p-3 bg-gray-50">
+            <div className="border rounded p-3 bg-gray-50 text-sm space-y-1">
               <p>
                 <strong>Claim Type:</strong> {type}
               </p>
@@ -278,6 +285,7 @@ export default function NewClaim() {
     </div>
   );
 }
+
 
 /* ---------------------------------------------------------------------- */
 /* 🧮 Computation Helper                                                   */

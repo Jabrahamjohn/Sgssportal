@@ -1,57 +1,49 @@
 // Frontend/src/pages/dashboard/committee/claims-table.tsx
 import React, { useEffect, useState } from "react";
-import api from "~/config/api";
-import { Link } from "react-router-dom";
-import { Button } from "~/components/controls/table/components";
+import Badge from "~/components/controls/badge";
+import { listCommitteeClaims, type CommitteeClaimRow } from "~/server/services/claim.service";
+import ClaimDetailModal from "./ClaimDetailModal";
 
 export default function ClaimsTable() {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<CommitteeClaimRow[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
-
-  const toggle = (id: string) => {
-    setSelected((s) =>
-      s.includes(id) ? s.filter((x) => x !== id) : [...s, id]
-    );
-  };
-
-  async function bulkChange(status: string) {
-  await api.post("claims/bulk_status/", { ids: selected, status });
-  window.location.reload();
-  }
-
-
-
-  const fetchData = () => {
-    api
-      .get("claims/committee/", {
-        params: {
-          status: status || undefined,
-          type: type || undefined,
-          q: query || undefined,
-        },
-      })
-      .then((res) => setData(res.data.results))
-      .finally(() => setLoading(false));
-  };
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchData();
+    setLoading(true);
+    listCommitteeClaims({ status, type, q: query })
+      .then((rows) => setData(rows))
+      .finally(() => setLoading(false));
   }, [status, type, query]);
 
-  if (loading) return <div className="p-4">Loading…</div>;
+  const statusColor = (s: string) => {
+    switch (s) {
+      case "approved":
+        return "success";
+      case "rejected":
+        return "danger";
+      case "paid":
+        return "primary";
+      case "reviewed":
+        return "info";
+      default:
+        return "warning";
+    }
+  };
+
+  if (loading) {
+    return <div className="p-4">Loading…</div>;
+  }
 
   return (
-    <div className="space-y-6">
-
-      {/* FILTER BAR */}
-      <div className="grid grid-cols-3 gap-3">
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="grid gap-3 md:grid-cols-3 mb-2">
         <select
-          className="border p-2"
+          className="border p-2 rounded"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
         >
@@ -64,7 +56,7 @@ export default function ClaimsTable() {
         </select>
 
         <select
-          className="border p-2"
+          className="border p-2 rounded"
           value={type}
           onChange={(e) => setType(e.target.value)}
         >
@@ -75,91 +67,80 @@ export default function ClaimsTable() {
         </select>
 
         <input
-          className="border p-2"
-          placeholder="Search member or claim ID…"
+          className="border p-2 rounded"
+          placeholder="Search member name / username / NHIF…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
 
-      {/* SUMMARY BAR */}
-      <div className="flex gap-6 p-3 bg-gray-100 rounded text-sm">
-        <div>Total: {data.length}</div>
+      {/* Stats row */}
+      <div className="flex flex-wrap gap-4 p-3 bg-gray-100 rounded text-sm">
+        <div>Total Claims: {data.length}</div>
         <div>Approved: {data.filter((x) => x.status === "approved").length}</div>
-        <div>Pending: {data.filter((x) => x.status === "submitted").length}</div>
+        <div>Submitted: {data.filter((x) => x.status === "submitted").length}</div>
         <div>Paid: {data.filter((x) => x.status === "paid").length}</div>
       </div>
 
-      {/* TABLE */}
+      {/* Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-[900px] w-full border rounded">
+        <table className="min-w-[800px] w-full border rounded bg-white">
           <thead className="bg-gray-50">
             <tr>
               <th className="p-2 text-left">Member</th>
               <th className="p-2 text-left">Type</th>
-              <th className="p-2 text-left">Total</th>
-              <th className="p-2 text-left">Payable</th>
+              <th className="p-2 text-left">Total Claimed</th>
+              <th className="p-2 text-left">Fund Payable</th>
+              <th className="p-2 text-left">Member Share</th>
               <th className="p-2 text-left">Status</th>
               <th className="p-2 text-left">Created</th>
-              <th className="p-2 text-left">Action</th>
             </tr>
           </thead>
           <tbody>
             {data.map((c) => (
-              <tr key={c.id} className="border-t hover:bg-blue-50">
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(c.id)}
-                    onChange={() => toggle(c.id)}
-                  />
+              <tr
+                key={c.id}
+                className="border-t hover:bg-blue-50 cursor-pointer"
+                onClick={() => setSelectedId(c.id)}
+              >
+                <td className="p-2">
+                  {c.member_name}
+                  {c.membership_type && (
+                    <span className="ml-1 text-xs text-gray-500">
+                      ({c.membership_type})
+                    </span>
+                  )}
                 </td>
-                <td className="p-2">{c.member_name}</td>
                 <td className="p-2 capitalize">{c.claim_type}</td>
                 <td className="p-2">Ksh {Number(c.total_claimed).toLocaleString()}</td>
                 <td className="p-2">Ksh {Number(c.total_payable).toLocaleString()}</td>
-                <td className="p-2">{c.status}</td>
+                <td className="p-2">Ksh {Number(c.member_payable).toLocaleString()}</td>
+                <td className="p-2">
+                  <Badge variant={statusColor(c.status)}>{c.status}</Badge>
+                </td>
                 <td className="p-2">
                   {new Date(c.created_at).toLocaleDateString()}
                 </td>
-                <td className="p-2">
-                  <Link
-                    to={`/dashboard/committee/claims/${c.id}`}
-                    className="text-blue-600 hover:underline"
-                  >
-                    View
-                  </Link>
-                </td>
               </tr>
             ))}
-
             {!data.length && (
               <tr>
-                <td colSpan={7} className="p-4 text-center text-gray-500">
-                  No claims match your filters
+                <td className="p-3 text-gray-500" colSpan={7}>
+                  No claims found.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-        <div className="flex gap-3 my-3">
-          <Button
-            onClick={() => bulkChange("approved")}
-            disabled={!selected.length}
-          >
-            Approve Selected
-          </Button>
-
-          <Button
-            variant="danger"
-            onClick={() => bulkChange("rejected")}
-            disabled={!selected.length}
-          >
-            Reject Selected
-          </Button>
-        </div>
-            
       </div>
+
+      {/* Detail modal */}
+      {selectedId && (
+        <ClaimDetailModal
+          claimId={selectedId}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
     </div>
   );
 }

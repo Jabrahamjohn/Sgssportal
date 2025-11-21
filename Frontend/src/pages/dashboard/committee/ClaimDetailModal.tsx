@@ -4,7 +4,7 @@ import Modal from "~/components/controls/modal";
 import Badge from "~/components/controls/badge";
 import Button from "~/components/controls/button";
 import {
-  getCommitteeClaimDetail,
+  getClaimDetail,
   getClaimAudit,
   setClaimStatus,
 } from "~/server/services/claim.service";

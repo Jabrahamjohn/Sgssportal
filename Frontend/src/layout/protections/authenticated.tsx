@@ -1,49 +1,50 @@
 // Frontend/src/layout/protections/authenticated.tsx
-import React, { useEffect } from "react";
+import React from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "~/store/contexts/AuthContext";
-import Dynamic from "~/utils/components/dynamic";
-import SplashScreen from "~/utils/components/splash-screen";
-import Spin from "~/components/controls/spin";
 
 interface Props {
   children: React.ReactNode;
-  allowed?: string[];
+  allowed?: string[]; // e.g. ["member", "committee", "admin"]
 }
 
-const Authenticated: React.FC<Props> = ({ children, allowed }) => {
+export default function Authenticated({ children, allowed }: Props) {
   const { auth, loading } = useAuth();
 
-  // 🧠 Persist user in localStorage
-  useEffect(() => {
-    if (auth?.user && auth?.isAuthenticated) {
-      localStorage.setItem("user", JSON.stringify(auth.user));
-    }
-  }, [auth.user, auth.isAuthenticated]);
+  if (loading) return <div className="p-6">Loading…</div>;
 
-  // ⏳ Show spinner while restoring session
-  if (loading) return <Spin fullscreen />;
-
-  // ❌ Not logged in → render Login dynamically
-  if (!auth?.isAuthenticated) {
-    return (
-      <Dynamic
-        fallback={<SplashScreen />}
-        component={React.lazy(() => import("~/containers/auth/login"))}
-      />
-    );
+  if (!auth.isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
-  // 🔒 Access denied → show simple notice
-  if (allowed && !allowed.includes(auth.role || "member")) {
+  const groups = auth.groups || [];
+  const isSuper = auth.user?.is_superuser;
+
+  // If no allowed roles specified → any logged-in user is allowed
+  if (!allowed || allowed.length === 0) {
+    return <>{children}</>;
+  }
+
+  const allowedLower = allowed.map((r) => r.toLowerCase());
+
+  const hasAccess =
+    !!isSuper ||
+    groups.some((g) => allowedLower.includes(g.toLowerCase()));
+
+  if (!hasAccess) {
     return (
-      <div className="flex items-center justify-center h-screen text-gray-500">
-        You don’t have access to this section.
+      <div className="p-6 text-center">
+        <h2 className="text-2xl font-semibold text-red-600">
+          You don’t have access to this section.
+        </h2>
+        <p className="mt-2 text-gray-700">
+          Required role: {allowed.join(", ")}
+          <br />
+          Your roles: {groups.join(", ") || "none"}
+        </p>
       </div>
     );
   }
 
-  // ✅ Just render children (no extra layout wrapper)
   return <>{children}</>;
-};
-
-export default Authenticated;
+}

@@ -15,7 +15,8 @@ interface User {
 interface AuthState {
   isAuthenticated: boolean;
   user?: User;
-  role?: string;
+  role?: string;       // "member" | "committee" | "admin"
+  groups?: string[];   // lowercased group names
 }
 
 interface AuthContextType {
@@ -29,56 +30,64 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [auth, setAuth] = useState<AuthState>({ isAuthenticated: false });
+  const [auth, setAuth] = useState<AuthState>({
+    isAuthenticated: false,
+    groups: [],
+  });
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Fetch user on startup to restore session
+  // 🔄 Restore session on first load
   useEffect(() => {
     refreshUser();
   }, []);
 
-  // 🔹 Login
+  // ✅ Login
   const login = async (username: string, password: string) => {
-  try {
-    // ✅ always get CSRF token before POST
-    await api.get("auth/csrf/");
-    await api.post("auth/login/", { username, password });
-    await refreshUser();
-  } catch (err: any) {
-    console.error("Login failed:", err.response?.data || err);
-    throw err;
-  }
-};
+    try {
+      // Always fetch CSRF before POSTing
+      await api.get("auth/csrf/");
+      await api.post("auth/login/", { username, password });
 
+      await refreshUser();
+    } catch (err: any) {
+      console.error("Login failed:", err.response?.data || err);
+      throw err;
+    }
+  };
 
-  // 🔹 Logout
+  // ✅ Logout
   const logout = async () => {
-  try {
-    await api.post("auth/logout/");  // backend sends Set-Cookie header
-    console.log("✅ Logged out successfully");
-  } catch (err) {
-    console.warn("Logout failed:", err);
-  } finally {
-    // Pull the new CSRF token immediately, guaranteeing sync
-    await api.get("auth/csrf/");
-    setAuth({ isAuthenticated: false });
-  }
-};
+    try {
+      await api.post("auth/logout/");
+      console.log("✅ Logged out successfully");
+    } catch (err) {
+      console.warn("Logout failed:", err);
+    } finally {
+      // pull a fresh CSRF token & clear state
+      try {
+        await api.get("auth/csrf/");
+      } catch {}
+      setAuth({ isAuthenticated: false, groups: [] });
+    }
+  };
 
-
-
-  // 🔹 Refresh user (called after login and on mount)
+  // ✅ Refresh current user from backend
   const refreshUser = async () => {
     try {
       const res = await api.get("auth/me/");
-      const user = res.data;
+      const user: User = res.data;
+
+      const groupsLower = (user.groups || []).map((g: string) => g.toLowerCase());
+      const roleLower = (user.role || groupsLower[0] || "member").toLowerCase();
+
       setAuth({
         isAuthenticated: true,
         user,
-        role: user.role || "member",
+        role: roleLower,
+        groups: groupsLower,
       });
     } catch {
-      setAuth({ isAuthenticated: false });
+      setAuth({ isAuthenticated: false, groups: [] });
     } finally {
       setLoading(false);
     }

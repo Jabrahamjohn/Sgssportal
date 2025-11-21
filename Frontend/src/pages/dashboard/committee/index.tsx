@@ -1,87 +1,71 @@
-// Frontend/src/pages/dashboard/committee/index.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
-import ClaimsTable from "./claims-table";
-import StatsCards from "./stats-cards";
-
-type MeResponse = {
-  id: number;
-  username: string;
-  email: string;
-  full_name: string;
-  role: string;            // "Member", "Committee", "Admin"
-  groups?: string[];       // ["Member", "Admin", "Committee"]
-  is_superuser?: boolean;
-};
 
 export default function CommitteeDashboard() {
-  const [me, setMe] = useState<MeResponse | null>(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    submitted: 0,
+    reviewed: 0,
+    approved: 0,
+    rejected: 0,
+    paid: 0,
+  });
   const [loading, setLoading] = useState(true);
-  const [forbidden, setForbidden] = useState(false);
 
   useEffect(() => {
-    api
-      .get("auth/me/")
-      .then((res) => {
-        const user = res.data as MeResponse;
-        setMe(user);
+    async function load() {
+      try {
+        const res = await api.get("committee/claims/");
+        const list = res.data?.results || [];
 
-        const groups = user.groups || [];
-        const isCommittee =
-          user.role === "Committee" ||
-          groups.includes("Committee") ||
-          groups.includes("Admin") ||
-          user.is_superuser;
-
-        if (!isCommittee) setForbidden(true);
-      })
-      .catch(() => {
-        setForbidden(true);
-      })
-      .finally(() => setLoading(false));
+        setStats({
+          total: list.length,
+          submitted: list.filter(c => c.status === "submitted").length,
+          reviewed: list.filter(c => c.status === "reviewed").length,
+          approved: list.filter(c => c.status === "approved").length,
+          rejected: list.filter(c => c.status === "rejected").length,
+          paid: list.filter(c => c.status === "paid").length,
+        });
+      } catch (_) {}
+      setLoading(false);
+    }
+    load();
   }, []);
 
-  if (loading) {
-    return <div className="p-6">Loading…</div>;
-  }
-
-  if (forbidden || !me) {
-    return (
-      <div className="p-6 space-y-3">
-        <h2 className="text-xl font-semibold text-red-600">
-          Restricted – Committee Only
-        </h2>
-        <p className="text-sm text-gray-700">
-          This area is reserved for the{" "}
-          <strong>Medical Fund Committee / Admins</strong> to review and process
-          claims. Your account is currently in the{" "}
-          <strong>{me?.role || "Member"}</strong> role.
-        </p>
-        <p className="text-sm text-gray-600">
-          If you believe this is an error, please contact the SGSS Medical Fund
-          administrator.
-        </p>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-6">Loading...</div>;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">
-          Medical Fund – Committee Claims
-        </h2>
-        <p className="text-sm text-gray-600">
-          Logged in as <strong>{me.full_name}</strong> (
-          <span className="font-mono">{me.email}</span>)
-        </p>
+    <div className="space-y-6">
+      <h2 className="text-3xl font-semibold text-[#03045f]">
+        Committee Dashboard
+      </h2>
+
+      <div className="grid md:grid-cols-3 gap-6">
+        <DashboardCard title="Total Claims" value={stats.total} color="blue" />
+        <DashboardCard title="Submitted" value={stats.submitted} color="gray" />
+        <DashboardCard title="Reviewed" value={stats.reviewed} color="purple" />
+        <DashboardCard title="Approved" value={stats.approved} color="green" />
+        <DashboardCard title="Rejected" value={stats.rejected} color="red" />
+        <DashboardCard title="Paid" value={stats.paid} color="gold" />
       </div>
+    </div>
+  );
+}
 
-      {/* Top statistics for committee */}
-      <StatsCards />
+function DashboardCard({ title, value, color }: any) {
+  const colors: any = {
+    blue: "bg-[#03045f] text-white",
+    gold: "bg-[#caa631] text-white",
+    green: "bg-green-600 text-white",
+    red: "bg-red-600 text-white",
+    gray: "bg-gray-600 text-white",
+    purple: "bg-purple-600 text-white",
+  };
 
-      {/* Main table of claims */}
-      <ClaimsTable />
+  return (
+    <div className={`p-5 rounded-lg shadow ${colors[color]}`}>
+      <p className="text-sm opacity-80">{title}</p>
+      <p className="text-2xl font-bold mt-1">{value}</p>
     </div>
   );
 }

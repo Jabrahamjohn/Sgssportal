@@ -1,191 +1,120 @@
-// frontend/src/pages/dashboard/member/index.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
-import { useAuth } from "~/store/contexts/AuthContext";
-import Card from "~/components/controls/card";
-import Badge from "~/components/controls/badge";
-import Button from "~/components/controls/button";
-import Table  from "~/components/controls/table";
-import { PlusCircle, FileText, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 
+interface Claim {
+  id: string;
+  claim_type: string;
+  status: string;
+  total_claimed: string;
+  total_payable: string;
+  created_at: string;
+}
+
 export default function MemberDashboard() {
-  const { auth } = useAuth();
-  const [member, setMember] = useState<any>(null);
-  const [claims, setClaims] = useState<any[]>([]);
+  const [balance, setBalance] = useState<any>(null);
+  const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchData() {
+    async function load() {
       try {
-        const [memberRes, claimsRes] = await Promise.all([
-          api.get("/members/me/"),
-          api.get("/claims/"),
+        const [balRes, claimsRes] = await Promise.all([
+          api.get("members/me/benefit_balance/"),
+          api.get("claims/"),
         ]);
-        setMember(memberRes.data);
-        setClaims(claimsRes.data.results || claimsRes.data);
-      } catch (err) {
-        console.error("Failed to load member dashboard:", err);
+        setBalance(balRes.data);
+        setClaims(claimsRes.data);
+      } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
     }
-    fetchData();
+    load();
   }, []);
 
-  if (loading)
-    return (
-      <div className="flex items-center justify-center h-[70vh] text-gray-500">
-        Loading dashboard...
-      </div>
-    );
+  if (loading) return <div>Loading…</div>;
+
+  const recent = claims.slice(0, 5);
 
   return (
     <div className="space-y-6">
-      {/* Header Greeting */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">
-          Welcome back, {auth.user?.full_name || "Member"} 👋
-        </h1>
-        <p className="text-gray-500 text-sm">
-          Here’s an overview of your medical fund usage and claims.
-        </p>
-      </div>
+      <h2 className="text-3xl font-semibold text-[#03045f]">Member Dashboard</h2>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <Card>
-          <div className="p-4">
-            <h3 className="text-gray-500 text-sm">Membership Type</h3>
-            <p className="text-lg font-semibold text-gray-800 mt-1">
-              {member?.membership_type || "N/A"}
-            </p>
-            <Badge color="blue" className="mt-2">
-              Active
-            </Badge>
-          </div>
-        </Card>
+      {/* Benefit summary */}
+      {balance && (
+        <div className="grid md:grid-cols-3 gap-4">
+          <Card title="Annual Limit" value={`Ksh ${Number(balance.annual_limit).toLocaleString()}`} />
+          <Card title="Used So Far" value={`Ksh ${Number(balance.total_used).toLocaleString()}`} />
+          <Card title="Remaining Balance" value={`Ksh ${Number(balance.remaining_balance).toLocaleString()}`} highlight />
+        </div>
+      )}
 
-        <Card>
-          <div className="p-4">
-            <h3 className="text-gray-500 text-sm">NHIF Number</h3>
-            <p className="text-lg font-semibold text-gray-800 mt-1">
-              {member?.nhif_number || "—"}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">Linked</p>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="p-4">
-            <h3 className="text-gray-500 text-sm">Valid Until</h3>
-            <p className="text-lg font-semibold text-gray-800 mt-1">
-              {member?.valid_to || "N/A"}
-            </p>
-            <Badge color="green" className="mt-2">
-              Active Coverage
-            </Badge>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="p-4">
-            <h3 className="text-gray-500 text-sm">Total Claims</h3>
-            <p className="text-lg font-semibold text-gray-800 mt-1">
-              {claims.length}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">This Year</p>
-          </div>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-4">
-        <Link to="/dashboard/member/claims/new">
-          <Button className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2">
-            <PlusCircle className="w-4 h-4" />
-            New Claim
-          </Button>
-        </Link>
-
-        <Link to="/dashboard/member/chronic">
-          <Button className="bg-green-600 text-white hover:bg-green-700 flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Chronic Request
-          </Button>
-        </Link>
-      </div>
-
-      {/* Recent Claims Table */}
-      <Card>
-        <div className="p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">
-              Recent Claims
-            </h3>
-            <Link
-              to="/dashboard/member/claims"
-              className="text-blue-600 text-sm hover:underline"
-            >
-              View All
+      {/* Recent claims */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-[#03045f]">Recent Claims</h3>
+          <Link to="/dashboard/member/claims" className="text-sm text-[#caa631] hover:underline">
+            View all →
+          </Link>
+        </div>
+        {recent.length === 0 ? (
+          <p className="text-sm text-gray-600">
+            You haven’t submitted any claims yet.{" "}
+            <Link to="/dashboard/member/claims/new" className="text-[#caa631] underline">
+              Submit your first claim
             </Link>
-          </div>
-
+            .
+          </p>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-t">
-              <thead>
-                <tr className="text-gray-500 bg-gray-50 border-b text-left">
-                  <th className="px-4 py-2">Type</th>
-                  <th className="px-4 py-2">Status</th>
-                  <th className="px-4 py-2">Total Claimed</th>
-                  <th className="px-4 py-2">Date</th>
+            <table className="min-w-[600px] w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left p-2">ID</th>
+                  <th className="text-left p-2">Type</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Total Claimed</th>
+                  <th className="text-left p-2">Payable</th>
+                  <th className="text-left p-2">Created</th>
                 </tr>
               </thead>
               <tbody>
-                {claims.slice(0, 5).map((claim) => (
-                  <tr
-                    key={claim.id}
-                    className="border-b hover:bg-gray-50 transition"
-                  >
-                    <td className="px-4 py-2 capitalize">
-                      {claim.claim_type || "—"}
+                {recent.map((c) => (
+                  <tr key={c.id} className="border-t">
+                    <td className="p-2">{c.id.slice(0, 8)}…</td>
+                    <td className="p-2 capitalize">{c.claim_type}</td>
+                    <td className="p-2">{c.status}</td>
+                    <td className="p-2">
+                      Ksh {Number(c.total_claimed).toLocaleString()}
                     </td>
-                    <td className="px-4 py-2">
-                      <Badge
-                        color={
-                          claim.status === "approved"
-                            ? "green"
-                            : claim.status === "rejected"
-                            ? "red"
-                            : "blue"
-                        }
-                      >
-                        {claim.status}
-                      </Badge>
+                    <td className="p-2">
+                      Ksh {Number(c.total_payable).toLocaleString()}
                     </td>
-                    <td className="px-4 py-2">
-                      Ksh {claim.total_claimed || 0}
-                    </td>
-                    <td className="px-4 py-2">
-                      {new Date(claim.created_at).toLocaleDateString()}
+                    <td className="p-2">
+                      {new Date(c.created_at).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}
-                {claims.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="text-center text-gray-500 py-6 italic"
-                    >
-                      No claims found.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
-        </div>
-      </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Card({ title, value, highlight = false }: { title: string; value: string; highlight?: boolean }) {
+  return (
+    <div
+      className={`p-4 rounded-lg shadow text-sm ${
+        highlight ? "bg-[#caa631] text-white" : "bg-white"
+      }`}
+    >
+      <p className="uppercase text-xs opacity-80">{title}</p>
+      <p className="text-xl font-semibold mt-1">{value}</p>
     </div>
   );
 }

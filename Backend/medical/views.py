@@ -336,16 +336,33 @@ class ReportViewSet(viewsets.ViewSet):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me(request):
+    """Return info about the logged-in user to frontend"""
     user = request.user
-    groups = list(user.groups.values_list("name", flat=True))
+    try:
+        groups = list(user.groups.values_list("name", flat=True))
+    except Exception:
+        groups = []
+
+    # Normalize to lowercase
+    groups_normalized = [g.lower() for g in groups]
+
+    # Determine primary role
+    if user.is_superuser:
+        role = "admin"
+    elif "committee" in groups_normalized:
+        role = "committee"
+    elif "member" in groups_normalized:
+        role = "member"
+    else:
+        role = "member"   # fallback
 
     return Response({
         "id": user.id,
         "username": user.username,
         "email": user.email,
         "full_name": f"{user.first_name} {user.last_name}".strip() or user.username,
-        "groups": groups,
-        "role": groups[0] if groups else "Member",
+        "role": role,
+        "groups": groups_normalized,
         "is_superuser": user.is_superuser,
     })
 

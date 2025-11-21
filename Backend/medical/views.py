@@ -415,7 +415,11 @@ def benefit_balance(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login_view(request):
-    """JSON-based login endpoint for frontend."""
+    """
+    Secure login using Django session auth.
+    Supports username or email.
+    Auto-generates member profile if missing.
+    """
     username = request.data.get("username")
     password = request.data.get("password")
 
@@ -425,13 +429,7 @@ def login_view(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    from django.contrib.auth import authenticate, get_user_model
-    from django.utils import timezone
-    from medical.models import MembershipType, Member
-
-    User = get_user_model()
-
-    # ✅ Try both username and email
+    # Support email login
     user = authenticate(request, username=username, password=password)
     if user is None:
         try:
@@ -440,34 +438,42 @@ def login_view(request):
         except User.DoesNotExist:
             user = None
 
-    if user is not None:
-        # ✅ Log the user in
-        login(request, user)
-
-        # ✅ Auto-create Member profile if missing
-        member, created = Member.objects.get_or_create(
-            user=user,
-            defaults={
-                "membership_type": MembershipType.objects.first(),  # fallback to first type
-                "nhif_number": "PENDING",
-                "valid_from": timezone.now().date(),
-                "valid_to": timezone.now().date() + timezone.timedelta(days=365),
-            },
+    if user is None:
+        return Response(
+            {"detail": "Invalid username or password."},
+            status=status.HTTP_401_UNAUTHORIZED,
         )
 
-        if created:
-            print(f"🟢 Auto-created Member profile for {user.username}")
+    # Log user in (session)
+    login(request, user)
 
-        return Response({"detail": "Login successful."}, status=status.HTTP_200_OK)
-        response = Response({"detail": "Login successful."})
-        response.set_cookie("csrftoken", get_token(request), httponly=False, samesite="Lax")
-        return response
+    # Ensure Member record exists
+    member_group, _ = Group.objects.get_or_create(name="Member")
+    if not user.groups.exists():
+        user.groups.add(member_group)
 
-    # ❌ Invalid credentials
-    return Response(
-        {"detail": "Invalid username or password."},
-        status=status.HTTP_401_UNAUTHORIZED,
+    Member.objects.get_or_create(
+        user=user,
+        defaults={
+            "membership_type": MembershipType.objects.first(),
+            "nhif_number": "PENDING",
+            "valid_from": timezone.now().date(),
+            "valid_to": timezone.now().date() + timezone.timedelta(days=365),
+        },
     )
+
+    # Issue fresh csrf cookie
+    csrf_token = get_token(request)
+    response = Response({"detail": "Login successful."})
+    response.set_cookie(
+        "csrftoken",
+        csrf_token,
+        httponly=False,
+        secure=False,
+        samesite="Lax",
+    )
+    return response
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -494,26 +500,12 @@ def logout_view(request):
 #                CSRF TOKEN ISSUER
 # ============================================================
 
-
+@api_view(["GET"])
+@permission_classes([AllowAny])
 @ensure_csrf_cookie
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def get_csrf_token(request):
-    return JsonResponse({'csrfToken': 'set'})
-
-@api_view(["GET"])
-@permission_classes([AllowAny])
 def csrf_cookie(request):
-    token = get_token(request)
-    response = Response({"csrfToken": token})
-    response.set_cookie(
-        key="csrftoken",
-        value=token,
-        httponly=False,
-        secure=False,
-        samesite="Lax",
-    )
-    return response
+    """Ensures browser has a valid CSRF cookie."""
+    return JsonResponse({"detail": "CSRF cookie set"})
 
 # ============================================================
 #                USER REGISTRATION

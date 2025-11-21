@@ -27,7 +27,7 @@ urlpatterns = [
     path("api/auth/logout/", medical_views.logout_view),
     path("api/auth/me/", medical_views.me),
     path("api/auth/csrf/", medical_views.csrf_cookie),
-    path("api/auth/get-csrf-token/", medical_views.get_csrf_token),
+    
 
     # --- MEDICAL API ROOT ---
     path("api/", include("medical.urls")),

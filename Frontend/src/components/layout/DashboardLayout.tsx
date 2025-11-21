@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import api from "~/config/api";
 import { Link } from "react-router-dom";
 import NotificationBell from "../notifications/NotificationBell";
+import LogoutButton from "../layout/LogoutButton";
 
 type Me = {
   id: number;
@@ -118,13 +119,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="flex items-center gap-4">
             <NotificationBell />
-            <button
-              onClick={handleLogout}
-              className="px-3 py-1 text-sm rounded bg-gray-900 text-white hover:bg-gray-700"
-            >
-              Logout
-            </button>
+            <LogoutButton />
           </div>
+
         </header>
 
         {/* MAIN CONTENT */}

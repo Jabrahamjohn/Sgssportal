@@ -333,26 +333,22 @@ class ReportViewSet(viewsets.ViewSet):
 #                USER & MEMBER INFO
 # ============================================================
 
-@ensure_csrf_cookie
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me(request):
-    """Return info about the logged-in user"""
     user = request.user
-    try:
-        groups = list(user.groups.values_list("name", flat=True))
-    except Exception:
-        groups = []
+    groups = list(user.groups.values_list("name", flat=True))
 
     return Response({
         "id": user.id,
         "username": user.username,
         "email": user.email,
         "full_name": f"{user.first_name} {user.last_name}".strip() or user.username,
-        "role": groups[0] if groups else "member",
         "groups": groups,
+        "role": groups[0] if groups else "Member",
         "is_superuser": user.is_superuser,
     })
+
 
 
 @api_view(["GET"])

@@ -1,3 +1,4 @@
+// Frontend/src/pages/dashboard/committee/claim-detail.tsx
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "~/config/api";
@@ -70,26 +71,43 @@ export default function CommitteeClaimDetailPage() {
 
         {attachments.length === 0 && <p>No attachments.</p>}
 
-        {attachments.map((a) => (
-          <div key={a.id} className="border-b py-2 flex justify-between">
-            <div>
-              <p><strong>{a.content_type}</strong></p>
-              <p className="text-xs text-gray-600">
-                Uploaded: {new Date(a.uploaded_at).toLocaleString()}
-              </p>
-            </div>
+        {attachments.map((a: any) => {
+          const label = a.label
+            ? a.label
+            : a.is_summary
+            ? "Claim Summary PDF"
+            : "Attachment";
 
-            <a
-              href={a.file}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
+          return (
+            <div
+              key={a.id}
+              className="border-b py-2 flex justify-between items-center last:border-b-0"
             >
-              View
-            </a>
-          </div>
-        ))}
+              <div>
+                <p className="font-medium text-sm">{label}</p>
+                <p className="text-xs text-gray-600">
+                  Type: {a.content_type || "N/A"}
+                </p>
+                {a.uploaded_at && (
+                  <p className="text-xs text-gray-500">
+                    Uploaded: {new Date(a.uploaded_at).toLocaleString()}
+                  </p>
+                )}
+              </div>
+
+              <a
+                href={a.file}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#03045f] font-semibold hover:text-[#caa631]"
+              >
+                View
+              </a>
+            </div>
+          );
+        })}
       </div>
+
     </div>
   );
 }

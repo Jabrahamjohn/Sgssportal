@@ -60,11 +60,45 @@ class ClaimReviewSerializer(serializers.ModelSerializer):
 
 class ClaimAttachmentSerializer(serializers.ModelSerializer):
     uploaded_by_email = serializers.EmailField(source="uploaded_by.email", read_only=True)
+    label = serializers.SerializerMethodField()
+    is_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = ClaimAttachment
-        fields = ["id", "claim", "uploaded_by", "uploaded_by_email", "file", "content_type", "uploaded_at"]
-        read_only_fields = ["id", "uploaded_at", "uploaded_by_email"]
+        fields = [
+            "id",
+            "claim",
+            "uploaded_by",
+            "uploaded_by_email",
+            "file",
+            "content_type",
+            "uploaded_at",
+            "label",
+            "is_summary",
+        ]
+        read_only_fields = ["id", "uploaded_at", "uploaded_by_email", "label", "is_summary"]
+
+    def _file_name(self, obj):
+        try:
+            return (getattr(obj.file, "name", "") or "").lower()
+        except Exception:
+            return ""
+
+    def get_is_summary(self, obj):
+        name = self._file_name(obj)
+        # any filename that looks like the auto-generated summary pdf
+        return "summary" in name or "claim_summary" in name
+
+    def get_label(self, obj):
+        if self.get_is_summary(obj):
+            return "Claim Summary PDF"
+        # fallback: use content type for human-friendly label
+        ct = (obj.content_type or "").lower()
+        if "pdf" in ct:
+            return "Supporting Document (PDF)"
+        if "image" in ct:
+            return "Supporting Image"
+        return "Attachment"
 
 
 # -------------------------------
@@ -76,7 +110,7 @@ class ClaimSerializer(serializers.ModelSerializer):
     attachments = ClaimAttachmentSerializer(many=True, read_only=True)
     member_user_email = serializers.EmailField(source="member.user.email", read_only=True)
 
-    details = serializers.DictField(write_only=True, required=False)
+    details = serializers.DictField(required=False)
 
     class Meta:
         model = Claim

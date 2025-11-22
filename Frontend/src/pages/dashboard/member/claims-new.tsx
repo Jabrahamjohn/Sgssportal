@@ -110,10 +110,10 @@ export default function NewClaim() {
         for (const f of files) {
           const form = new FormData();
           form.append("file", f);
+          form.append("claim", claimId);   // <-- THIS IS THE FIX
 
           await api.post("claim-attachments/", form, {
             headers: { "Content-Type": "multipart/form-data" },
-            params: { claim: claimId },
             onUploadProgress: (event) => {
               if (!event.total) return;
               const percent = Math.round((event.loaded / event.total) * 100);
@@ -121,9 +121,8 @@ export default function NewClaim() {
             },
           });
         }
-        setUploadProgress(null);
+      setUploadProgress(null);
       }
-
       // generate + upload PDF summary (best-effort)
       try {
         await generateClaimPDF({
@@ -497,7 +496,7 @@ function InpatientForm({ data, onChange }: any) {
             }
           />
         </div>
-        <div className="grid md:grid-cols-3 gap-3">
+        <div className="grid md:grid-cols-2 gap-3">
           <Input
             label="Bed Charge per Day (Ksh)"
             type="number"
@@ -601,12 +600,12 @@ function ChronicForm({ data, onChange }: any) {
   const { total } = computeClaimTotals(data, "chronic");
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1">
       <h4 className="font-semibold mb-2">
         Chronic Illness Medicines (per official requisition form)
       </h4>
       {medicines.map((m: any, i: number) => (
-        <div key={i} className="grid md:grid-cols-5 gap-2 border p-2 rounded">
+        <div key={i} className="grid md:grid-cols-6 gap-1 border p-4 rounded">
           <Input
             label="Name of Medicine"
             value={m.name}

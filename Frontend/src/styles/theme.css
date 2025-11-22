@@ -1,0 +1,23 @@
+/* Frontend/src/styles/theme.css */
+:root {
+  /* SGSS brand tokens */
+  --sgss-navy: #03045f;
+  --sgss-gold: #caa631;
+  --sgss-bg: #f7f7f7;
+  --sgss-card: #ffffff;
+
+  /* Map old design tokens to SGSS colours */
+  --primary-color: var(--sgss-navy);
+  --secondary-color: var(--sgss-gold);
+  --grayscale-color: var(--sgss-bg);
+
+  /* Optional safe defaults so old utilities don't break */
+  --tertiary-dark-color: #1f2933;
+  --tertiary-color: #4b5563;
+  --gray-border-color: #e5e7eb;
+  --dark-text-color: #111827;
+  --helptext-bg-color: #f9fafb;
+  --helptext-color: #6b7280;
+  --table-data-color: #374151;
+  --table-icon-bg: #edf2f7;
+}

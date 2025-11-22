@@ -27,6 +27,8 @@ urlpatterns = [
     # manual committee endpoints
     path("claims/committee/", views.committee_claims),
     path("claims/committee/<uuid:pk>/", views.committee_claim_detail),
+    path("committee/claims/", views.committee_claims),
+    
 
     path("notifications/mark-read/", views.mark_notifications_read),
     #path("notifications/mark-unread/", views.mark_notifications_unread),

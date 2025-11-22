@@ -658,6 +658,16 @@ def mark_notifications_read(request):
         .update(read=True)
     return Response({"ok": True})
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def committee_claims(request):
+    """Return all claims for committee view."""
+    if not request.user.groups.filter(name="Committee").exists() and not request.user.is_superuser:
+        return Response({"detail": "Not allowed."}, status=403)
+
+    queryset = Claim.objects.all().order_by("-created_at")
+    serializer = ClaimSerializer(queryset, many=True)
+    return Response(serializer.data)
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsCommittee])

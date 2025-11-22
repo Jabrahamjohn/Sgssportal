@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import Badge from "~/components/controls/badge";
 import { listCommitteeClaims, type CommitteeClaimRow } from "~/server/services/claim.service";
-import ClaimDetailModal from "./ClaimDetailModal";
 
 export default function ClaimsTable() {
   const [data, setData] = useState<CommitteeClaimRow[]>([]);
@@ -134,13 +133,6 @@ export default function ClaimsTable() {
         </table>
       </div>
 
-      {/* Detail modal */}
-      {selectedId && (
-        <ClaimDetailModal
-          claimId={selectedId}
-          onClose={() => setSelectedId(null)}
-        />
-      )}
     </div>
   );
 }

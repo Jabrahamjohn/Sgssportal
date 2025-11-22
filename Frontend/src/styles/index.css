@@ -1,3 +1,5 @@
+/* Frontend/src/styles/index.css*/
+@import "./theme.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,13 +18,16 @@
 }
 
 body,
+body,
 input {
   background-color: var(--grayscale-color);
+  color: var(--dark-text-color);
   font-family: var(--primary-font);
   font-weight: 400;
   scrollbar-color: #cbd5e0 #f1f1f1;
   scrollbar-width: thin;
 }
+
 
 h1,
 h2,

@@ -1,4 +1,4 @@
-// frontend/src/pages/dashboard/member/claim-detail
+// Frontend/src/pages/dashboard/member/claim-detail.tsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "~/config/api";
@@ -29,16 +29,17 @@ export default function MemberClaimDetail() {
 
   const shortId = (id || "").slice(0, 8);
 
-  // Map backend totals → same wording as the PDF summary
   const totalClaimed = Number(data.total_claimed || 0);
   const fundShare = Number(data.total_payable || 0);      // 80%
   const memberShare = Number(data.member_payable || 0);   // 20%
 
-  // Simple helper to show attachment label
   const getAttachmentLabel = (a: any) => {
-    if (a.label) return a.label;
-    if (a.is_summary) return "Claim Summary PDF";
+    const filename = (a.file || "").split("/").pop() || "";
     const ct = (a.content_type || "").toLowerCase();
+
+    // Detect our auto-generated summary
+    if (filename.includes("claim_summary")) return "Claim Summary PDF";
+
     if (ct.includes("pdf")) return "Supporting Document (PDF)";
     if (ct.includes("image")) return "Supporting Image";
     return "Attachment";
@@ -54,10 +55,10 @@ export default function MemberClaimDetail() {
         Claim #{shortId}
       </h2>
 
-      {/* SUMMARY CARD – mirrors the generated PDF */}
+      {/* SUMMARY CARD – mirrors generated PDF wording */}
       <div className="border p-5 rounded-lg bg-white shadow-sm space-y-1">
         <p>
-          <strong>Type:</strong> {data.claim_type}
+          <strong>Claim Type:</strong> {data.claim_type}
         </p>
         <p>
           <strong>Status:</strong> {data.status}
@@ -79,7 +80,7 @@ export default function MemberClaimDetail() {
         </p>
       </div>
 
-      {/* DETAILS BY CLAIM TYPE – basic but helpful mapping of the form sections */}
+      {/* DETAIL BLOCKS BY CLAIM TYPE */}
       {data.claim_type === "outpatient" && (
         <OutpatientDetails details={details} />
       )}
@@ -104,9 +105,7 @@ export default function MemberClaimDetail() {
             className="border-b py-2 flex items-center justify-between text-sm last:border-b-0"
           >
             <div>
-              <p className="font-medium">
-                {getAttachmentLabel(a)}
-              </p>
+              <p className="font-medium">{getAttachmentLabel(a)}</p>
               <p className="text-xs text-gray-500">
                 Type: {a.content_type || "N/A"}
               </p>

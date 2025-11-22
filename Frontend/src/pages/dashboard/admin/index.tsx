@@ -1,35 +1,55 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import api from "~/config/api";
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    async function load() {
+      const [members, claims] = await Promise.all([
+        api.get("members/"),
+        api.get("claims/"),
+      ]);
+
+      const claimsList = claims.data.results || claims.data || [];
+      const pending = claimsList.filter((c:any) => c.status === "submitted").length;
+
+      setStats({
+        members: members.data.length,
+        claims: claimsList.length,
+        pending,
+        committee: members.data.filter((m:any) => m.role === "Committee").length,
+      });
+    }
+    load();
+  }, []);
+
+  if (!stats) return <div className="p-6">Loading…</div>;
+
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-semibold text-[#03045f]">
-        System Administration
-      </h2>
+      <h2 className="text-2xl font-bold text-sgss-navy">Admin Dashboard</h2>
 
-      <p className="text-gray-700">
-        As an administrator, you can manage users, configure system settings,
-        adjust reimbursement rules, and oversee global medical fund behavior.
-      </p>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        <AdminCard title="Manage Users" link="/dashboard/admin/users" />
-        <AdminCard title="System Settings" link="/dashboard/admin/settings" />
+      <div className="grid md:grid-cols-4 gap-4">
+        <Card title="Members" value={stats.members} color="gold" />
+        <Card title="Claims" value={stats.claims} />
+        <Card title="Pending Approvals" value={stats.pending} color="red" />
+        <Card title="Committee Members" value={stats.committee} />
       </div>
     </div>
   );
 }
 
-function AdminCard({ title, link }: any) {
+function Card({ title, value, color="navy" }) {
+  const classes = {
+    navy: "bg-sgss-navy text-white",
+    gold: "bg-sgss-gold text-white",
+    red: "bg-red-600 text-white",
+  };
   return (
-    <a
-      href={link}
-      className="block bg-white p-5 shadow rounded-lg border hover:border-[#03045f] hover:shadow-lg transition"
-    >
-      <p className="font-semibold text-[#03045f] text-lg">{title}</p>
-      <p className="text-sm text-gray-500 mt-1">
-        Click to open module →
-      </p>
-    </a>
+    <div className={`p-5 rounded shadow ${classes[color]}`}>
+      <p className="text-sm opacity-80">{title}</p>
+      <p className="text-2xl font-bold">{value}</p>
+    </div>
   );
 }

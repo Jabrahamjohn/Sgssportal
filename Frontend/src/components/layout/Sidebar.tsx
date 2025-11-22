@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "~/store/contexts/AuthContext";
 import { api } from "~/config/api";
+import { HomeIcon, ClipboardDocumentListIcon } from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -67,7 +68,7 @@ export default function Sidebar() {
     >
       {/* Header */}
       <div>
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+        <div className="sgss-sidebar bg-sgss-navy text-white w-64 h-screen py-6 space-y-2">
           <h2
             className={`text-lg font-bold text-gray-800 transition-all ${
               collapsed ? "hidden" : "block"

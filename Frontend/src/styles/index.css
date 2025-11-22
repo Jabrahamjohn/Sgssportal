@@ -297,3 +297,10 @@ ul {
 ::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
 }
+.sgss-card {
+  @apply bg-white rounded-xl shadow-md p-6 md:p-7 lg:p-8;
+}
+.sgss-header {
+  background: linear-gradient(90deg, #03045f 0%, #0a4ca2 40%, #caa631 100%);
+  @apply text-white font-semibold px-5 py-3 rounded-t-xl shadow-sm tracking-wide;
+}

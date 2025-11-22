@@ -1,55 +1,94 @@
+// Frontend/src/pages/dashboard/admin/index.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
+import Skeleton from "~/components/loader/skeleton";
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<any>(null);
+  const [claims, setClaims] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const [members, claims] = await Promise.all([
-        api.get("members/"),
-        api.get("claims/"),
-      ]);
-
-      const claimsList = claims.data.results || claims.data || [];
-      const pending = claimsList.filter((c:any) => c.status === "submitted").length;
-
-      setStats({
-        members: members.data.length,
-        claims: claimsList.length,
-        pending,
-        committee: members.data.filter((m:any) => m.role === "Committee").length,
-      });
+      try {
+        const res = await api.get("claims/");
+        setClaims(res.data?.results || res.data || []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);
 
-  if (!stats) return <div className="p-6">Loading…</div>;
+  const totalClaims = claims.length;
+  const submitted = claims.filter((c) => c.status === "submitted").length;
+  const approved = claims.filter((c) => c.status === "approved").length;
+  const paid = claims.filter((c) => c.status === "paid").length;
+  const rejected = claims.filter((c) => c.status === "rejected").length;
+  const totalFundLiability = claims.reduce(
+    (sum, c) => sum + Number(c.total_payable || 0),
+    0
+  );
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-sgss-navy">Admin Dashboard</h2>
+      <div className="sgss-card p-0">
+        <div className="sgss-header">Admin Dashboard</div>
+        <div className="p-6 text-sm text-gray-700">
+          High-level overview of SGSS Medical Fund activity. For full user &
+          committee management, continue to use the Django admin as needed.
+        </div>
+      </div>
 
-      <div className="grid md:grid-cols-4 gap-4">
-        <Card title="Members" value={stats.members} color="gold" />
-        <Card title="Claims" value={stats.claims} />
-        <Card title="Pending Approvals" value={stats.pending} color="red" />
-        <Card title="Committee Members" value={stats.committee} />
+      {/* Top stats */}
+      <div className="grid md:grid-cols-5 gap-4">
+        <AdminStat label="Total Claims" value={totalClaims} loading={loading} />
+        <AdminStat label="Submitted" value={submitted} loading={loading} />
+        <AdminStat label="Approved" value={approved} loading={loading} />
+        <AdminStat label="Paid" value={paid} loading={loading} />
+        <AdminStat label="Rejected" value={rejected} loading={loading} />
+      </div>
+
+      {/* Fund liability */}
+      <div className="sgss-card bg-[var(--sgss-navy)] text-white">
+        <p className="text-xs uppercase tracking-[0.15em] text-white/70">
+          Fund Liability (Current Year)
+        </p>
+        {loading ? (
+          <Skeleton className="h-8 w-40 mt-3 bg-white/20" />
+        ) : (
+          <p className="text-3xl font-bold mt-2">
+            Ksh {totalFundLiability.toLocaleString()}
+          </p>
+        )}
+        <p className="text-xs text-white/70 mt-2">
+          Sum of all claim fund-payable amounts recorded in the system.
+        </p>
       </div>
     </div>
   );
 }
 
-function Card({ title, value, color="navy" }) {
-  const classes = {
-    navy: "bg-sgss-navy text-white",
-    gold: "bg-sgss-gold text-white",
-    red: "bg-red-600 text-white",
-  };
+function AdminStat({
+  label,
+  value,
+  loading,
+}: {
+  label: string;
+  value: number;
+  loading: boolean;
+}) {
   return (
-    <div className={`p-5 rounded shadow ${classes[color]}`}>
-      <p className="text-sm opacity-80">{title}</p>
-      <p className="text-2xl font-bold">{value}</p>
+    <div className="sgss-card">
+      <p className="small-label">{label}</p>
+      {loading ? (
+        <Skeleton className="h-7 w-16 mt-2" />
+      ) : (
+        <p className="text-2xl font-bold text-[var(--sgss-navy)] mt-1">
+          {value}
+        </p>
+      )}
     </div>
   );
 }

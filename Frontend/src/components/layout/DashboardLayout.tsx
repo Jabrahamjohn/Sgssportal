@@ -1,122 +1,181 @@
 // Frontend/src/components/layout/DashboardLayout.tsx
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import api from "~/config/api";
 import NotificationBell from "../notifications/NotificationBell";
-import { useAuth } from "~/store/contexts/AuthContext";
+
+import {
+  HomeIcon,
+  UserCircleIcon,
+  ClipboardDocumentListIcon,
+  Cog6ToothIcon,
+  ShieldCheckIcon,
+  ArrowLeftStartOnRectangleIcon,
+} from "@heroicons/react/24/outline";
 
 export default function DashboardLayout({ children }: any) {
-  const { auth, logout } = useAuth();
-  const user = auth.user;
-  const groups = auth.groups || [];
+  const [me, setMe] = useState<any>(null);
+  const nav = useNavigate();
+  const location = useLocation();
 
-  const isCommittee = groups.includes("committee") || user?.is_superuser;
-  const isAdmin = groups.includes("admin") || user?.is_superuser;
+  useEffect(() => {
+    api
+      .get("auth/me/")
+      .then((res) => setMe(res.data))
+      .catch(() => setMe(null));
+  }, []);
+
+  const logout = async () => {
+    try {
+      await api.post("auth/logout/");
+    } catch (e) {
+      console.warn("Logout failed", e);
+    } finally {
+      location.href = "/login";
+    }
+  };
+
+  const isCommittee = me?.groups?.includes("Committee") || me?.is_superuser;
+  const isAdmin = me?.groups?.includes("Admin") || me?.is_superuser;
+
+  const isActive = (path: string) => location.pathname.startsWith(path);
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* ======================= SIDEBAR ======================= */}
-      <aside className="w-64 bg-[#03045f] text-white flex flex-col">
-        <div className="px-4 py-6 border-b border-gray-700">
+    <div className="flex h-screen bg-[var(--sgss-bg)]">
+      {/* ====================== SIDEBAR ====================== */}
+      <aside className="w-64 bg-[var(--sgss-navy)] text-white flex flex-col shadow-xl">
+        {/* Logo + user */}
+        <div className="px-5 py-6 border-b border-white/10">
           <h1 className="text-2xl font-bold tracking-wide">
-            SGSS <span className="text-[#caa631]">Fund</span>
+            SGSS <span className="text-[var(--sgss-gold)]">Fund</span>
           </h1>
-          {user && (
-            <>
-              <p className="text-sm text-gray-200 mt-1">
-                Logged in as{" "}
-                <span className="font-semibold">{user.full_name}</span>
-              </p>
-              <p className="text-xs text-[#caa631]">
-                ({auth.role || "member"})
-              </p>
-            </>
+          {me && (
+            <p className="text-xs text-gray-200 mt-2 leading-snug">
+              Logged in as{" "}
+              <span className="font-semibold">{me.full_name}</span>
+              <span className="ml-1 text-[var(--sgss-gold)]">
+                ({me.role || "Member"})
+              </span>
+            </p>
           )}
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-2 overflow-auto text-sm">
-          {/* Member section */}
-          <Link className="block hover:text-[#caa631]" to="/dashboard/member">
-            Dashboard
-          </Link>
-          <Link
-            className="block hover:text-[#caa631]"
-            to="/dashboard/member/claims"
-          >
-            My Claims
-          </Link>
-          <Link
-            className="block hover:text-[#caa631]"
-            to="/dashboard/member/claims/new"
-          >
-            New Claim
-          </Link>
+        {/* Nav links */}
+        <nav className="flex-1 px-3 py-4 overflow-auto space-y-5 sgss-sidebar">
+          {/* MEMBER SECTION */}
+          <div>
+            <p className="uppercase text-[10px] tracking-[0.15em] text-gray-300 mb-2">
+              Member
+            </p>
+            <NavItem
+              to="/dashboard/member"
+              icon={HomeIcon}
+              label="Member Dashboard"
+              active={isActive("/dashboard/member") && !isActive("/dashboard/member/claims")}
+            />
+            <NavItem
+              to="/dashboard/member/claims"
+              icon={ClipboardDocumentListIcon}
+              label="My Claims"
+              active={isActive("/dashboard/member/claims") && !isActive("/dashboard/member/claims/new")}
+            />
+            <NavItem
+              to="/dashboard/member/claims/new"
+              icon={ShieldCheckIcon}
+              label="New Claim"
+              active={isActive("/dashboard/member/claims/new")}
+            />
+          </div>
 
-          {/* Committee section */}
+          {/* COMMITTEE SECTION */}
           {isCommittee && (
-            <>
-              <div className="border-b border-gray-700 my-3" />
-              <p className="uppercase text-xs text-gray-200">Committee</p>
-
-              <Link
-                className="block hover:text-[#caa631]"
+            <div>
+              <div className="border-b border-white/10 my-3" />
+              <p className="uppercase text-[10px] tracking-[0.15em] text-gray-300 mb-2">
+                Committee
+              </p>
+              <NavItem
                 to="/dashboard/committee"
-              >
-                Committee Dashboard
-              </Link>
-              <Link
-                className="block hover:text-[#caa631]"
-                to="/dashboard/committee/claims"
-              >
-                All Claims
-              </Link>
-              <Link
-                className="block hover:text-[#caa631]"
-                to="/dashboard/committee/reports"
-              >
-                Reports
-              </Link>
-            </>
+                icon={ClipboardDocumentListIcon}
+                label="Committee Dashboard"
+                active={isActive("/dashboard/committee")}
+              />
+            </div>
           )}
 
-          {/* Admin section */}
+          {/* ADMIN SECTION */}
           {isAdmin && (
-            <>
-              <div className="border-b border-gray-700 my-3" />
-              <p className="uppercase text-xs text-gray-200">Admin</p>
-
-              <Link
-                className="block hover:text-[#caa631]"
+            <div>
+              <div className="border-b border-white/10 my-3" />
+              <p className="uppercase text-[10px] tracking-[0.15em] text-gray-300 mb-2">
+                Admin
+              </p>
+              <NavItem
                 to="/dashboard/admin"
-              >
-                Manage Users
-              </Link>
-              <Link
-                className="block hover:text-[#caa631]"
+                icon={UserCircleIcon}
+                label="Admin Dashboard"
+                active={isActive("/dashboard/admin")}
+              />
+              <NavItem
                 to="/dashboard/admin/settings"
-              >
-                System Settings
-              </Link>
-            </>
+                icon={Cog6ToothIcon}
+                label="System Settings"
+                active={isActive("/dashboard/admin/settings")}
+              />
+            </div>
           )}
         </nav>
 
-        <div className="p-4 border-t border-gray-700">
+        {/* Logout */}
+        <div className="px-4 py-4 border-t border-white/10">
           <button
             onClick={logout}
-            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-md text-sm"
+            className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
           >
+            <ArrowLeftStartOnRectangleIcon className="w-5 h-5" />
             Logout
           </button>
         </div>
       </aside>
 
-      {/* ======================= MAIN AREA ======================= */}
-      <main className="flex-1 overflow-auto">
-        <div className="flex items-center justify-end p-3 bg-white border-b shadow-sm">
-          <NotificationBell />
+      {/* ====================== MAIN ====================== */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[var(--sgss-navy)] via-[#0b4ca1] to-[var(--sgss-gold)] shadow-sm">
+          <h2 className="text-sm md:text-base text-white font-medium">
+            SGSS Medical Fund Portal
+          </h2>
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+          </div>
         </div>
-        <div className="p-6">{children}</div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-auto p-6">{children}</div>
       </main>
     </div>
+  );
+}
+
+type NavItemProps = {
+  to: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  label: string;
+  active?: boolean;
+};
+
+function NavItem({ to, icon: Icon, label, active }: NavItemProps) {
+  return (
+    <Link
+      to={to}
+      className={`sgss-sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+        active
+          ? "bg-white/10 font-semibold border-l-4 border-[var(--sgss-gold)]"
+          : "hover:bg-white/10"
+      }`}
+    >
+      <Icon className="w-5 h-5 text-[var(--sgss-gold)]" />
+      <span>{label}</span>
+    </Link>
   );
 }

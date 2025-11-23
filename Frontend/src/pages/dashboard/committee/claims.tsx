@@ -1,18 +1,17 @@
-// Frontend/src/pages/dashboard/member/claims.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
-import Button from "~/components/controls/button";
 import Badge from "~/components/controls/badge";
-import { useNavigate, Link } from "react-router-dom";
+import Button from "~/components/controls/button";
+import { Link, useNavigate } from "react-router-dom";
 import {
+  EyeIcon,
   ClockIcon,
   CheckCircleIcon,
   XCircleIcon,
-  CurrencyDollarIcon,
-  EyeIcon,
+  DocumentMagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 
-type Claim = {
+type ClaimRow = {
   id: string;
   claim_type: string;
   status: string;
@@ -20,10 +19,11 @@ type Claim = {
   total_payable: number;
   member_payable: number;
   submitted_at: string | null;
+  member_user_email?: string;
 };
 
-export default function MemberClaimsList() {
-  const [claims, setClaims] = useState<Claim[]>([]);
+export default function CommitteeClaimsPage() {
+  const [claims, setClaims] = useState<ClaimRow[]>([]);
   const [loading, setLoading] = useState(true);
   const nav = useNavigate();
 
@@ -45,15 +45,13 @@ export default function MemberClaimsList() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="h-7 w-40 bg-gray-200 rounded animate-pulse" />
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-16 bg-gray-100 rounded-lg animate-pulse"
-            />
-          ))}
-        </div>
+        <div className="h-7 w-48 bg-gray-200 rounded animate-pulse" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-16 bg-gray-100 rounded-lg animate-pulse"
+          />
+        ))}
       </div>
     );
   }
@@ -64,23 +62,24 @@ export default function MemberClaimsList() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-[#03045f]">
-            My Claims
+            All Claims (Committee)
           </h2>
           <p className="text-sm text-gray-600">
-            View all claims submitted under your SGSS Medical Fund membership.
+            Review, approve or reject member claims according to SGSS Byelaws.
           </p>
         </div>
-        <Button onClick={() => nav("/dashboard/member/claims/new")}>
-          + New Claim
+        <Button variant="outline" onClick={() => nav("/dashboard/committee")}>
+          Back to Dashboard
         </Button>
       </div>
 
-      {/* Desktop TABLE view */}
+      {/* Desktop table */}
       <div className="hidden md:block border rounded-lg bg-white shadow-sm overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gradient-to-r from-[#03045f] to-[#0b2f7c] text-white">
             <tr>
               <th className="px-4 py-3 text-left">Claim ID</th>
+              <th className="px-4 py-3 text-left">Member</th>
               <th className="px-4 py-3 text-left">Type</th>
               <th className="px-4 py-3 text-left">Status</th>
               <th className="px-4 py-3 text-right">Total Claimed</th>
@@ -98,6 +97,9 @@ export default function MemberClaimsList() {
               >
                 <td className="px-4 py-3 font-mono text-xs">
                   {String(c.id).slice(0, 8)}…
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  {c.member_user_email || "N/A"}
                 </td>
                 <td className="px-4 py-3 capitalize">{c.claim_type}</td>
                 <td className="px-4 py-3">
@@ -119,11 +121,11 @@ export default function MemberClaimsList() {
                 </td>
                 <td className="px-4 py-3 text-center">
                   <Link
-                    to={`/dashboard/member/claims/${c.id}`}
+                    to={`/dashboard/committee/claims/${c.id}`}
                     className="inline-flex items-center gap-1 text-[#03045f] hover:text-[#caa631] text-xs font-semibold"
                   >
-                    <EyeIcon className="w-4 h-4" />
-                    View
+                    <DocumentMagnifyingGlassIcon className="w-4 h-4" />
+                    Review
                   </Link>
                 </td>
               </tr>
@@ -132,10 +134,10 @@ export default function MemberClaimsList() {
             {!claims.length && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="px-4 py-6 text-center text-gray-500 text-sm"
                 >
-                  You have not submitted any claims yet.
+                  No claims in the system yet.
                 </td>
               </tr>
             )}
@@ -143,7 +145,7 @@ export default function MemberClaimsList() {
         </table>
       </div>
 
-      {/* Mobile CARDS view */}
+      {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         {claims.map((c) => (
           <div
@@ -158,7 +160,10 @@ export default function MemberClaimsList() {
                     {String(c.id).slice(0, 8)}…
                   </span>
                 </p>
-                <p className="text-sm font-semibold capitalize">
+                <p className="text-xs text-gray-600">
+                  {c.member_user_email || "Member"}
+                </p>
+                <p className="text-sm font-semibold capitalize mt-1">
                   {c.claim_type} claim
                 </p>
               </div>
@@ -166,26 +171,17 @@ export default function MemberClaimsList() {
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs mt-1">
-              <div className="flex items-center gap-1">
-                <CurrencyDollarIcon className="w-4 h-4 text-[#03045f]" />
-                <span>
-                  <strong>Claimed:</strong>{" "}
-                  Ksh {Number(c.total_claimed || 0).toLocaleString()}
-                </span>
+              <div>
+                <strong>Claimed:</strong>{" "}
+                Ksh {Number(c.total_claimed || 0).toLocaleString()}
               </div>
-              <div className="flex items-center gap-1">
-                <CheckCircleIcon className="w-4 h-4 text-emerald-600" />
-                <span>
-                  <strong>Fund:</strong>{" "}
-                  Ksh {Number(c.total_payable || 0).toLocaleString()}
-                </span>
+              <div>
+                <strong>Fund:</strong>{" "}
+                Ksh {Number(c.total_payable || 0).toLocaleString()}
               </div>
-              <div className="flex items-center gap-1">
-                <XCircleIcon className="w-4 h-4 text-red-500" />
-                <span>
-                  <strong>Member:</strong>{" "}
-                  Ksh {Number(c.member_payable || 0).toLocaleString()}
-                </span>
+              <div>
+                <strong>Member:</strong>{" "}
+                Ksh {Number(c.member_payable || 0).toLocaleString()}
               </div>
               <div className="flex items-center gap-1">
                 <ClockIcon className="w-4 h-4 text-gray-500" />
@@ -200,9 +196,11 @@ export default function MemberClaimsList() {
             <div className="pt-2 flex justify-end">
               <Button
                 size="small"
-                onClick={() => nav(`/dashboard/member/claims/${c.id}`)}
+                variant="outline"
+                onClick={() => nav(`/dashboard/committee/claims/${c.id}`)}
               >
-                View details
+                <EyeIcon className="w-4 h-4 mr-1" />
+                Review
               </Button>
             </div>
           </div>
@@ -210,7 +208,7 @@ export default function MemberClaimsList() {
 
         {!claims.length && (
           <p className="text-sm text-center text-gray-500">
-            You have not submitted any claims yet.
+            No claims available yet.
           </p>
         )}
       </div>

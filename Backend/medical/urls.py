@@ -24,21 +24,23 @@ urlpatterns = [
     path("members/me/", views.my_member, name="my-member"),
     path("members/me/benefit_balance/", views.benefit_balance, name="benefit-balance"),
 
-    # manual committee endpoints
+    # ✅ fixed typos
+    path("dashboard/member/info/", views.member_dashboard_info, name="member-dashboard-info"),
+    path("dashboard/committee/info/", views.committee_dashboard_info, name="committee-dashboard-info"),
+
+    # committee endpoints
     path("claims/committee/", views.committee_claims),
     path("claims/committee/<uuid:pk>/", views.committee_claim_detail),
     path("committee/claims/", views.committee_claims),
-    
 
     path("notifications/mark-read/", views.mark_notifications_read),
-    #path("notifications/mark-unread/", views.mark_notifications_unread),
     path("claims/<uuid:claim_id>/upload_summary/", views.upload_summary_pdf),
 
     path("reports/export/", views.export_claims_csv),
     path("claims/bulk_status/", views.bulk_change_status),
 
-
-
+    # ✅ new admin summary endpoint
+    path("dashboard/admin/summary/", views.admin_dashboard_summary, name="admin-dashboard-summary"),
 
     # include router
     path("", include(router.urls)),

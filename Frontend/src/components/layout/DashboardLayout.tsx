@@ -138,20 +138,24 @@ export default function DashboardLayout({ children }: any) {
         </div>
       </aside>
 
-      {/* ====================== MAIN ====================== */}
+      {/* ======================================================
+          MAIN CONTENT + TOP BAR
+      ====================================================== */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[var(--sgss-navy)] via-[#0b4ca1] to-[var(--sgss-gold)] shadow-sm">
-          <h2 className="text-sm md:text-base text-white font-medium">
-            SGSS Medical Fund Portal
-          </h2>
+        <div className="flex items-center justify-between px-6 py-3 bg-gradient-to-r from-[#03045f] via-[#082e68] to-[#caa631] text-white shadow-sm">
+          <div className="text-sm font-medium">
+            {me ? `Welcome, ${me.full_name}` : "SGSS Medical Fund Portal"}
+          </div>
           <div className="flex items-center gap-4">
             <NotificationBell />
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-6">{children}</div>
+        {/* Page content */}
+        <div className="p-6 overflow-auto">
+          {children}
+        </div>
       </main>
     </div>
   );

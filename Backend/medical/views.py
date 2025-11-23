@@ -14,7 +14,9 @@ from django.middleware.csrf import get_token
 from django.contrib.auth.models import Group
 from medical.models import Member  # adjust import to your actual model
 from medical.serializers import MemberSerializer  # adjust import if serializer exists
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum,Count
+from django.db.models.functions import TruncMonth
+
 from datetime import date
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview, AuditLog, 
@@ -802,3 +804,134 @@ def bulk_change_status(request):
 
     Claim.objects.filter(id__in=ids).update(status=status_val)
     return Response({"detail": "Bulk update complete."})
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def member_dashboard_info(request):
+    member = Member.objects.filter(user=request.user).first()
+
+    if not member:
+        return Response({"detail": "Member profile not found"}, status=404)
+
+    from django.db.models import Count
+
+    claim_counts = (
+        Claim.objects.filter(member=member)
+        .values("status")
+        .annotate(count=Count("id"))
+    )
+
+    counts = {c["status"]: c["count"] for c in claim_counts}
+
+    return Response({
+        "full_name": request.user.get_full_name(),
+        "email": request.user.email,
+        "membership_type": member.membership_type.name if member.membership_type else None,
+        "membership_no": str(member.id),
+        "nhif_number": member.nhif_number,
+        "valid_from": member.valid_from,
+        "valid_to": member.valid_to,
+        "claim_counts": counts,
+    })
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def committee_dashboard_info(request):
+    if not (
+        request.user.groups.filter(name="Committee").exists()
+        or request.user.is_superuser
+    ):
+        return Response({"detail": "Not committee"}, status=403)
+
+    member = Member.objects.filter(user=request.user).first()
+
+    from django.db.models import Count
+
+    today = timezone.now().date()
+    pending = Claim.objects.filter(status="submitted").count()
+    today_new = Claim.objects.filter(created_at__date=today).count()
+    reviewed = Claim.objects.filter(status="reviewed").count()
+
+    return Response({
+        "full_name": request.user.get_full_name(),
+        "email": request.user.email,
+        "role": "Committee",
+        "membership_no": str(member.id) if member else None,
+        "nhif_number": member.nhif_number if member else None,
+        "membership_type": member.membership_type.name if member and member.membership_type else None,
+        "pending_total": pending,
+        "today_new": today_new,
+        "reviewed_total": reviewed,
+    })
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsAdmin])
+def admin_dashboard_summary(request):
+    """
+    High-level admin metrics + monthly stats for the current year.
+    """
+    today = timezone.now().date()
+    year = today.year
+
+    # Base query for current year
+    claims_qs = Claim.objects.filter(created_at__year=year)
+
+    total_members = Member.objects.count()
+    total_claims = claims_qs.count()
+
+    # Status counts
+    status_qs = (
+        claims_qs.values("status")
+        .annotate(count=Count("id"))
+    )
+    status_counts = {row["status"]: row["count"] for row in status_qs}
+
+    # Pending = anything not paid / rejected
+    pending_qs = claims_qs.exclude(status__in=["paid", "rejected"])
+    total_payable_pending = (
+        pending_qs.aggregate(total=Sum("total_payable"))["total"] or 0
+    )
+
+    # Paid out this year
+    paid_qs = claims_qs.filter(status="paid")
+    total_paid_out = (
+        paid_qs.aggregate(total=Sum("total_payable"))["total"] or 0
+    )
+
+    # Chronic requests this year
+    chronic_requests = ChronicRequest.objects.filter(
+        created_at__year=year
+    ).count()
+
+    # Monthly stats
+    monthly_qs = (
+        claims_qs
+        .annotate(month=TruncMonth("created_at"))
+        .values("month")
+        .annotate(
+            claims=Count("id"),
+            total_payable=Sum("total_payable"),
+        )
+        .order_by("month")
+    )
+
+    monthly = [
+        {
+            "month": row["month"].strftime("%Y-%m-01"),
+            "month_label": row["month"].strftime("%b"),
+            "claims": row["claims"],
+            "total_payable": float(row["total_payable"] or 0),
+        }
+        for row in monthly_qs
+    ]
+
+    return Response({
+        "year": year,
+        "total_members": total_members,
+        "total_claims": total_claims,
+        "status_counts": status_counts,
+        "total_payable_pending": float(total_payable_pending),
+        "total_paid_out": float(total_paid_out),
+        "chronic_requests": chronic_requests,
+        "monthly": monthly,
+    })

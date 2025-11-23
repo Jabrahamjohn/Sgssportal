@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "~/config/api";
 import NotificationBell from "../notifications/NotificationBell";
+import { useAuth } from "~/store/contexts/AuthContext";
 
 import {
   HomeIcon,
@@ -17,6 +18,7 @@ export default function DashboardLayout({ children }: any) {
   const [me, setMe] = useState<any>(null);
   const nav = useNavigate();
   const location = useLocation();
+  const {logout: clearAuth } = useAuth();
 
   useEffect(() => {
     api
@@ -28,12 +30,19 @@ export default function DashboardLayout({ children }: any) {
   const logout = async () => {
     try {
       await api.post("auth/logout/");
-    } catch (e) {
-      console.warn("Logout failed", e);
-    } finally {
-      location.href = "/login";
-    }
+    } catch (e) {}
+
+    // Clear auth context immediately
+    clearAuth();
+
+    // Remove CSRF for safety
+    document.cookie =
+      "csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
+    // Redirect instantly
+    nav("/login", { replace: true });
   };
+
 
   const isCommittee = me?.groups?.includes("Committee") || me?.is_superuser;
   const isAdmin = me?.groups?.includes("Admin") || me?.is_superuser;

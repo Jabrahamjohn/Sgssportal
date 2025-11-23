@@ -1,3 +1,4 @@
+// Frontend/src/pages/dashboard/admin/index.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
 import Skeleton from "~/components/loader/skeleton";

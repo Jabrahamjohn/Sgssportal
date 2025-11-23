@@ -1,10 +1,11 @@
 /* Frontend/src/styles/index.css*/
+@import"./theme.css";
 :root {
   --primary-font: 'Poppins', sans-serif !important;
   --grayscale-color: var(--sgss-bg, #f7f7f7); /* ✅ use SGSS global bg */
 }
 
-@import"./theme.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

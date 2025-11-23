@@ -30,6 +30,26 @@ function RoleRedirect() {
   return <Navigate to="/dashboard/member" replace />;
 }
 
+// After login, choose dashboard automatically
+function SmartRedirect() {
+  const [me, setMe] = useState<any>(null);
+  const nav = useNavigate();
+
+  useEffect(() => {
+    api.get("auth/me/")
+      .then(res => {
+        const role = res.data.role;
+        if (role === "committee") nav("/dashboard/committee");
+        else if (role === "admin") nav("/dashboard/admin");
+        else nav("/dashboard/member");
+      })
+      .catch(() => nav("/login"));
+  }, []);
+
+  return <div className="p-6">Loading…</div>;
+}
+
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -64,6 +84,8 @@ export default function AppRouter() {
         >
           {/* Default redirect */}
           <Route index element={<RoleRedirect />} />
+          <Route path="/dashboard" element={<SmartRedirect />} />
+
 
           {/* ✅ Member Dashboard */}
           <Route

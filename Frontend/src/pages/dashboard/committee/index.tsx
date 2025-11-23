@@ -1,3 +1,4 @@
+// Frontend/src/pages/dashboard/committee/index.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
 import { Link } from "react-router-dom";

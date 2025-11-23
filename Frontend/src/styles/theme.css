@@ -21,3 +21,75 @@
   --table-data-color: #374151;
   --table-icon-bg: #edf2f7;
 }
+/* SGSS cards & headers */
+.sgss-card {
+  background-color: var(--sgss-card, #ffffff);
+  border-radius: 0.9rem;
+  padding: 1.25rem;
+  box-shadow: 0 10px 30px rgba(3, 4, 95, 0.06);
+  border: 1px solid rgba(3, 4, 95, 0.03);
+}
+
+.sgss-card:not(:last-child) {
+  margin-bottom: 0.25rem;
+}
+
+.sgss-header {
+  padding: 0.85rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ffffff;
+  border-radius: 0.9rem 0.9rem 0 0;
+  background: linear-gradient(
+    90deg,
+    #03045f 0%,
+    #082e68 40%,
+    #caa631 100%
+  );
+}
+
+/* Small label text used in cards */
+.small-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #6b7280;
+}
+
+/* Sidebar links */
+.sgss-sidebar-link {
+  position: relative;
+  border-left: 2px solid transparent;
+}
+
+.sgss-sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sgss-sidebar-link::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 0.75rem;
+  background: radial-gradient(
+    circle at 0 0,
+    rgba(202, 166, 49, 0.32),
+    transparent 55%
+  );
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+
+.sgss-sidebar-link:hover::before {
+  opacity: 1;
+}
+
+.sgss-sidebar-link svg {
+  flex-shrink: 0;
+}
+
+/* Make gradient headers sit flush on sgss-card with p-0 */
+.sgss-card > .sgss-header:first-child {
+  margin-bottom: 0;
+}

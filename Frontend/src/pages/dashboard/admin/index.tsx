@@ -15,6 +15,8 @@ import {
 export default function AdminDashboard() {
   const [summary, setSummary] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
 
   useEffect(() => {
     async function load() {
@@ -44,15 +46,73 @@ export default function AdminDashboard() {
   const monthly = summary?.monthly || [];
   const year = summary?.year ?? new Date().getFullYear();
 
+  const apiBase =
+    import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api/";
+  const djangoAdminUrl = apiBase.replace(/\/api\/?$/, "") + "/admin/";
+
+  const handleExportCsv = async () => {
+    try {
+      setExporting(true);
+      const res = await api.get("reports/export/", {
+        responseType: "blob",
+      });
+
+      const blob = new Blob([res.data], {
+        type: "text/csv;charset=utf-8;",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `sgss_claims_${year || new Date().getFullYear()}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      alert("Could not export CSV. Check backend / network.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="sgss-card p-0">
         <div className="sgss-header">Admin Dashboard</div>
-        <div className="p-6 text-sm text-gray-700">
-          High-level overview of SGSS Medical Fund activity. For full user &
-          committee management, continue to use the Django admin as needed.
+        <div className="p-6 text-sm text-gray-700 space-y-4">
+          <p>
+            High-level overview of SGSS Medical Fund activity. For full user &
+            committee management, continue to use the Django admin as needed.
+          </p>
+
+          {/* Quick actions */}
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleExportCsv}
+              disabled={exporting}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--sgss-navy)] text-white hover:bg-[#04146a] disabled:opacity-60"
+            >
+              {exporting ? "Exporting…" : "Export Claims CSV"}
+            </button>
+
+            <a
+              href={djangoAdminUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-[var(--sgss-navy)] text-[var(--sgss-navy)] hover:bg-[var(--sgss-navy)] hover:text-white"
+            >
+              Open Django Admin
+            </a>
+          </div>
         </div>
       </div>
+
 
       {/* Top stats */}
       <div className="grid md:grid-cols-3 gap-4">

@@ -13,10 +13,10 @@ import NewClaim from "./pages/dashboard/member/claims-new";
 import ChronicPage from "./pages/dashboard/member/chronic";
 
 import CommitteeDashboard from "./pages/dashboard/committee";
+import CommitteeClaimDetail from "./pages/dashboard/committee/claim";
 import AdminDashboard from "./pages/dashboard/admin";
 import AdminSettings from "./pages/dashboard/admin/settings";
 import NotFound from "./pages/404";
-// Add below imports
 import { useAuth } from "~/store/contexts/AuthContext";
 import MemberClaimDetail from "./pages/dashboard/member/claim-detail";
 import ClaimView from "./pages/dashboard/member/claim-view";
@@ -115,6 +115,15 @@ export default function AppRouter() {
               </Authenticated>
             }
           />
+          <Route
+            path="dashboard/committee/claims/:id"
+            element={
+              <Authenticated allowed={["committee", "admin"]}>
+                <CommitteeClaimDetail />
+              </Authenticated>
+            }
+          />
+
 
           {/* Admin Dashboard */}
           <Route

@@ -3,11 +3,15 @@ import React, { useEffect, useState } from "react";
 import api from "~/config/api";
 import { Link } from "react-router-dom";
 import Skeleton from "~/components/loader/skeleton";
+import { useAuth } from "~/store/contexts/AuthContext";
 
 export default function CommitteeDashboard() {
   const [claims, setClaims] = useState<any[]>([]);
   const [info, setInfo] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const { auth } = useAuth();
+  const role = auth?.role?.toLowerCase();
+
 
   useEffect(() => {
     async function load() {
@@ -56,6 +60,25 @@ export default function CommitteeDashboard() {
             Review member claims, track daily workload and monitor approvals in
             line with the SGSS Medical Fund Byelaws.
           </p>
+
+          {/* Quick links for multi-role users */}
+          <div className="flex flex-wrap gap-2 text-[11px] mt-2">
+            <Link
+              to="/dashboard/member"
+              className="inline-flex items-center px-3 py-1 rounded-full bg-white border border-[var(--sgss-navy)]/20 text-[var(--sgss-navy)] hover:bg-[var(--sgss-navy)] hover:text-white"
+            >
+              ← Member view
+            </Link>
+            {role === "admin" && (
+              <Link
+                to="/dashboard/admin"
+                className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--sgss-gold)] text-[var(--sgss-navy)] hover:bg-[#dfc76d]"
+              >
+                Admin dashboard →
+              </Link>
+            )}
+          </div>
+
 
           {/* Committee profile block */}
           <div className="border rounded-lg bg-[var(--sgss-bg)] p-4 text-xs text-gray-700 grid md:grid-cols-2 gap-4">

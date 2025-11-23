@@ -4,6 +4,7 @@ import api from "~/config/api";
 import Button from "~/components/controls/button";
 import { useNavigate, Link } from "react-router-dom";
 import Skeleton from "~/components/loader/skeleton";
+import {useAuth} from "~/store/contexts/AuthContext";
 
 export default function MemberDashboard() {
   const [balance, setBalance] = useState<number | null>(null);
@@ -11,6 +12,9 @@ export default function MemberDashboard() {
   const [memberInfo, setMemberInfo] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const nav = useNavigate();
+  const { auth } = useAuth();
+  const role = auth?.role?.toLowerCase();
+
 
   useEffect(() => {
     async function load() {
@@ -64,6 +68,33 @@ export default function MemberDashboard() {
               + New Claim
             </Button>
           </div>
+
+          {role === "committee" && (
+            <div className="text-[11px] text-[var(--sgss-navy)] bg-[var(--sgss-bg)] border border-[var(--sgss-navy)]/10 rounded-md px-3 py-2">
+              You also serve on the{" "}
+              <span className="font-semibold">Committee</span>.{" "}
+              <Link
+                to="/dashboard/committee"
+                className="underline font-semibold hover:text-[var(--sgss-gold)]"
+              >
+                Go to Committee dashboard →
+              </Link>
+            </div>
+          )}
+
+          {role === "admin" && (
+            <div className="text-[11px] text-[var(--sgss-navy)] bg-[var(--sgss-bg)] border border-[var(--sgss-navy)]/10 rounded-md px-3 py-2">
+              You have{" "}
+              <span className="font-semibold">Admin</span> rights.{" "}
+              <Link
+                to="/dashboard/admin"
+                className="underline font-semibold hover:text-[var(--sgss-gold)]"
+              >
+                Go to Admin dashboard →
+              </Link>
+            </div>
+          )}
+
 
           {/* Member profile strip */}
           <div className="border rounded-lg bg-[var(--sgss-bg)] p-4 text-xs text-gray-700 grid md:grid-cols-2 gap-4">

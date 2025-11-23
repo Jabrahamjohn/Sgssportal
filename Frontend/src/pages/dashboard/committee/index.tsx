@@ -1,4 +1,3 @@
-// Frontend/src/pages/dashboard/committee/index.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
 import { Link } from "react-router-dom";
@@ -6,15 +5,20 @@ import Skeleton from "~/components/loader/skeleton";
 
 export default function CommitteeDashboard() {
   const [claims, setClaims] = useState<any[]>([]);
+  const [info, setInfo] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        // backend already returns appropriate scope for committee
-        const res = await api.get("claims/");
-        const list = res.data?.results || res.data || [];
+        const [claimsRes, infoRes] = await Promise.all([
+          api.get("claims/"),
+          api.get("dashboard/committee/info/"),
+        ]);
+
+        const list = claimsRes.data?.results || claimsRes.data || [];
         setClaims(list);
+        setInfo(infoRes.data);
       } catch (e) {
         console.error(e);
       } finally {
@@ -24,28 +28,89 @@ export default function CommitteeDashboard() {
     load();
   }, []);
 
-  const today = new Date().toDateString();
+  const todayStr = new Date().toDateString();
 
   const pending = claims.filter(
     (c) => c.status === "submitted" || c.status === "reviewed"
   );
   const todays = claims.filter((c) => {
     if (!c.submitted_at) return false;
-    return new Date(c.submitted_at).toDateString() === today;
+    return new Date(c.submitted_at).toDateString() === todayStr;
   });
 
   const approved = claims.filter((c) => c.status === "approved").length;
   const rejected = claims.filter((c) => c.status === "rejected").length;
   const paid = claims.filter((c) => c.status === "paid").length;
 
+  const formatDate = (d?: string | null) =>
+    d ? new Date(d).toLocaleDateString() : "N/A";
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header + committee profile */}
       <div className="sgss-card p-0">
         <div className="sgss-header">Committee Dashboard</div>
-        <div className="p-6 text-sm text-gray-700">
-          Review member claims, track daily workload and monitor approvals in
-          line with the SGSS Medical Fund Byelaws.
+        <div className="p-6 text-sm text-gray-700 space-y-4">
+          <p>
+            Review member claims, track daily workload and monitor approvals in
+            line with the SGSS Medical Fund Byelaws.
+          </p>
+
+          {/* Committee profile block */}
+          <div className="border rounded-lg bg-[var(--sgss-bg)] p-4 text-xs text-gray-700 grid md:grid-cols-2 gap-4">
+            {loading ? (
+              <>
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </>
+            ) : info ? (
+              <>
+                <div>
+                  <p className="font-semibold text-[var(--sgss-navy)] text-sm">
+                    {info.full_name || "Committee Member"}
+                  </p>
+                  <p className="text-[11px] text-gray-500">{info.email}</p>
+                  <p className="mt-1">
+                    <span className="font-medium">Role:</span>{" "}
+                    {info.role || "Committee"}
+                  </p>
+                </div>
+                <div>
+                  <p>
+                    <span className="font-medium">Membership No:</span>{" "}
+                    {info.membership_no || "N/A"}
+                  </p>
+                  <p>
+                    <span className="font-medium">Membership Type:</span>{" "}
+                    {info.membership_type || "Not set"}
+                  </p>
+                </div>
+                <div>
+                  <p>
+                    <span className="font-medium">NHIF No:</span>{" "}
+                    {info.nhif_number || "Not provided"}
+                  </p>
+                  <p className="mt-1">
+                    <span className="font-medium">Pending Total:</span>{" "}
+                    {typeof info.pending_total === "number"
+                      ? `${info.pending_total} claims`
+                      : "—"}
+                  </p>
+                  <p>
+                    <span className="font-medium">New Today:</span>{" "}
+                    {typeof info.today_new === "number"
+                      ? `${info.today_new} claim(s)`
+                      : "—"}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-red-600">
+                Committee profile not available.
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -171,7 +236,7 @@ export default function CommitteeDashboard() {
           <Skeleton className="h-5 w-3/4" />
         ) : todays.length === 0 ? (
           <p className="text-sm text-gray-600">
-            No claims submitted today ({today}).
+            No claims submitted today ({todayStr}).
           </p>
         ) : (
           <ul className="space-y-2 text-sm">

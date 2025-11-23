@@ -1,4 +1,3 @@
-// Frontend/src/pages/dashboard/member/index.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
 import Button from "~/components/controls/button";
@@ -8,18 +7,22 @@ import Skeleton from "~/components/loader/skeleton";
 export default function MemberDashboard() {
   const [balance, setBalance] = useState<number | null>(null);
   const [claims, setClaims] = useState<any[]>([]);
+  const [memberInfo, setMemberInfo] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const nav = useNavigate();
 
   useEffect(() => {
     async function load() {
       try {
-        const [balRes, claimRes] = await Promise.all([
+        const [balRes, claimRes, infoRes] = await Promise.all([
           api.get("members/me/benefit_balance/"),
           api.get("claims/"),
+          api.get("dashboard/member/info/"),
         ]);
+
         setBalance(balRes.data.remaining_balance);
         setClaims(claimRes.data?.results || claimRes.data || []);
+        setMemberInfo(infoRes.data);
       } catch (e) {
         console.error(e);
       } finally {
@@ -34,31 +37,84 @@ export default function MemberDashboard() {
   const approved = claims.filter((c) => c.status === "approved").length;
   const paid = claims.filter((c) => c.status === "paid").length;
 
+  const formatDate = (d?: string | null) =>
+    d ? new Date(d).toLocaleDateString() : "N/A";
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header + member profile */}
       <div className="sgss-card p-0">
         <div className="sgss-header">Member Dashboard</div>
-        <div className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <p className="text-sm text-gray-600">
-              Welcome to the SGSS Medical Fund portal.
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              View your benefit balance, track your claims, and submit new
-              claims online.
-            </p>
+        <div className="p-6 flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-sm text-gray-600">
+                Welcome to the SGSS Medical Fund portal.
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                View your benefit balance, track your claims, and submit new
+                claims online in line with the SGSS Medical Fund Byelaws.
+              </p>
+            </div>
+            <Button
+              onClick={() => nav("/dashboard/member/claims/new")}
+              className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
+            >
+              + New Claim
+            </Button>
           </div>
-          <Button
-            onClick={() => nav("/dashboard/member/claims/new")}
-            className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
-          >
-            + New Claim
-          </Button>
+
+          {/* Member profile strip */}
+          <div className="border rounded-lg bg-[var(--sgss-bg)] p-4 text-xs text-gray-700 grid md:grid-cols-2 gap-4">
+            {loading ? (
+              <>
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </>
+            ) : memberInfo ? (
+              <>
+                <div>
+                  <p className="font-semibold text-[var(--sgss-navy)] text-sm">
+                    {memberInfo.full_name || "Member"}
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    {memberInfo.email}
+                  </p>
+                  <p className="mt-1">
+                    <span className="font-medium">Membership No:</span>{" "}
+                    {memberInfo.membership_no}
+                  </p>
+                </div>
+                <div>
+                  <p>
+                    <span className="font-medium">Membership Type:</span>{" "}
+                    {memberInfo.membership_type || "Not set"}
+                  </p>
+                  <p>
+                    <span className="font-medium">NHIF No:</span>{" "}
+                    {memberInfo.nhif_number || "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <p>
+                    <span className="font-medium">Valid From:</span>{" "}
+                    {formatDate(memberInfo.valid_from)}
+                  </p>
+                  <p>
+                    <span className="font-medium">Valid To:</span>{" "}
+                    {formatDate(memberInfo.valid_to)}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-red-600">
+                Member profile not found. Please contact the SGSS committee.
+              </p>
+            )}
+          </div>
         </div>
       </div>
-
-      
 
       {/* Cards */}
       <div className="grid md:grid-cols-4 gap-4">

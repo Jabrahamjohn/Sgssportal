@@ -1,6 +1,6 @@
 // Frontend/src/pages/dashboard/committee/claim.tsx
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "~/config/api";
 import Skeleton from "~/components/loader/skeleton";
 import Button from "~/components/controls/button";
@@ -95,7 +95,7 @@ export default function CommitteeClaimDetail() {
         status,
         ...(note ? { note } : {}),
       });
-      await load(); // refresh
+      await load(); // refresh after successful action
     } catch (e) {
       console.error(e);
       alert("Failed to update status. Check console / backend logs.");
@@ -131,6 +131,15 @@ export default function CommitteeClaimDetail() {
   const { member, claim, items, attachments } = data;
   const currentStatus = (claim.status || "").toLowerCase();
 
+  // Visibility rules (Option B: hide actions when not applicable)
+  const canReview = currentStatus === "submitted";
+  const canApprove = currentStatus === "submitted" || currentStatus === "reviewed";
+  const canReject =
+    currentStatus === "submitted" ||
+    currentStatus === "reviewed" ||
+    currentStatus === "approved";
+  const canMarkPaid = currentStatus === "approved";
+
   return (
     <div className="space-y-6">
       {/* Header + actions */}
@@ -151,37 +160,52 @@ export default function CommitteeClaimDetail() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 justify-end">
-            <StatusBadge status={claim.status} />
+          <div className="flex flex-wrap gap-3 justify-end items-center">
+            <StatusBadge
+              status={claim.status}
+              className="rounded-lg px-3 py-1"
+            />
 
-            <Button
-              variant="outline"
-              disabled={acting}
-              onClick={() => handleStatusChange("reviewed", true)}
-            >
-              Mark Reviewed
-            </Button>
-            <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              disabled={acting || currentStatus === "approved"}
-              onClick={() => handleStatusChange("approved", true)}
-            >
-              Approve
-            </Button>
-            <Button
-              className="bg-red-600 hover:bg-red-700 text-white"
-              disabled={acting || currentStatus === "rejected"}
-              onClick={() => handleStatusChange("rejected", true)}
-            >
-              Reject
-            </Button>
-            <Button
-              className="bg-[var(--sgss-navy)] hover:bg-[#04146a] text-white"
-              disabled={acting || currentStatus === "paid"}
-              onClick={() => handleStatusChange("paid", true)}
-            >
-              Mark Paid
-            </Button>
+            {/* Actions – only show when applicable */}
+            {canReview && (
+              <Button
+                variant="outline"
+                disabled={acting}
+                onClick={() => handleStatusChange("reviewed", true)}
+              >
+                Mark Reviewed
+              </Button>
+            )}
+
+            {canApprove && (
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                disabled={acting}
+                onClick={() => handleStatusChange("approved", true)}
+              >
+                Approve
+              </Button>
+            )}
+
+            {canReject && (
+              <Button
+                className="bg-red-600 hover:bg-red-700 text-white"
+                disabled={acting}
+                onClick={() => handleStatusChange("rejected", true)}
+              >
+                Reject
+              </Button>
+            )}
+
+            {canMarkPaid && (
+              <Button
+                className="bg-[var(--sgss-navy)] hover:bg-[#04146a] text-white"
+                disabled={acting}
+                onClick={() => handleStatusChange("paid", true)}
+              >
+                Mark Paid
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -259,11 +283,11 @@ export default function CommitteeClaimDetail() {
                   <tr key={i.id} className="border-b last:border-b-0">
                     <td className="py-2 pr-4">{i.category || "—"}</td>
                     <td className="py-2 pr-4">
-                      {i.description || <span className="text-gray-400">—</span>}
+                      {i.description || (
+                        <span className="text-gray-400">—</span>
+                      )}
                     </td>
-                    <td className="py-2 pr-4">
-                      {formatMoney(i.amount)}
-                    </td>
+                    <td className="py-2 pr-4">{formatMoney(i.amount)}</td>
                     <td className="py-2 pr-4">{i.quantity}</td>
                     <td className="py-2 pr-4 font-medium">
                       {formatMoney(i.line_total)}
@@ -300,7 +324,8 @@ export default function CommitteeClaimDetail() {
                   </p>
                   <p className="text-xs text-gray-500">
                     Type: {a.content_type || "N/A"} • Uploaded by{" "}
-                    {a.uploaded_by || "—"} on {formatDateTime(a.uploaded_at)}
+                    {a.uploaded_by || "—"} on{" "}
+                    {formatDateTime(a.uploaded_at)}
                   </p>
                 </div>
                 {a.file && (
@@ -322,7 +347,13 @@ export default function CommitteeClaimDetail() {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({
+  status,
+  className = "",
+}: {
+  status: string;
+  className?: string;
+}) {
   const s = (status || "").toLowerCase();
   let cls = "bg-gray-100 text-gray-700";
 
@@ -334,7 +365,7 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cls} ${className}`}
     >
       {status}
     </span>

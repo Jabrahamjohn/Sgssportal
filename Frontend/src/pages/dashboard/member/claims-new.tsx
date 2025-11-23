@@ -172,7 +172,7 @@ export default function NewClaim() {
 
       <div className="grid md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Claim Type</label>
+          <label className="block text-pretty font-medium mb-1">Claim Type</label>
           <select
             className="border rounded px-2 py-2 w-full"
             value={type}
@@ -180,16 +180,16 @@ export default function NewClaim() {
               setType(e.target.value as "outpatient" | "inpatient" | "chronic")
             }
           >
-            <option value="outpatient">Outpatient</option>
-            <option value="inpatient">Inpatient</option>
+            <option value="outpatient">OutPatient</option>
+            <option value="inpatient">InPatient</option>
             <option value="chronic">Chronic Illness</option>
           </select>
         </div>
       </div>
 
-      <div className="border rounded p-4 bg-white shadow-sm">{renderForm()}</div>
+      <div className="border rounded p-4 bg-gray-300 shadow-sm">{renderForm()}</div>
 
-      <div className="border rounded p-4">
+      <div className="border rounded-full p-6">
         <h3 className="font-medium mb-2">Attachments</h3>
         <input
           type="file"
@@ -210,7 +210,7 @@ export default function NewClaim() {
       {overLimit && (
         <Alert
           type="warning"
-          message={`⚠️ Your total (Ksh ${total.toLocaleString()}) exceeds the allowed limit (Ksh ${limit.toLocaleString()}). Adjust before proceeding.`}
+          message={`⚠️ Your Total (Ksh ${total.toLocaleString()}) exceeds the allowed limit (Ksh ${limit.toLocaleString()}). Adjust before proceeding.`}
         />
       )}
       {err && <Alert type="error" message={err} />}
@@ -219,7 +219,9 @@ export default function NewClaim() {
         <Button onClick={() => nav(-1)} variant="outline">
           Cancel
         </Button>
-        <Button onClick={() => setShowSummary(true)} disabled={!canSubmit}>
+        <Button onClick={() => setShowSummary(true)} disabled={!canSubmit}
+          className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
+          >
           Review & Submit
         </Button>
       </div>
@@ -230,14 +232,14 @@ export default function NewClaim() {
           onClose={() => setShowSummary(false)}
           title="Claim Summary Preview"
         >
-          <div className="space-y-4">
-            <p className="text-gray-700">
+          <div className="space-y-4 text-lg m-7">
+            <p className="text-[#caa631]">
               Please review your claim details before submission. Ensure all
               entries comply with the{" "}
-              <strong>SGSS Medical Fund Byelaws (2024)</strong>.
+              <strong className="text-red-700">SGSS Medical Fund Byelaws (2024)</strong>.
             </p>
 
-            <div className="border rounded p-3 bg-gray-50 text-sm space-y-1">
+            <div className="border rounded-se-lg p-3 bg-gray-50 text-sm space-y-4">
               <p>
                 <strong>Claim Type:</strong> {type}
               </p>
@@ -270,11 +272,12 @@ export default function NewClaim() {
               />
             )}
 
-            <div className="flex justify-end gap-3 pt-3">
+            <div className="flex justify-evenly gap-3 pt-3">
               <Button variant="outline" onClick={() => setShowSummary(false)}>
                 Edit
               </Button>
-              <Button onClick={handleSubmit} disabled={busy || overLimit}>
+              <Button onClick={handleSubmit} disabled={busy || overLimit}
+              className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white">
                 {busy ? "Submitting…" : "Confirm & Submit"}
               </Button>
             </div>

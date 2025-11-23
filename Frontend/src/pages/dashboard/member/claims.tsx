@@ -70,7 +70,9 @@ export default function MemberClaimsList() {
             View all claims submitted under your SGSS Medical Fund membership.
           </p>
         </div>
-        <Button onClick={() => nav("/dashboard/member/claims/new")}>
+        <Button
+          onClick={() => nav("/dashboard/member/claims/new")}
+          className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white">
           + New Claim
         </Button>
       </div>

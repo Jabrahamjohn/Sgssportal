@@ -1,3 +1,4 @@
+# Backend/medical/views.py
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.models import Group
 from django.db import transaction
@@ -574,17 +575,39 @@ def csrf_cookie(request):
 @permission_classes([AllowAny])
 def register_view(request):
     """
-    Public registration endpoint (prospective membership).
-    Committee later approves from dashboard.
+    Public registration endpoint.
 
     JSON body:
-      - username, email, password, first_name, last_name
-      - membership_type: key (single | family | joint | life | patron | vice_patron ...)
-      - mailing_address, phone_* fields
-      - family_doctor_* fields
-      - nhif_number, other_medical_scheme
-      - dependants: [{ full_name, date_of_birth, blood_group, id_number }]
+    {
+      "username": "",
+      "email": "",
+      "password": "",
+      "first_name": "",
+      "last_name": "",
+      "membership_type": "single" | "family" | "joint" | "life" | "patron" | "vice_patron" | "senior",
+      "mailing_address": "",
+      "phone_office": "",
+      "phone_home": "",
+      "phone_fax": "",
+      "phone_mobile": "",
+      "family_doctor_name": "",
+      "family_doctor_phone_office": "",
+      "family_doctor_phone_home": "",
+      "family_doctor_phone_fax": "",
+      "family_doctor_phone_mobile": "",
+      "nhif_number": "",
+      "other_medical_scheme": "",
+      "dependants": [
+        {
+          "full_name": "",
+          "date_of_birth": "YYYY-MM-DD",
+          "blood_group": "",
+          "id_number": ""
+        }
+      ]
+    }
     """
+
     data = request.data
     username = data.get("username")
     email = data.get("email")
@@ -603,6 +626,7 @@ def register_view(request):
     if User.objects.filter(email=email).exists():
         return Response({"detail": "Email already registered."}, status=status.HTTP_400_BAD_REQUEST)
 
+    # 1️⃣ Create User
     user = User.objects.create_user(
         username=username,
         email=email,
@@ -614,6 +638,7 @@ def register_view(request):
     member_group, _ = Group.objects.get_or_create(name="Member")
     user.groups.add(member_group)
 
+    # 2️⃣ Membership Type
     mt_key = data.get("membership_type") or "single"
     try:
         mt = MembershipType.objects.get(key=mt_key)
@@ -622,6 +647,7 @@ def register_view(request):
 
     today = timezone.now().date()
 
+    # 3️⃣ Create Member in PENDING status (committee must approve)
     member = Member.objects.create(
         user=user,
         membership_type=mt,
@@ -643,6 +669,7 @@ def register_view(request):
         benefits_from=today + timezone.timedelta(days=60),
     )
 
+    # 4️⃣ Optional dependants
     dependants = data.get("dependants") or []
     for d in dependants:
         MemberDependent.objects.create(
@@ -653,7 +680,7 @@ def register_view(request):
             id_number=d.get("id_number", ""),
         )
 
-    # Notify Committee
+    # 5️⃣ Notify Committee
     committee_group = Group.objects.filter(name="Committee").first()
     if committee_group:
         for c_user in committee_group.user_set.all():

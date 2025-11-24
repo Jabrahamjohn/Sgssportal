@@ -720,7 +720,7 @@ function ChronicForm({ data, onChange }: any) {
       {medicines.map((m: any, i: number) => (
         <div
           key={i}
-          className="grid md:grid-cols-5 gap-2 bg-white border border-gray-200 p-3 rounded-xl"
+          className="grid md:grid-cols-4 gap-2 bg-white border border-gray-200 p-3 rounded-xl"
         >
           <Input
             label="Name of Medicine"

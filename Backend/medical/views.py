@@ -309,17 +309,23 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return Notification.objects.none()
+        return Notification.objects.filter(
+            recipient=self.request.user
+        ).order_by('-created_at')
 
-        return Notification.objects.filter(recipient=self.request.user).order_by('-created_at')
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = NotificationSerializer(queryset, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def mark_read(self, request, pk=None):
         notif = self.get_object()
         notif.read = True
         notif.save(update_fields=["read"])
-        return Response({"status": "marked"})
+        return Response({"ok": True})
+
 
 
 # ============================================================
@@ -677,10 +683,14 @@ def notify(user, title, message, link=None, typ="system"):
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def mark_notifications_read(request):
-    Notification.objects.filter(recipient=request.user, read=False)\
-        .update(read=True)
-    return Response({"ok": True})
+    Notification.objects.filter(
+        recipient=request.user,
+        read=False
+    ).update(read=True)
+
+    return Response({"ok": True, "message": "All notifications marked as read"})
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])

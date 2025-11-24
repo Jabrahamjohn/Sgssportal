@@ -50,18 +50,38 @@ class MemberViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
-        # Admin/Committee full control; member read/own profile
-        if self.action in ["list", "create", "destroy", "update", "partial_update", "approve"]:
-            return [permissions.IsAuthenticated(), IsAdmin() or IsCommittee()]
+        # Admin & Committee can list/modify
+        if self.action in ["list", "update", "partial_update", "destroy", "approve"]:
+            return [permissions.IsAuthenticated(), IsCommittee()]
+        # Members can view their own profile
         if self.action in ["retrieve"]:
             return [permissions.IsAuthenticated(), IsSelfOrAdmin()]
         return super().get_permissions()
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        # For Swagger fake view
+        if getattr(self, "swagger_fake_view", False):
+            return qs.none()
+
+        user = self.request.user
+
+        # Committee / Admin see all
+        if user.is_superuser or user.groups.filter(name__in=["Admin", "Committee"]).exists():
+            status_f = self.request.GET.get("status")
+            if status_f:
+                qs = qs.filter(status=status_f)
+            return qs
+
+        # Normal member sees only own record
+        return qs.filter(user=user)
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsCommittee])
     def approve(self, request, pk=None):
         member = self.get_object()
         if member.status == "active":
-            return Response({"detail": "Membership already active."})
+            return Response({"detail": "Already active."})
 
         today = timezone.now().date()
         term_years = member.membership_type.term_years or 2
@@ -69,9 +89,10 @@ class MemberViewSet(viewsets.ModelViewSet):
         member.status = "active"
         member.valid_from = today
         member.valid_to = today.replace(year=today.year + term_years)
+        # benefits_from already set at registration (today+60); keep as is
         member.save(update_fields=["status", "valid_from", "valid_to"])
 
-        # Notify the user
+        # Notify the member
         notify(
             member.user,
             "Membership Approved",
@@ -80,6 +101,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         )
 
         return Response(MemberSerializer(member).data)
+
 
 
 # ============================================================

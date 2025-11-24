@@ -6,6 +6,7 @@ import Input from "~/components/controls/input";
 import Alert from "~/components/controls/alert";
 import Modal from "~/components/controls/modal";
 import { useNavigate } from "react-router-dom";
+import { ArrowUpTrayIcon } from "@heroicons/react/24/outline";
 
 import jsPDF from "jspdf";
 
@@ -110,7 +111,7 @@ export default function NewClaim() {
         for (const f of files) {
           const form = new FormData();
           form.append("file", f);
-          form.append("claim", claimId);   // <-- THIS IS THE FIX
+          form.append("claim", claimId);
 
           await api.post("claim-attachments/", form, {
             headers: { "Content-Type": "multipart/form-data" },
@@ -121,8 +122,9 @@ export default function NewClaim() {
             },
           });
         }
-      setUploadProgress(null);
+        setUploadProgress(null);
       }
+
       // generate + upload PDF summary (best-effort)
       try {
         await generateClaimPDF({
@@ -160,53 +162,145 @@ export default function NewClaim() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-2xl font-semibold">New Claim</h2>
+    <div className="space-y-6">
+      {/* Header + basic info */}
+      <div className="sgss-card p-0">
+        <div className="sgss-header">New Claim</div>
+        <div className="p-6 space-y-4">
+          {balance !== null && (
+            <Alert
+              type="info"
+              message={`Your remaining annual benefit balance is Ksh ${balance.toLocaleString()}`}
+            />
+          )}
 
-      {balance !== null && (
-        <Alert
-          type="info"
-          message={`Your remaining annual benefit balance is Ksh ${balance.toLocaleString()}`}
-        />
-      )}
-
-      <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-pretty font-medium mb-1">Claim Type</label>
-          <select
-            className="border rounded px-2 py-2 w-full"
-            value={type}
-            onChange={(e) =>
-              setType(e.target.value as "outpatient" | "inpatient" | "chronic")
-            }
-          >
-            <option value="outpatient">OutPatient</option>
-            <option value="inpatient">InPatient</option>
-            <option value="chronic">Chronic Illness</option>
-          </select>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-600">
+                Complete this form to submit a claim in line with the SGSS
+                Medical Fund Byelaws (2024).
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Ensure all invoices, receipts and NHIF details are accurate
+                before you proceed to review & submit.
+              </p>
+            </div>
+            <div>
+              <label className="block font-medium mb-1 text-sm">
+                Claim Type
+              </label>
+              <select
+                className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sgss-navy)]"
+                value={type}
+                onChange={(e) =>
+                  setType(
+                    e.target.value as "outpatient" | "inpatient" | "chronic"
+                  )
+                }
+              >
+                <option value="outpatient">Out-Patient</option>
+                <option value="inpatient">In-Patient</option>
+                <option value="chronic">Chronic Illness</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="border rounded p-4 bg-gray-300 shadow-sm">{renderForm()}</div>
+      {/* Form + quick totals */}
+      <div className="sgss-card bg-gray-50">
+        <h3 className="font-semibold text-[var(--sgss-navy)] mb-3">
+          Claim Details
+        </h3>
 
-      <div className="border rounded-full p-6">
-        <h3 className="font-medium mb-2">Attachments</h3>
-        <input
-          type="file"
-          multiple
-          onChange={(e) => setFiles(Array.from(e.target.files || []))}
-        />
+        <div className="space-y-4">
+          {renderForm()}
+        </div>
+
+        {/* Totals strip */}
+        <div className="mt-5 grid md:grid-cols-3 gap-3 text-xs">
+          <div className="bg-white border border-gray-200 rounded-xl p-3">
+            <p className="uppercase tracking-[0.12em] text-[10px] text-gray-500">
+              Total Claimed
+            </p>
+            <p className="text-lg font-semibold text-[var(--sgss-navy)] mt-1">
+              Ksh {total.toLocaleString()}
+            </p>
+          </div>
+          <div className="bg-[var(--sgss-navy)] rounded-xl p-3 text-white">
+            <p className="uppercase tracking-[0.12em] text-[10px] text-white/70">
+              Fund Liability (80%)
+            </p>
+            <p className="text-lg font-semibold mt-1">
+              Ksh {fundShare.toLocaleString()}
+            </p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-3">
+            <p className="uppercase tracking-[0.12em] text-[10px] text-gray-500">
+              Member Share (20%)
+            </p>
+            <p className="text-lg font-semibold text-[var(--sgss-navy)] mt-1">
+              Ksh {memberShare.toLocaleString()}
+            </p>
+            <p className="text-[10px] text-gray-500 mt-1">
+              Annual limit: Ksh {limit.toLocaleString()}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Attachments */}
+      <div className="sgss-card">
+        <h3 className="font-semibold text-[var(--sgss-navy)] mb-2">
+          Attachments
+        </h3>
+        <p className="text-xs text-gray-500 mb-3">
+          Upload scanned hospital bills, receipts, NHIF statements and any
+          supporting documents.
+        </p>
+
+        <label className="block border-2 border-dashed border-gray-300 rounded-xl px-4 py-6 cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+          <div className="flex flex-col items-center gap-2">
+            <ArrowUpTrayIcon className="w-6 h-6 text-gray-500" />
+            <p className="text-sm text-gray-700">
+              Click to browse or drag & drop files here
+            </p>
+            <p className="text-[11px] text-gray-500">
+              PDF, JPG, PNG – multiple files allowed
+            </p>
+          </div>
+          <input
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => setFiles(Array.from(e.target.files || []))}
+          />
+        </label>
+
+        {files.length > 0 && (
+          <ul className="mt-3 text-xs text-gray-700 space-y-1">
+            {files.map((f, idx) => (
+              <li key={idx} className="flex justify-between">
+                <span className="truncate max-w-xs">{f.name}</span>
+                <span className="text-gray-500">
+                  {(f.size / 1024).toFixed(1)} KB
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {uploadProgress !== null && uploadProgress < 100 && (
-          <div className="mt-3 w-full bg-gray-100 rounded h-2">
+          <div className="mt-4 w-full bg-gray-100 rounded-full h-2">
             <div
-              className="bg-purple-600 h-2 rounded"
+              className="bg-[var(--sgss-navy)] h-2 rounded-full"
               style={{ width: `${uploadProgress}%` }}
             />
           </div>
         )}
       </div>
 
+      {/* Warnings / errors */}
       {overLimit && (
         <Alert
           type="warning"
@@ -215,31 +309,38 @@ export default function NewClaim() {
       )}
       {err && <Alert type="error" message={err} />}
 
+      {/* Actions */}
       <div className="flex gap-3">
         <Button onClick={() => nav(-1)} variant="outline">
           Cancel
         </Button>
-        <Button onClick={() => setShowSummary(true)} disabled={!canSubmit}
+        <Button
+          onClick={() => setShowSummary(true)}
+          disabled={!canSubmit}
           className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
-          >
+        >
           Review & Submit
         </Button>
       </div>
 
+      {/* Summary modal */}
       {showSummary && (
         <Modal
           open
           onClose={() => setShowSummary(false)}
           title="Claim Summary Preview"
         >
-          <div className="space-y-4 text-lg m-7">
-            <p className="text-[#caa631]">
+          <div className="space-y-4 text-sm m-1 md:m-4">
+            <p className="text-[var(--sgss-gold)]">
               Please review your claim details before submission. Ensure all
               entries comply with the{" "}
-              <strong className="text-red-700">SGSS Medical Fund Byelaws (2024)</strong>.
+              <strong className="text-red-700">
+                SGSS Medical Fund Byelaws (2024)
+              </strong>
+              .
             </p>
 
-            <div className="border rounded-se-lg p-3 bg-gray-50 text-sm space-y-4">
+            <div className="border rounded-lg p-3 bg-gray-50 text-sm space-y-2">
               <p>
                 <strong>Claim Type:</strong> {type}
               </p>
@@ -272,12 +373,15 @@ export default function NewClaim() {
               />
             )}
 
-            <div className="flex justify-evenly gap-3 pt-3">
+            <div className="flex justify-end gap-3 pt-3">
               <Button variant="outline" onClick={() => setShowSummary(false)}>
                 Edit
               </Button>
-              <Button onClick={handleSubmit} disabled={busy || overLimit}
-              className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white">
+              <Button
+                onClick={handleSubmit}
+                disabled={busy || overLimit}
+                className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
+              >
                 {busy ? "Submitting…" : "Confirm & Submit"}
               </Button>
             </div>
@@ -287,7 +391,6 @@ export default function NewClaim() {
     </div>
   );
 }
-
 
 /* ---------------------------------------------------------------------- */
 /* 🧮 Computation Helper                                                   */
@@ -307,8 +410,7 @@ function computeClaimTotals(data: any, type: string) {
   let total = 0;
 
   if (type === "outpatient") {
-    // Outpatient form sections map to the official form:
-    const consultation_fee = toNumber(data.consultation_fee); // total consultations
+    const consultation_fee = toNumber(data.consultation_fee);
     const house_visit_cost = toNumber(data.house_visit_cost);
     const medicine_cost = toNumber(data.medicine_cost);
     const investigation_cost = toNumber(data.investigation_cost);
@@ -338,8 +440,6 @@ function computeClaimTotals(data: any, type: string) {
       discounts_total;
 
     if (isCritical) {
-      // note: this matches your existing "top-up" behaviour;
-      // final Byelaw enforcement will be in Step 3 in backend.
       total += 200000;
     }
   } else if (type === "chronic") {
@@ -367,8 +467,10 @@ function OutpatientForm({ data, onChange }: any) {
   return (
     <div className="space-y-4">
       {/* Part A: Consultations */}
-      <div className="border rounded p-3">
-        <h4 className="font-semibold mb-2">Part A – Consultations</h4>
+      <div className="bg-white border border-gray-200 rounded-xl p-3">
+        <h4 className="font-semibold mb-2 text-[var(--sgss-navy)]">
+          Part A – Consultations
+        </h4>
         <div className="grid md:grid-cols-2 gap-3">
           <Input
             label="Date of 1st Visit"
@@ -401,7 +503,7 @@ function OutpatientForm({ data, onChange }: any) {
           />
         </div>
 
-        <div className="mt-3 flex items-center gap-3">
+        <div className="mt-3 flex flex-col md:flex-row md:items-center gap-3">
           <label className="inline-flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -422,8 +524,10 @@ function OutpatientForm({ data, onChange }: any) {
       </div>
 
       {/* Part B: Medicines / Injections */}
-      <div className="border rounded p-3">
-        <h4 className="font-semibold mb-2">Part B – Medicines / Injections</h4>
+      <div className="bg-white border border-gray-200 rounded-xl p-3">
+        <h4 className="font-semibold mb-2 text-[var(--sgss-navy)]">
+          Part B – Medicines / Injections
+        </h4>
         <Input
           label="Total Medicines / Injections Cost (Ksh)"
           type="number"
@@ -435,8 +539,10 @@ function OutpatientForm({ data, onChange }: any) {
       </div>
 
       {/* Part C: Investigations */}
-      <div className="border rounded p-3">
-        <h4 className="font-semibold mb-2">Part C – Investigations</h4>
+      <div className="bg-white border border-gray-200 rounded-xl p-3">
+        <h4 className="font-semibold mb-2 text-[var(--sgss-navy)]">
+          Part C – Investigations
+        </h4>
         <Input
           label="Total Investigations Cost (Ksh)"
           type="number"
@@ -448,8 +554,10 @@ function OutpatientForm({ data, onChange }: any) {
       </div>
 
       {/* Part D: Procedures */}
-      <div className="border rounded p-3">
-        <h4 className="font-semibold mb-2">Part D – Procedures</h4>
+      <div className="bg-white border border-gray-200 rounded-xl p-3">
+        <h4 className="font-semibold mb-2 text-[var(--sgss-navy)]">
+          Part D – Procedures
+        </h4>
         <Input
           label="Total Procedures Cost (Ksh)"
           type="number"
@@ -460,7 +568,7 @@ function OutpatientForm({ data, onChange }: any) {
         />
       </div>
 
-      <div className="text-right border-t pt-2 text-sm">
+      <div className="text-right border-t pt-2 text-sm text-gray-700 mt-2">
         Fund: Ksh {fundShare.toLocaleString()} | Member: Ksh{" "}
         {memberShare.toLocaleString()}
       </div>
@@ -474,8 +582,10 @@ function InpatientForm({ data, onChange }: any) {
   return (
     <div className="space-y-4">
       {/* Part A: Diagnosis & Hospital Stay */}
-      <div className="border rounded p-3 space-y-3">
-        <h4 className="font-semibold mb-2">Part A – Diagnosis & Stay</h4>
+      <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-3">
+        <h4 className="font-semibold mb-2 text-[var(--sgss-navy)]">
+          Part A – Diagnosis & Stay
+        </h4>
         <Input
           label="Hospital Name"
           value={data.hospital_name || ""}
@@ -499,7 +609,7 @@ function InpatientForm({ data, onChange }: any) {
             }
           />
         </div>
-        <div className="grid md:grid-cols-2 gap-3">
+        <div className="grid md:grid-cols-3 gap-3">
           <Input
             label="Bed Charge per Day (Ksh)"
             type="number"
@@ -528,8 +638,8 @@ function InpatientForm({ data, onChange }: any) {
       </div>
 
       {/* Part D/E/F/G Totals */}
-      <div className="border rounded p-3 space-y-3">
-        <h4 className="font-semibold mb-2">
+      <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-3">
+        <h4 className="font-semibold mb-2 text-[var(--sgss-navy)]">
           Parts D–G – Inpatient, Doctors, Claimable, Discounts
         </h4>
         <Input
@@ -577,7 +687,7 @@ function InpatientForm({ data, onChange }: any) {
         </div>
       </div>
 
-      <div className="text-right border-t pt-2 text-sm">
+      <div className="text-right border-t pt-2 text-sm text-gray-700 mt-2">
         Fund: Ksh {fundShare.toLocaleString()} | Member: Ksh{" "}
         {memberShare.toLocaleString()}
       </div>
@@ -603,12 +713,15 @@ function ChronicForm({ data, onChange }: any) {
   const { total } = computeClaimTotals(data, "chronic");
 
   return (
-    <div className="space-y-1">
-      <h4 className="font-semibold mb-2">
+    <div className="space-y-3">
+      <h4 className="font-semibold mb-1 text-[var(--sgss-navy)]">
         Chronic Illness Medicines (per official requisition form)
       </h4>
       {medicines.map((m: any, i: number) => (
-        <div key={i} className="grid md:grid-cols-6 gap-1 border p-4 rounded">
+        <div
+          key={i}
+          className="grid md:grid-cols-5 gap-2 bg-white border border-gray-200 p-3 rounded-xl"
+        >
           <Input
             label="Name of Medicine"
             value={m.name}
@@ -640,7 +753,7 @@ function ChronicForm({ data, onChange }: any) {
       <Button variant="outline" onClick={addMed}>
         + Add Medicine
       </Button>
-      <div className="text-right text-sm border-t pt-2">
+      <div className="text-right text-sm border-t pt-2 text-gray-700">
         Total: Ksh {total.toLocaleString()}
       </div>
     </div>

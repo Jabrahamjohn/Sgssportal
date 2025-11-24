@@ -41,6 +41,7 @@ urlpatterns = [
 
     # ✅ new admin summary endpoint
     path("dashboard/admin/summary/", views.admin_dashboard_summary, name="admin-dashboard-summary"),
+    path("dashboard/admin/audit/", views.audit_all_logs, name="admin-dashboard-audit"),
 
     # include router
     path("", include(router.urls)),

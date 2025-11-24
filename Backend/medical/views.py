@@ -201,6 +201,8 @@ class ClaimReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         review = serializer.save(reviewer=self.request.user)
         claim = review.claim
+
+        # status logic
         if review.action == "approved":
             claim.status = "approved"
         elif review.action == "rejected":
@@ -209,8 +211,28 @@ class ClaimReviewViewSet(viewsets.ModelViewSet):
             claim.status = "paid"
         elif review.action == "reviewed":
             claim.status = "reviewed"
+
         claim.save(update_fields=["status"])
         claim.compute_payable()
+
+        # 🔎 audit log for reviews (system-wide trace)
+        from .audit import log_claim_event
+
+        role = (
+            self.request.user.groups.values_list("name", flat=True).first()
+            or ("admin" if self.request.user.is_superuser else "member")
+        )
+
+        log_claim_event(
+            claim=claim,
+            actor=self.request.user,
+            action=f"review:{review.action}",
+            note=review.note,
+            role=role,
+            meta={
+                "review_id": str(review.id),
+            },
+        )
 
 
 # ============================================================
@@ -935,3 +957,11 @@ def admin_dashboard_summary(request):
         "chronic_requests": chronic_requests,
         "monthly": monthly,
     })
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated, IsAdmin])
+def audit_all_logs(request):
+    logs = AuditLog.objects.all().order_by("-created_at")[:500]
+    data = AuditLogSerializer(logs, many=True).data
+    return Response({"results": data})
+

@@ -15,6 +15,7 @@ import ChronicPage from "./pages/dashboard/member/chronic";
 import CommitteeDashboard from "./pages/dashboard/committee";
 import CommitteeClaimDetail from "./pages/dashboard/committee/claim";
 import AdminDashboard from "./pages/dashboard/admin";
+import AdminAuditPage from "./pages/dashboard/admin/audit";
 import AdminSettings from "./pages/dashboard/admin/settings";
 import NotFound from "./pages/404";
 import { useAuth } from "~/store/contexts/AuthContext";
@@ -139,6 +140,15 @@ export default function AppRouter() {
             element={
               <Authenticated allowed={["admin"]}>
                 <AdminSettings />
+              </Authenticated>
+            }
+          />
+
+          <Route
+            path="dashboard/admin/audit"
+            element={
+              <Authenticated allowed={["admin"]}>
+                <AdminAuditPage />
               </Authenticated>
             }
           />

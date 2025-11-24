@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "~/config/api";
 import Badge from "~/components/controls/badge";
 import Button from "~/components/controls/button";
+import AuditTimeline from "~/components/sgss/AuditTimeline";
 
 export default function ClaimView() {
   const { id } = useParams();
@@ -10,6 +11,7 @@ export default function ClaimView() {
 
   const [claim, setClaim] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [audit, setAudit] = useState<any[]>([]);
 
   useEffect(() => {
     api
@@ -35,6 +37,25 @@ export default function ClaimView() {
 
   if (loading) return <div className="p-6">Loading…</div>;
   if (!claim) return <div className="p-6 text-red-600">Claim not found.</div>;
+
+  const load = async () => {
+  if (!id) return;
+
+  try {
+    const [detailRes, auditRes] = await Promise.all([
+      api.get(`claims/committee/${id}/`),
+      api.get(`claims/${id}/audit/`)
+    ]);
+
+    setData(detailRes.data);
+    setAudit(auditRes.data.results || []);
+  } catch (e) {
+    console.error(e);
+  } finally {
+    setLoading(false);
+  }
+  };
+
 
   return (
     <div className="p-6 space-y-4">
@@ -84,6 +105,13 @@ export default function ClaimView() {
         ))}
       </div>
 
+      {/* Audit Timeline */}
+      <div className="sgss-card">
+        <p className="font-semibold text-[var(--sgss-navy)] mb-2">
+          Audit Trail
+        </p>
+        <AuditTimeline logs={audit} />
+      </div>
       <Button onClick={() => nav(-1)} variant="outline">
         Back to Claims
       </Button>

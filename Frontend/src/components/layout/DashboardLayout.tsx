@@ -94,6 +94,7 @@ export default function DashboardLayout({ children }: any) {
               label="New Claim"
               active={isActive("/dashboard/member/claims/new")}
             />
+            
           </div>
 
           {/* COMMITTEE SECTION */}
@@ -130,6 +131,12 @@ export default function DashboardLayout({ children }: any) {
                 icon={Cog6ToothIcon}
                 label="System Settings"
                 active={isActive("/dashboard/admin/settings")}
+              />
+              <NavItem
+                to="/dashboard/admin/audit"
+                icon={ShieldCheckIcon}
+                label="Audit Logs"
+                active={isActive("/dashboard/admin/audit")}
               />
             </div>
           )}

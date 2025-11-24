@@ -44,18 +44,35 @@ type CommitteeClaimResponse = {
   }[];
 };
 
+type AuditEntry = {
+  id?: string;
+  action?: string;
+  note?: string | null;
+  role?: string | null;
+  created_at?: string;
+  actor?: any;
+  [key: string]: any;
+};
+
 export default function CommitteeClaimDetail() {
   const { id } = useParams();
   const nav = useNavigate();
   const [data, setData] = useState<CommitteeClaimResponse | null>(null);
+  const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
 
   const load = async () => {
     if (!id) return;
     try {
-      const res = await api.get(`claims/committee/${id}/`);
-      setData(res.data);
+      const [claimRes, auditRes] = await Promise.all([
+        api.get(`claims/committee/${id}/`),
+        api.get(`claims/${id}/audit/`),
+      ]);
+
+      setData(claimRes.data);
+      const auditList = auditRes.data?.results || auditRes.data || [];
+      setAudit(auditList);
     } catch (e) {
       console.error(e);
     } finally {
@@ -95,7 +112,7 @@ export default function CommitteeClaimDetail() {
         status,
         ...(note ? { note } : {}),
       });
-      await load(); // refresh after successful action
+      await load(); // refresh claim + audit
     } catch (e) {
       console.error(e);
       alert("Failed to update status. Check console / backend logs.");
@@ -131,15 +148,6 @@ export default function CommitteeClaimDetail() {
   const { member, claim, items, attachments } = data;
   const currentStatus = (claim.status || "").toLowerCase();
 
-  // Visibility rules (Option B: hide actions when not applicable)
-  const canReview = currentStatus === "submitted";
-  const canApprove = currentStatus === "submitted" || currentStatus === "reviewed";
-  const canReject =
-    currentStatus === "submitted" ||
-    currentStatus === "reviewed" ||
-    currentStatus === "approved";
-  const canMarkPaid = currentStatus === "approved";
-
   return (
     <div className="space-y-6">
       {/* Header + actions */}
@@ -160,52 +168,37 @@ export default function CommitteeClaimDetail() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3 justify-end items-center">
-            <StatusBadge
-              status={claim.status}
-              className="rounded-lg px-3 py-1"
-            />
+          <div className="flex flex-wrap gap-3 justify-end">
+            <StatusBadge status={claim.status} />
 
-            {/* Actions – only show when applicable */}
-            {canReview && (
-              <Button
-                variant="outline"
-                disabled={acting}
-                onClick={() => handleStatusChange("reviewed", true)}
-              >
-                Mark Reviewed
-              </Button>
-            )}
-
-            {canApprove && (
-              <Button
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={acting}
-                onClick={() => handleStatusChange("approved", true)}
-              >
-                Approve
-              </Button>
-            )}
-
-            {canReject && (
-              <Button
-                className="bg-red-600 hover:bg-red-700 text-white"
-                disabled={acting}
-                onClick={() => handleStatusChange("rejected", true)}
-              >
-                Reject
-              </Button>
-            )}
-
-            {canMarkPaid && (
-              <Button
-                className="bg-[var(--sgss-navy)] hover:bg-[#04146a] text-white"
-                disabled={acting}
-                onClick={() => handleStatusChange("paid", true)}
-              >
-                Mark Paid
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              disabled={acting}
+              onClick={() => handleStatusChange("reviewed", true)}
+            >
+              Mark Reviewed
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={acting || currentStatus === "approved"}
+              onClick={() => handleStatusChange("approved", true)}
+            >
+              Approve
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={acting || currentStatus === "rejected"}
+              onClick={() => handleStatusChange("rejected", true)}
+            >
+              Reject
+            </Button>
+            <Button
+              className="bg-[var(--sgss-navy)] hover:bg-[#04146a] text-white"
+              disabled={acting || currentStatus === "paid"}
+              onClick={() => handleStatusChange("paid", true)}
+            >
+              Mark Paid
+            </Button>
           </div>
         </div>
       </div>
@@ -287,7 +280,9 @@ export default function CommitteeClaimDetail() {
                         <span className="text-gray-400">—</span>
                       )}
                     </td>
-                    <td className="py-2 pr-4">{formatMoney(i.amount)}</td>
+                    <td className="py-2 pr-4">
+                      {formatMoney(i.amount)}
+                    </td>
                     <td className="py-2 pr-4">{i.quantity}</td>
                     <td className="py-2 pr-4 font-medium">
                       {formatMoney(i.line_total)}
@@ -324,8 +319,7 @@ export default function CommitteeClaimDetail() {
                   </p>
                   <p className="text-xs text-gray-500">
                     Type: {a.content_type || "N/A"} • Uploaded by{" "}
-                    {a.uploaded_by || "—"} on{" "}
-                    {formatDateTime(a.uploaded_at)}
+                    {a.uploaded_by || "—"} on {formatDateTime(a.uploaded_at)}
                   </p>
                 </div>
                 {a.file && (
@@ -343,17 +337,63 @@ export default function CommitteeClaimDetail() {
           </ul>
         )}
       </div>
+
+      {/* 🔍 Audit Trail */}
+      <div className="sgss-card">
+        <p className="font-semibold text-[var(--sgss-navy)] mb-2">
+          Audit Trail
+        </p>
+
+        {audit.length === 0 ? (
+          <p className="text-sm text-gray-600">
+            No audit entries recorded for this claim yet.
+          </p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {audit.map((entry, idx) => {
+              const when = entry.created_at
+                ? new Date(entry.created_at).toLocaleString()
+                : "Unknown time";
+              const who =
+                entry.actor_name ||
+                entry.actor?.full_name ||
+                entry.actor?.username ||
+                "System";
+              const role = entry.role || entry.actor?.role || "";
+
+              return (
+                <li
+                  key={entry.id || idx}
+                  className="flex items-start gap-3 border-b last:border-b-0 pb-2"
+                >
+                  <div className="mt-1 w-2 h-2 rounded-full bg-[var(--sgss-gold)]" />
+                  <div className="flex-1">
+                    <p className="font-medium text-[var(--sgss-navy)]">
+                      {entry.action || "event"}{" "}
+                      {role && (
+                        <span className="text-xs text-gray-500">
+                          ({role})
+                        </span>
+                      )}
+                    </p>
+                    {entry.note && (
+                      <p className="text-xs text-gray-700">{entry.note}</p>
+                    )}
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      {who} • {when}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
 
-function StatusBadge({
-  status,
-  className = "",
-}: {
-  status: string;
-  className?: string;
-}) {
+function StatusBadge({ status }: { status: string }) {
   const s = (status || "").toLowerCase();
   let cls = "bg-gray-100 text-gray-700";
 
@@ -365,7 +405,7 @@ function StatusBadge({
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cls} ${className}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}
     >
       {status}
     </span>

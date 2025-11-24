@@ -4,12 +4,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "~/config/api";
 import Badge from "~/components/controls/badge";
 import Button from "~/components/controls/button";
+import AuditTimeline from "~/components/sgss/AuditTimeline";
 
 export default function CommitteeClaimDetailPage() {
   const { id } = useParams();
   const nav = useNavigate();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [audit, setAudit] = useState<any[]>([]);
 
   useEffect(() => {
     api
@@ -34,6 +36,24 @@ export default function CommitteeClaimDetailPage() {
     if (ct.includes("image")) return "Supporting Image";
     return "Attachment";
   };
+  const load = async () => {
+  if (!id) return;
+
+  try {
+    const [detailRes, auditRes] = await Promise.all([
+      api.get(`claims/committee/${id}/`),
+      api.get(`claims/${id}/audit/`)
+    ]);
+
+    setData(detailRes.data);
+    setAudit(auditRes.data.results || []);
+  } catch (e) {
+    console.error(e);
+  } finally {
+    setLoading(false);
+  }
+  };
+
 
   return (
     <div className="p-6 space-y-6">
@@ -139,6 +159,14 @@ export default function CommitteeClaimDetailPage() {
             </a>
           </div>
         ))}
+      </div>
+      {/* AUDIT TIMELINE */}
+      
+      <div className="sgss-card">
+        <p className="font-semibold text-[var(--sgss-navy)] mb-2">
+          Audit Trail
+        </p>
+        <AuditTimeline logs={audit} />
       </div>
     </div>
   );

@@ -37,11 +37,9 @@ urlpatterns = [
     path("claims/committee/<uuid:pk>/", views.committee_claim_detail),
     path("committee/claims/", views.committee_claims),
 
-    # notifications
-    path("notifications/mark-read/", views.mark_notifications_read),
+
 
     # uploads / reports
-    path("claims/<uuid:claim_id>/upload_summary/", views.upload_summary_pdf),
     path("reports/export/", views.export_claims_csv),
     path("claims/bulk_status/", views.bulk_change_status),
 

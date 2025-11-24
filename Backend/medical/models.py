@@ -1,6 +1,5 @@
-# medical/models.py
 from __future__ import annotations
-from django.db import models,transaction
+from django.db import models, transaction
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -32,34 +31,102 @@ class Setting(models.Model):
 # Membership
 # ---------------------------
 class MembershipType(models.Model):
-    key = models.CharField(max_length=50, unique=True)
+    """
+    Generalised membership type – can represent:
+    - single / family / joint
+    - life / patron / vice_patron
+    etc., as per Constitution & Byelaws.
+    """
+    key = models.CharField(max_length=50, unique=True)  # "single", "family", "life", "patron", etc.
     name = models.CharField(max_length=100)
-    annual_limit = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    fund_share_percent = models.DecimalField(max_digits=5, decimal_places=2, default=80)
+    entry_fee = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    term_years = models.PositiveIntegerField(null=True, blank=True)  # e.g. 2 years for ordinary membership
+    annual_limit = models.DecimalField(max_digits=12, decimal_places=2, default=250000)
+    fund_share_percent = models.PositiveIntegerField(default=80)
+    notes = models.TextField(blank=True)
 
     def __str__(self):
         return self.name
 
 
 class Member(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending Approval"),
+        ("active", "Active"),
+        ("suspended", "Suspended"),
+        ("lapsed", "Lapsed"),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     membership_type = models.ForeignKey(MembershipType, on_delete=models.SET_NULL, null=True)
+
+    # Constitution / form fields
+    mailing_address = models.CharField(max_length=255, blank=True)
+    phone_office = models.CharField(max_length=50, blank=True)
+    phone_home = models.CharField(max_length=50, blank=True)
+    phone_fax = models.CharField(max_length=50, blank=True)
+    phone_mobile = models.CharField(max_length=50, blank=True)
+
+    family_doctor_name = models.CharField(max_length=255, blank=True)
+    family_doctor_phone_office = models.CharField(max_length=50, blank=True)
+    family_doctor_phone_home = models.CharField(max_length=50, blank=True)
+    family_doctor_phone_fax = models.CharField(max_length=50, blank=True)
+    family_doctor_phone_mobile = models.CharField(max_length=50, blank=True)
+
     nhif_number = models.CharField(max_length=100, blank=True, null=True)
+    other_medical_scheme = models.CharField(max_length=255, blank=True)
+
+    # Membership lifecycle
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending",
+    )
     valid_from = models.DateField(blank=True, null=True)
     valid_to = models.DateField(blank=True, null=True)
 
+    # Date from which benefits are claimable (60-day waiting rule, etc.)
+    benefits_from = models.DateField(blank=True, null=True)
+
     def is_active_for_claims(self) -> bool:
-        """Constitution: benefits start after 60 days from valid_from; must also be unexpired."""
-        if not self.valid_from:
+        """
+        Constitution / Byelaws:
+        - Member must be active
+        - Benefits start after waiting period (benefits_from)
+        - Membership must not be expired
+        """
+        if self.status != "active":
             return False
+
         today = timezone.now().date()
+
         if self.valid_to and today > self.valid_to:
             return False
-        return (today - self.valid_from).days >= 60
+
+        if self.benefits_from and today < self.benefits_from:
+            return False
+
+        return True
 
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username}"
+
+
+class MemberDependent(models.Model):
+    """
+    Dependants listed on the membership form.
+    Used for Family / Joint / other multi-person memberships.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    member = models.ForeignKey(Member, related_name="dependants", on_delete=models.CASCADE)
+    full_name = models.CharField(max_length=255)
+    date_of_birth = models.DateField(blank=True, null=True)
+    blood_group = models.CharField(max_length=5, blank=True)
+    id_number = models.CharField(max_length=50, blank=True)
+
+    def __str__(self):
+        return f"{self.full_name} ({self.member})"
 
 
 # ---------------------------
@@ -119,7 +186,6 @@ class Claim(models.Model):
     # ------- validation according to bylaws -------
     def clean(self):
         # 1) Submission within 90 days
-        today = timezone.now().date()
         claim_t = (self.claim_type or '').lower()
 
         if claim_t == 'outpatient':
@@ -133,12 +199,12 @@ class Claim(models.Model):
             if self.submitted_at and (self.submitted_at.date() - self.date_of_discharge).days > 90:
                 raise ValidationError("Inpatient claims must be submitted within 90 days of discharge.")
 
-        # 2) Membership active (60 days waiting, not expired)
+        # 2) Membership active (waiting period + expiry + status)
         if self.member and not self.member.is_active_for_claims():
-            raise ValidationError("Membership waiting period (60 days) not satisfied or membership expired.")
+            raise ValidationError("Membership not eligible for claims (waiting period / status / expiry).")
 
-        # -------------------------------------------------------------------
-    # SGSS BYELAW RULE ENGINE HELPERS (MUST BE INSIDE CLASS)
+    # -------------------------------------------------------------------
+    # SGSS BYELAW RULE ENGINE HELPERS
     # -------------------------------------------------------------------
     def calculate_total_claimed(self):
         """Compute the raw total based on claim type + details."""
@@ -206,11 +272,9 @@ class Claim(models.Model):
         if previous + float(self.total_payable or 0) > limit:
             raise ValidationError("Annual limit exceeded.")
 
-
-
     @transaction.atomic
     def recalc_total(self):
-        """Safely recompute claim total."""
+        """Safely recompute claim total from items."""
         total = (
             self.items.aggregate(sum=models.Sum(models.F('amount') * models.F('quantity')))['sum']
             or 0
@@ -250,7 +314,7 @@ class Claim(models.Model):
         fund_share_percent = float(scale.fund_share) if scale else float(general.get('fund_share_percent', 80))
         ceiling = float(scale.ceiling) if scale else float(general.get('annual_limit', 50000))
 
-        # 100% outpatient rule
+        # 100% outpatient rule for SGN clinic
         clinic_percent = float(general.get('clinic_outpatient_percent', 100))
         if self.claim_type.lower() == 'outpatient' and 'siri guru nanak clinic' in (self.notes or '').lower():
             fund_share_amount = float(self.total_claimed) * (clinic_percent / 100)
@@ -268,7 +332,7 @@ class Claim(models.Model):
             fund_share_amount = ceiling
             member_share_amount = float(self.total_claimed) - fund_share_amount - nhif_amount - other_ins
 
-        # Annual membership limit
+        # Annual membership limit (per membership type limit)
         membership_limit = float(self.member.membership_type.annual_limit or 0)
         year = timezone.now().year
         spent = (
@@ -359,7 +423,7 @@ class ChronicRequest(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='chronic_requests')
     doctor_name = models.CharField(max_length=150)
-    medicines = models.JSONField(default=list)  # [{"name":"Metformin","strength":"500mg","dosage":"2x daily","duration":"30 days"}]
+    medicines = models.JSONField(default=list)  # [{"name":"Metformin", ...}]
     total_amount = models.DecimalField(max_digits=12, decimal_places=2)
     member_payable = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     status = models.CharField(max_length=20, default='pending', choices=[

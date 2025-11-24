@@ -6,14 +6,17 @@ from django.utils import timezone
 from django.db import transaction
 from faker import Faker
 import random
+import uuid
 
 from medical.models import (
     MembershipType,
     Member,
+    MemberDependent,
     ReimbursementScale,
     Setting,
     Claim,
     ClaimItem,
+    ChronicRequest,
 )
 
 User = get_user_model()
@@ -21,29 +24,61 @@ fake = Faker()
 
 
 class Command(BaseCommand):
-    help = "Seed SGSS Medical Fund data: roles, users, memberships, settings, reimbursement scales, and test claims."
+    help = "Fully seed the SGSS Medical Fund system based on Constitution + Byelaws."
 
     @transaction.atomic
     def handle(self, *args, **options):
-        # -------------------------------
-        # 1️⃣ Create Groups / Roles
-        # -------------------------------
-        groups = ["Admin", "Committee", "Member"]
-        for name in groups:
-            group, created = Group.objects.get_or_create(name=name)
-            if created:
-                self.stdout.write(self.style.SUCCESS(f"Created group: {name}"))
-            else:
-                self.stdout.write(f"Group already exists: {name}")
 
-        admin_group = Group.objects.get(name="Admin")
-        committee_group = Group.objects.get(name="Committee")
-        member_group = Group.objects.get(name="Member")
+        # ===============================================================
+        # 1️⃣ SYSTEM ROLES
+        # ===============================================================
+        self.stdout.write(self.style.WARNING("Seeding roles..."))
 
-        # -------------------------------
-        # 2️⃣ Create Users
-        # -------------------------------
-        admin, created = User.objects.get_or_create(
+        roles = ["Admin", "Committee", "Member"]
+        role_objs = {}
+
+        for r in roles:
+            obj, _ = Group.objects.get_or_create(name=r)
+            role_objs[r] = obj
+            self.stdout.write(f" - role: {r}")
+
+        # ===============================================================
+        # 2️⃣ MEMBERSHIP TYPES — From Constitution & Byelaws
+        # ===============================================================
+        self.stdout.write(self.style.WARNING("Seeding membership types..."))
+
+        membership_types = [
+            ("single", "Single", 250000, 80, 2, 2000),
+            ("family", "Family", 500000, 80, 2, 3000),
+            ("joint", "Joint", 400000, 80, 2, 3000),
+            ("senior", "Senior Citizen", 300000, 75, 1, 2000),
+            ("life", "Life Member", 0, 100, None, 50000),
+            ("patron", "Patron", 0, 100, None, 100000),
+            ("vice_patron", "Vice Patron", 0, 100, None, 75000),
+        ]
+
+        mt_objects = {}
+
+        for key, name, limit, fund_share, term, entry_fee in membership_types:
+            mt, _ = MembershipType.objects.update_or_create(
+                key=key,
+                defaults={
+                    "name": name,
+                    "annual_limit": limit,
+                    "fund_share_percent": fund_share,
+                    "term_years": term,
+                    "entry_fee": entry_fee,
+                },
+            )
+            mt_objects[key] = mt
+            self.stdout.write(f" - membership type: {name} ({key})")
+
+        # ===============================================================
+        # 3️⃣ ADMIN & COMMITTEE USERS
+        # ===============================================================
+        self.stdout.write(self.style.WARNING("Seeding users..."))
+
+        admin_user, created = User.objects.get_or_create(
             username="admin",
             defaults={
                 "email": "admin@sgss.org",
@@ -54,12 +89,11 @@ class Command(BaseCommand):
             },
         )
         if created:
-            admin.set_password("admin123")
-            admin.save()
-            self.stdout.write(self.style.SUCCESS("Created superuser: admin / admin123"))
-        admin.groups.add(admin_group)
+            admin_user.set_password("admin123")
+            admin_user.save()
+        admin_user.groups.add(role_objs["Admin"])
 
-        committee, created = User.objects.get_or_create(
+        committee_user, created = User.objects.get_or_create(
             username="committee",
             defaults={
                 "email": "committee@sgss.org",
@@ -68,12 +102,16 @@ class Command(BaseCommand):
             },
         )
         if created:
-            committee.set_password("committee123")
-            committee.save()
-            self.stdout.write(self.style.SUCCESS("Created committee: committee / committee123"))
-        committee.groups.add(committee_group)
+            committee_user.set_password("committee123")
+            committee_user.save()
+        committee_user.groups.add(role_objs["Committee"])
 
-        member_user, created = User.objects.get_or_create(
+        # ===============================================================
+        # 4️⃣ MAIN DEMO MEMBER (Fully Valid)
+        # ===============================================================
+        self.stdout.write(self.style.WARNING("Seeding main member..."))
+
+        main_user, created = User.objects.get_or_create(
             username="member",
             defaults={
                 "email": "member@sgss.org",
@@ -82,45 +120,35 @@ class Command(BaseCommand):
             },
         )
         if created:
-            member_user.set_password("member123")
-            member_user.save()
-            self.stdout.write(self.style.SUCCESS("Created member: member / member123"))
-        member_user.groups.add(member_group)
+            main_user.set_password("member123")
+            main_user.save()
+        main_user.groups.add(role_objs["Member"])
 
-        # -------------------------------
-        # 3️⃣ Membership Types
-        # -------------------------------
-        single, _ = MembershipType.objects.get_or_create(
-            key="single",
-            defaults={"name": "Single", "annual_limit": 250000, "fund_share_percent": 80},
+        main_member = Member.objects.create(
+            user=main_user,
+            membership_type=mt_objects["single"],
+            nhif_number="NHIF123",
+            mailing_address="Mombasa",
+            valid_from=timezone.now().date() - timezone.timedelta(days=180),
+            valid_to=timezone.now().date() + timezone.timedelta(days=365),
+            benefits_from=timezone.now().date() - timezone.timedelta(days=120),
+            status="active",
         )
-        family, _ = MembershipType.objects.get_or_create(
-            key="family",
-            defaults={"name": "Family", "annual_limit": 500000, "fund_share_percent": 80},
-        )
-        senior, _ = MembershipType.objects.get_or_create(
-            key="senior",
-            defaults={"name": "Senior Citizen", "annual_limit": 300000, "fund_share_percent": 75},
-        )
-        self.stdout.write(self.style.SUCCESS("Created membership types: Single, Family, Senior Citizen"))
 
-        # -------------------------------
-        # 4️⃣ Create Member Record for main user
-        # -------------------------------
-        member, _ = Member.objects.get_or_create(
-            user=member_user,
-            defaults={
-                "membership_type": single,
-                "nhif_number": "NHIF123",
-                "valid_from": timezone.now().date() - timezone.timedelta(days=90),
-                "valid_to": timezone.now().date() + timezone.timedelta(days=365 * 2),
-            },
+        # Dependants
+        MemberDependent.objects.create(
+            member=main_member,
+            full_name="Jane Doe",
+            date_of_birth="2010-06-21",
+            blood_group="O+",
+            id_number="CHILD01",
         )
-        self.stdout.write(self.style.SUCCESS("Created main member record for 'member' user."))
 
-        # -------------------------------
-        # 5️⃣ Settings
-        # -------------------------------
+        self.stdout.write(self.style.SUCCESS(" - main member seeded."))
+
+        # ===============================================================
+        # 5️⃣ SETTINGS
+        # ===============================================================
         Setting.objects.update_or_create(
             key="general_limits",
             defaults={
@@ -132,111 +160,158 @@ class Command(BaseCommand):
                 }
             },
         )
-        self.stdout.write(self.style.SUCCESS("Updated settings for general_limits."))
+        self.stdout.write(self.style.SUCCESS(" - settings seeded."))
 
-        # -------------------------------
-        # 6️⃣ Reimbursement Scales
-        # -------------------------------
+        # ===============================================================
+        # 6️⃣ REIMBURSEMENT SCALES
+        # ===============================================================
         scales = [
             ("Outpatient", 80, 20, 50000),
             ("Inpatient", 85, 15, 200000),
             ("Chronic", 60, 40, 120000),
         ]
-        for category, fund_share, member_share, ceiling in scales:
+
+        for cat, fshare, mshare, ceil in scales:
             ReimbursementScale.objects.update_or_create(
-                category=category,
+                category=cat,
                 defaults={
-                    "fund_share": fund_share,
-                    "member_share": member_share,
-                    "ceiling": ceiling,
+                    "fund_share": fshare,
+                    "member_share": mshare,
+                    "ceiling": ceil,
                 },
             )
-        self.stdout.write(self.style.SUCCESS("Seeded reimbursement scales."))
 
-        # -------------------------------
-        # 7️⃣ Sample Claim for main member
-        # -------------------------------
-        claim, _ = Claim.objects.get_or_create(
-            member=member,
+        self.stdout.write(self.style.SUCCESS(" - reimbursement scales seeded."))
+
+        # ===============================================================
+        # 7️⃣ ONE SAMPLE OUTPATIENT CLAIM
+        # ===============================================================
+        self.stdout.write(self.style.WARNING("Seeding sample claims..."))
+
+        outpatient = Claim.objects.create(
+            member=main_member,
             claim_type="outpatient",
-            defaults={
-                "status": "submitted",
-                "notes": "Consulted at Siri Guru Nanak Clinic",
-                "date_of_first_visit": timezone.now().date() - timezone.timedelta(days=3),
-            },
+            status="submitted",
+            date_of_first_visit=timezone.now().date() - timezone.timedelta(days=3),
+            notes="Consulted at Siri Guru Nanak Clinic",
         )
-        ClaimItem.objects.get_or_create(
-            claim=claim,
-            category="consultation",
-            defaults={"description": "Doctor visit", "amount": 2000, "quantity": 1},
-        )
-        ClaimItem.objects.get_or_create(
-            claim=claim,
-            category="medicine",
-            defaults={"description": "Tablets", "amount": 2000, "quantity": 1},
-        )
-        self.stdout.write(self.style.SUCCESS("Created sample claim for 'member' user."))
 
-        # -------------------------------
-        # 8️⃣ Create 5 Fake Members + Claims
-        # -------------------------------
+        ClaimItem.objects.create(
+            claim=outpatient,
+            category="consultation",
+            description="Doctor Consultation",
+            amount=1500,
+            quantity=1,
+        )
+
+        ClaimItem.objects.create(
+            claim=outpatient,
+            category="medicine",
+            description="Medication",
+            amount=2000,
+            quantity=1,
+        )
+
+        outpatient.recalc_total()
+        outpatient.compute_payable()
+
+        # ===============================================================
+        # 8️⃣ ONE SAMPLE INPATIENT CLAIM
+        # ===============================================================
+        inpatient = Claim.objects.create(
+            member=main_member,
+            claim_type="inpatient",
+            status="submitted",
+            date_of_discharge=timezone.now().date() - timezone.timedelta(days=5),
+            notes="Admitted for observation",
+        )
+
+        ClaimItem.objects.create(
+            claim=inpatient,
+            category="bed_charges",
+            description="Bed charges",
+            amount=3000,
+            quantity=3,
+        )
+
+        ClaimItem.objects.create(
+            claim=inpatient,
+            category="doctor_fee",
+            description="Doctor review",
+            amount=5000,
+            quantity=1,
+        )
+
+        inpatient.recalc_total()
+        inpatient.compute_payable()
+
+        # ===============================================================
+        # 9️⃣ CHRONIC REQUEST
+        # ===============================================================
+        ChronicRequest.objects.create(
+            member=main_member,
+            doctor_name="Dr. Patel",
+            medicines=[
+                {"name": "Metformin", "strength": "500mg", "dosage": "2x", "duration": "30 days", "cost": 1500},
+                {"name": "Atorvastatin", "strength": "20mg", "dosage": "1x", "duration": "30 days", "cost": 1200},
+            ],
+            total_amount=2700,
+            member_payable=540,  # 20%
+            status="pending",
+        )
+
+        # ===============================================================
+        # 🔟 FAKE RANDOM MEMBERS (5)
+        # ===============================================================
+        self.stdout.write(self.style.WARNING("Creating test members..."))
+
         for i in range(5):
             first = fake.first_name()
             last = fake.last_name()
             username = f"{first.lower()}{i}"
-            email = f"{username}@sgss.org"
 
-            user, _ = User.objects.get_or_create(
+            user = User.objects.create_user(
                 username=username,
-                defaults={
-                    "email": email,
-                    "first_name": first,
-                    "last_name": last,
-                },
+                email=f"{username}@sgss.org",
+                password="member123",
+                first_name=first,
+                last_name=last,
             )
-            user.set_password("member123")
-            user.save()
-            user.groups.add(member_group)
+            user.groups.add(role_objs["Member"])
 
-            mtype = random.choice([single, family, senior])
+            mt = random.choice(list(mt_objects.values()))
 
-            member, _ = Member.objects.get_or_create(
+            mem = Member.objects.create(
                 user=user,
-                defaults={
-                    "membership_type": mtype,
-                    "nhif_number": f"NHIF-{random.randint(1000,9999)}",
-                    "valid_from": timezone.now().date() - timezone.timedelta(days=random.randint(10, 200)),
-                    "valid_to": timezone.now().date() + timezone.timedelta(days=365),
-                },
+                membership_type=mt,
+                nhif_number=f"NHIF-{random.randint(1000,9999)}",
+                valid_from=timezone.now().date() - timezone.timedelta(days=random.randint(60, 300)),
+                valid_to=timezone.now().date() + timezone.timedelta(days=365),
+                benefits_from=timezone.now().date() - timezone.timedelta(days=60),
+                status="active",
             )
 
-            # Each gets one random claim
+            # One claim each
             c = Claim.objects.create(
-                member=member,
-                claim_type=random.choice(["outpatient", "inpatient", "chronic"]),
+                member=mem,
+                claim_type=random.choice(["outpatient", "inpatient"]),
                 status=random.choice(["submitted", "approved", "rejected"]),
                 notes=f"Visit to {fake.company()}",
-                date_of_first_visit=timezone.now().date() - timezone.timedelta(days=random.randint(1, 20)),
+                date_of_first_visit=timezone.now().date() - timezone.timedelta(days=random.randint(1, 10)),
             )
 
             ClaimItem.objects.create(
                 claim=c,
                 category="consultation",
                 description="Routine check-up",
-                amount=random.randint(1000, 5000),
-                quantity=1,
-            )
-            ClaimItem.objects.create(
-                claim=c,
-                category="medicine",
-                description="Prescribed meds",
-                amount=random.randint(500, 2000),
+                amount=random.randint(1000, 3000),
                 quantity=1,
             )
 
-            self.stdout.write(self.style.SUCCESS(f"Created test member: {username} / member123"))
+            c.recalc_total()
+            c.compute_payable()
 
-        # -------------------------------
-        # ✅ Summary
-        # -------------------------------
-        self.stdout.write(self.style.SUCCESS("✅ SGSS seed data created successfully with test members!"))
+        # ===============================================================
+        # COMPLETED
+        # ===============================================================
+        self.stdout.write(self.style.SUCCESS("🎉 SGSS FULL SEED COMPLETED SUCCESSFULLY"))

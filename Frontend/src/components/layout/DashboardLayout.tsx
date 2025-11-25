@@ -7,146 +7,105 @@ import { useAuth } from "~/store/contexts/AuthContext";
 
 import {
   HomeIcon,
-  UserCircleIcon,
   ClipboardDocumentListIcon,
-  Cog6ToothIcon,
   ShieldCheckIcon,
+  UserGroupIcon,
+  Cog6ToothIcon,
+  DocumentDuplicateIcon,
+  UserCircleIcon,
   ArrowLeftStartOnRectangleIcon,
+  UsersIcon,
+  FolderOpenIcon,
 } from "@heroicons/react/24/outline";
 
-export default function DashboardLayout({ children }: any) {
-  const [me, setMe] = useState<any>(null);
-  const nav = useNavigate();
+export default function DashboardLayout({ children }) {
+  const [me, setMe] = useState(null);
   const location = useLocation();
-  const {logout: clearAuth } = useAuth();
+  const nav = useNavigate();
+  const { logout: clearAuth } = useAuth();
 
   useEffect(() => {
-    api
-      .get("auth/me/")
-      .then((res) => setMe(res.data))
-      .catch(() => setMe(null));
+    api.get("auth/me/").then((res) => setMe(res.data)).catch(() => {});
   }, []);
 
   const logout = async () => {
     try {
       await api.post("auth/logout/");
-    } catch (e) {}
+    } catch (err) {}
 
-    // Clear auth context immediately
     clearAuth();
-
-    // Remove CSRF for safety
-    document.cookie =
-      "csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-
-    // Redirect instantly
+    document.cookie = "csrftoken=; expires=Thu, 01 Jan 1970;";
     nav("/login", { replace: true });
   };
 
+  const isCommittee = me?.role === "committee" || me?.role === "admin";
+  const isAdmin = me?.role === "admin";
 
-  const isCommittee = me?.groups?.includes("Committee") || me?.is_superuser;
-  const isAdmin = me?.groups?.includes("Admin") || me?.is_superuser;
-
-  const isActive = (path: string) => location.pathname.startsWith(path);
+  const active = (path) => location.pathname.startsWith(path);
 
   return (
     <div className="flex h-screen bg-[var(--sgss-bg)]">
-      {/* ====================== SIDEBAR ====================== */}
       <aside className="w-64 bg-[var(--sgss-navy)] text-white flex flex-col shadow-xl">
-        {/* Logo + user */}
         <div className="px-5 py-6 border-b border-white/10">
-          <h1 className="text-2xl font-bold tracking-wide">
+          <h1 className="text-2xl font-bold">
             SGSS <span className="text-[var(--sgss-gold)]">Fund</span>
           </h1>
           {me && (
-            <p className="text-xs text-gray-200 mt-2 leading-snug">
-              Logged in as{" "}
-              <span className="font-semibold">{me.full_name}</span>
-              <span className="ml-1 text-[var(--sgss-gold)]">
-                ({me.role || "Member"})
-              </span>
+            <p className="mt-2 text-[11px] text-gray-200">
+              Logged in as <b>{me.full_name}</b>{" "}
+              <span className="text-[var(--sgss-gold)]">({me.role})</span>
             </p>
           )}
         </div>
 
-        {/* Nav links */}
-        <nav className="flex-1 px-3 py-4 overflow-auto space-y-5 sgss-sidebar">
-          {/* MEMBER SECTION */}
+        <nav className="flex-1 px-3 py-4 overflow-auto space-y-5">
+          {/* MEMBER */}
           <div>
-            <p className="uppercase text-[10px] tracking-[0.15em] text-gray-300 mb-2">
-              Member
-            </p>
-            <NavItem
-              to="/dashboard/member"
-              icon={HomeIcon}
-              label="Member Dashboard"
-              active={isActive("/dashboard/member") && !isActive("/dashboard/member/claims")}
-            />
-            <NavItem
-              to="/dashboard/member/claims"
-              icon={ClipboardDocumentListIcon}
-              label="My Claims"
-              active={isActive("/dashboard/member/claims") && !isActive("/dashboard/member/claims/new")}
-            />
-            <NavItem
-              to="/dashboard/member/claims/new"
-              icon={ShieldCheckIcon}
-              label="New Claim"
-              active={isActive("/dashboard/member/claims/new")}
-            />
-            
+            <p className="text-[10px] uppercase tracking-widest text-gray-300 mb-2">Member</p>
+
+            <Nav to="/dashboard/member" icon={HomeIcon} active={active("/dashboard/member")} label="Member Dashboard" />
+            <Nav to="/dashboard/member/claims" icon={ClipboardDocumentListIcon} active={active("/dashboard/member/claims")} label="My Claims" />
+            <Nav to="/dashboard/member/claims/new" icon={ShieldCheckIcon} active={active("/dashboard/member/claims/new")} label="New Claim" />
+            <Nav to="/dashboard/member/chronic" icon={ShieldCheckIcon} active={active("/dashboard/member/chronic")} label="Chronic Illness" />
+            <Nav to="/dashboard/member/profile" icon={UserCircleIcon} active={active("/dashboard/member/profile")} label="My Profile" />
+            <Nav to="/dashboard/member/dependants" icon={UsersIcon} active={active("/dashboard/member/dependants")} label="Dependants" />
           </div>
 
-          {/* COMMITTEE SECTION */}
+          {/* COMMITTEE */}
           {isCommittee && (
             <div>
-              <div className="border-b border-white/10 my-3" />
-              <p className="uppercase text-[10px] tracking-[0.15em] text-gray-300 mb-2">
-                Committee
-              </p>
-              <NavItem
-                to="/dashboard/committee"
-                icon={ClipboardDocumentListIcon}
-                label="Committee Dashboard"
-                active={isActive("/dashboard/committee")}
-              />
+              <div className="border-t border-white/10 my-3" />
+              <p className="text-[10px] uppercase tracking-widest text-gray-300 mb-2">Committee</p>
+
+              <Nav to="/dashboard/committee" icon={FolderOpenIcon} active={active("/dashboard/committee")} label="Committee Dashboard" />
+              <Nav to="/dashboard/committee/claims" icon={ClipboardDocumentListIcon} active={active("/dashboard/committee/claims")} label="All Claims" />
+              <Nav to="/dashboard/committee/pending" icon={ShieldCheckIcon} active={active("/dashboard/committee/pending")} label="Pending Review" />
+              <Nav to="/dashboard/committee/members/applications" icon={UsersIcon} active={active("/dashboard/committee/members")} label="Membership Applications" />
+              <Nav to="/dashboard/committee/settings" icon={Cog6ToothIcon} active={active("/dashboard/committee/settings")} label="Committee Settings" />
             </div>
           )}
 
-          {/* ADMIN SECTION */}
+          {/* ADMIN */}
           {isAdmin && (
             <div>
-              <div className="border-b border-white/10 my-3" />
-              <p className="uppercase text-[10px] tracking-[0.15em] text-gray-300 mb-2">
-                Admin
-              </p>
-              <NavItem
-                to="/dashboard/admin"
-                icon={UserCircleIcon}
-                label="Admin Dashboard"
-                active={isActive("/dashboard/admin")}
-              />
-              <NavItem
-                to="/dashboard/admin/settings"
-                icon={Cog6ToothIcon}
-                label="System Settings"
-                active={isActive("/dashboard/admin/settings")}
-              />
-              <NavItem
-                to="/dashboard/admin/audit"
-                icon={ShieldCheckIcon}
-                label="Audit Logs"
-                active={isActive("/dashboard/admin/audit")}
-              />
+              <div className="border-t border-white/10 my-3" />
+              <p className="text-[10px] uppercase tracking-widest text-gray-300 mb-2">Admin</p>
+
+              <Nav to="/dashboard/admin" icon={HomeIcon} active={active("/dashboard/admin")} label="Admin Dashboard" />
+              <Nav to="/dashboard/admin/settings" icon={Cog6ToothIcon} active={active("/dashboard/admin/settings")} label="System Settings" />
+              <Nav to="/dashboard/admin/memberships" icon={DocumentDuplicateIcon} active={active("/dashboard/admin/memberships")} label="Membership Types" />
+              <Nav to="/dashboard/admin/users" icon={UsersIcon} active={active("/dashboard/admin/users")} label="Users & Roles" />
+              <Nav to="/dashboard/admin/audit" icon={ShieldCheckIcon} active={active("/dashboard/admin/audit")} label="Audit Logs" />
+              <Nav to="/dashboard/admin/reports" icon={ClipboardDocumentListIcon} active={active("/dashboard/admin/reports")} label="Reports" />
             </div>
           )}
         </nav>
 
-        {/* Logout */}
+        {/* Logout Button */}
         <div className="px-4 py-4 border-t border-white/10">
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg"
           >
             <ArrowLeftStartOnRectangleIcon className="w-5 h-5" />
             Logout
@@ -154,44 +113,25 @@ export default function DashboardLayout({ children }: any) {
         </div>
       </aside>
 
-      {/* ======================================================
-          MAIN CONTENT + TOP BAR
-      ====================================================== */}
+      {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-6 py-3 bg-gradient-to-r from-[#03045f] via-[#082e68] to-[#caa631] text-white shadow-sm">
-          <div className="text-sm font-medium">
-            {me ? `Welcome, ${me.full_name}` : "SGSS Medical Fund Portal"}
-          </div>
-          <div className="flex items-center gap-4">
-            <NotificationBell />
-          </div>
+        <div className="flex items-center justify-between px-6 py-3 bg-gradient-to-r from-[#03045f] via-[#193c74] to-[#caa631] text-white">
+          <div>{me ? `Welcome, ${me.full_name}` : "SGSS Medical Fund"}</div>
+          <NotificationBell />
         </div>
 
-        {/* Page content */}
-        <div className="p-6 overflow-auto">
-          {children}
-        </div>
+        <div className="p-6 overflow-auto">{children}</div>
       </main>
     </div>
   );
 }
 
-type NavItemProps = {
-  to: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  label: string;
-  active?: boolean;
-};
-
-function NavItem({ to, icon: Icon, label, active }: NavItemProps) {
+function Nav({ to, icon: Icon, label, active }) {
   return (
     <Link
       to={to}
-      className={`sgss-sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-        active
-          ? "bg-white/10 font-semibold border-l-4 border-[var(--sgss-gold)]"
-          : "hover:bg-white/10"
+      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+        active ? "bg-white/10 border-l-4 border-[var(--sgss-gold)] text-[var(--sgss-gold)]" : "hover:bg-white/10"
       }`}
     >
       <Icon className="w-5 h-5 text-[var(--sgss-gold)]" />

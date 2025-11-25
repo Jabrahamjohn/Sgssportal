@@ -343,6 +343,7 @@ class ChronicRequestViewSet(viewsets.ModelViewSet):
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
+    queryset = Notification.objects.all().order_by("-created_at")
 
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
@@ -356,7 +357,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         notif = self.get_object()
         notif.read = True
         notif.save(update_fields=["read"])
-        return Response({"ok": True})
+        return Response({"ok": True, "id": str(notif.id)})
 
     @action(detail=False, methods=["post"])
     def mark_all_read(self, request):
@@ -377,6 +378,12 @@ def notify(user, title, message, link=None, typ="system", actor=None, metadata=N
         actor=actor,
         metadata=metadata or {},
     )
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def mark_notifications_read(request):
+    Notification.objects.filter(recipient=request.user, read=False).update(read=True)
+    return Response({"ok": True, "message": "All notifications marked as read"})
 
 
 # ============================================================

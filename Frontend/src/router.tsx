@@ -1,8 +1,9 @@
 // Frontend/src/router.tsx
-import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Unauthenticated from "./layout/protections/unauthenticated";
 import Authenticated from "./layout/protections/authenticated";
+
 import Login from "./containers/auth/login";
 import Register from "./containers/auth/register";
 import AppLayout from "./layout";
@@ -11,17 +12,27 @@ import MemberDashboard from "./pages/dashboard/member";
 import ClaimsList from "./pages/dashboard/member/claims";
 import NewClaim from "./pages/dashboard/member/claims-new";
 import ChronicPage from "./pages/dashboard/member/chronic";
-
-import CommitteeDashboard from "./pages/dashboard/committee";
-import CommitteeClaimDetail from "./pages/dashboard/committee/claim";
-import AdminDashboard from "./pages/dashboard/admin";
-import AdminAuditPage from "./pages/dashboard/admin/audit";
-import AdminSettings from "./pages/dashboard/admin/settings";
-import NotFound from "./pages/404";
-import { useAuth } from "~/store/contexts/AuthContext";
 import MemberClaimDetail from "./pages/dashboard/member/claim-detail";
 import ClaimView from "./pages/dashboard/member/claim-view";
 
+import CommitteeDashboard from "./pages/dashboard/committee";
+import CommitteeClaimDetail from "./pages/dashboard/committee/claim";
+import CommitteeMembersPage from "./pages/dashboard/committee/members";
+
+import AdminDashboard from "./pages/dashboard/admin";
+import AdminSettings from "./pages/dashboard/admin/settings";
+import AdminAuditPage from "./pages/dashboard/admin/audit";
+
+import LandingPage from "./pages/landing/LandingPage";
+import NotFound from "./pages/404";
+
+import { useAuth } from "~/store/contexts/AuthContext";
+import api from "~/config/api";
+
+
+// =============================================================
+// Redirect users based on ROLE
+// =============================================================
 function RoleRedirect() {
   const { auth } = useAuth();
   const role = auth?.role?.toLowerCase();
@@ -31,9 +42,12 @@ function RoleRedirect() {
   return <Navigate to="/dashboard/member" replace />;
 }
 
-// After login, choose dashboard automatically
+
+// =============================================================
+// After login: redirect based on backend
+// =============================================================
 function SmartRedirect() {
-  const [me, setMe] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -44,18 +58,26 @@ function SmartRedirect() {
         else if (role === "admin") nav("/dashboard/admin");
         else nav("/dashboard/member");
       })
-      .catch(() => nav("/login"));
+      .catch(() => nav("/login"))
+      .finally(() => setLoading(false));
   }, []);
 
   return <div className="p-6">Loading…</div>;
 }
 
 
+// =============================================================
+// MAIN ROUTER
+// =============================================================
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* LOGIN */}
+
+        {/* PUBLIC LANDING PAGE */}
+        <Route path="/" element={<LandingPage />} />
+
+        {/* LOGIN + REGISTER */}
         <Route
           path="/login"
           element={
@@ -74,50 +96,50 @@ export default function AppRouter() {
           }
         />
 
-        {/* MAIN APP */}
+
+        {/* AUTHENTICATED AREA */}
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <Authenticated>
               <AppLayout />
             </Authenticated>
           }
         >
-          {/* Default redirect */}
-          <Route index element={<RoleRedirect />} />
-          <Route path="/dashboard" element={<SmartRedirect />} />
 
+          {/* AUTO-REDIRECT BASED ON ROLE */}
+          <Route index element={<SmartRedirect />} />
 
-          {/* ✅ Member Dashboard */}
+          {/* ================= MEMBER ROUTES ================= */}
           <Route
-            path="dashboard/member"
+            path="member"
             element={
               <Authenticated allowed={["member", "committee", "admin"]}>
                 <MemberDashboard />
               </Authenticated>
             }
           />
-          <Route
-            path="dashboard/member/claims/:id"
-            element={<MemberClaimDetail />}
-          />
-          
-          <Route path="dashboard/member/claims/:id" element={<ClaimView />} />
-          <Route path="dashboard/member/claims" element={<ClaimsList />} />
-          <Route path="dashboard/member/claims/new" element={<NewClaim />} />
-          <Route path="dashboard/member/chronic" element={<ChronicPage />} />
 
-          {/* Committee Dashboard */}
+          <Route path="member/claims" element={<ClaimsList />} />
+          <Route path="member/claims/new" element={<NewClaim />} />
+          <Route path="member/claims/:id" element={<ClaimView />} />
+          <Route path="member/claim-detail/:id" element={<MemberClaimDetail />} />
+
+          <Route path="member/chronic" element={<ChronicPage />} />
+
+
+          {/* ================= COMMITTEE ROUTES ================= */}
           <Route
-            path="dashboard/committee"
+            path="committee"
             element={
               <Authenticated allowed={["committee", "admin"]}>
                 <CommitteeDashboard />
               </Authenticated>
             }
           />
+
           <Route
-            path="dashboard/committee/claims/:id"
+            path="committee/claims/:id"
             element={
               <Authenticated allowed={["committee", "admin"]}>
                 <CommitteeClaimDetail />
@@ -125,18 +147,37 @@ export default function AppRouter() {
             }
           />
 
-
-          {/* Admin Dashboard */}
           <Route
-            path="dashboard/admin"
+            path="committee/members"
+            element={
+              <Authenticated allowed={["committee", "admin"]}>
+                <CommitteeMembersPage />
+              </Authenticated>
+            }
+          />
+
+          <Route
+            path="committee/members/:id"
+            element={
+              <Authenticated allowed={["committee", "admin"]}>
+                <CommitteeMembersPage />
+              </Authenticated>
+            }
+          />
+
+
+          {/* ================= ADMIN ROUTES ================= */}
+          <Route
+            path="admin"
             element={
               <Authenticated allowed={["admin"]}>
                 <AdminDashboard />
               </Authenticated>
             }
           />
+
           <Route
-            path="dashboard/admin/settings"
+            path="admin/settings"
             element={
               <Authenticated allowed={["admin"]}>
                 <AdminSettings />
@@ -145,17 +186,19 @@ export default function AppRouter() {
           />
 
           <Route
-            path="dashboard/admin/audit"
+            path="admin/audit"
             element={
               <Authenticated allowed={["admin"]}>
                 <AdminAuditPage />
               </Authenticated>
             }
           />
+
         </Route>
 
-        {/* Not Found */}
+        {/* 404 */}
         <Route path="*" element={<NotFound />} />
+
       </Routes>
     </BrowserRouter>
   );

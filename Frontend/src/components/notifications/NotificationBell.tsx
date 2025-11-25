@@ -1,98 +1,82 @@
-// Frontend/src/components/notifications/NotificationBell.tsx
+// src/components/notifications/NotificationBell.tsx
 import React, { useEffect, useState } from "react";
+import { BellIcon } from "@heroicons/react/24/outline";
 import api from "~/config/api";
 
-type Notification = {
-  id: string;
-  title: string;
-  message: string;
-  link?: string | null;
-  read: boolean;
-};
-
 export default function NotificationBell() {
-  const [list, setList] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const loadNotifications = async () => {
+  const load = async () => {
+    setLoading(true);
     try {
-      const res = await api.get<Notification[]>("notifications/");
+      const res = await api.get("notifications/");
       setList(res.data);
-    } catch {
-      setList([]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadNotifications();
-  }, []);
+  useEffect(() => { load(); }, []);
 
-  const unread = list.filter((n) => !n.read).length;
+  const unreadCount = list.filter(n => !n.read).length;
 
-  const handleToggleOpen = async () => {
-    const newOpen = !open;
-    setOpen(newOpen);
+  const markAllRead = async () => {
+    await api.post("notifications/mark-read/");
+    setList(prev => prev.map(n => ({ ...n, read: true })));
+  };
 
-    if (!newOpen) return;
-
-    // When opening: mark all as read (backend) and update local state
-    try {
-      await api.post("notifications/mark_all_read/");
-      setList((prev) => prev.map((n) => ({ ...n, read: true })));
-    } catch (e) {
-      console.error("Failed to mark notifications read", e);
-    }
+  const markOneRead = async (id: string) => {
+    await api.post(`notifications/${id}/mark_read/`);
+    setList(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
   return (
     <div className="relative">
       <button
-        onClick={handleToggleOpen}
-        className="relative p-2 hover:bg-gray-100 rounded-full"
+        onClick={() => setOpen(p => !p)}
+        className="relative p-2 rounded-full hover:bg-white/20 transition"
       >
-        <span role="img" aria-label="notifications">
-          🔔
-        </span>
-        {unread > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] rounded-full px-1">
-            {unread}
+        <BellIcon className="w-6 h-6 text-white" />
+        {unreadCount > 0 && (
+          <span className="absolute top-1 right-1 bg-red-500 text-xs font-bold text-white rounded-full px-1.5 py-0.5">
+            {unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-white border rounded shadow-lg p-3 z-50">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-semibold">Notifications</h4>
-            {loading && (
-              <span className="text-xs text-gray-400">Refreshing…</span>
+        <div className="absolute right-0 mt-3 w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-100 z-50">
+          <div className="flex items-center justify-between px-4 py-2 border-b">
+            <h4 className="text-sm font-semibold">Notifications</h4>
+            {unreadCount > 0 && (
+              <button onClick={markAllRead} className="text-xs text-blue-600 hover:underline">
+                Mark all as read
+              </button>
             )}
           </div>
 
-          {list.length === 0 && (
-            <p className="text-sm text-gray-500">No notifications.</p>
-          )}
-
-          {list.map((n) => (
-            <div
-              key={n.id}
-              className={`border-b last:border-b-0 py-2 ${
-                !n.read ? "bg-purple-50" : ""
-              }`}
-            >
-              <p className="font-medium text-sm">{n.title}</p>
-              <p className="text-xs text-gray-600">{n.message}</p>
-              {n.link && (
-                <a
-                  href={n.link}
-                  className="text-[var(--sgss-navy)] text-xs font-semibold mt-1 inline-block hover:text-[var(--sgss-gold)]"
-                >
-                  View →
-                </a>
-              )}
-            </div>
-          ))}
+          <div className="max-h-64 overflow-y-auto">
+            {loading && <p className="p-3 text-sm text-gray-500">Loading...</p>}
+            {!loading && list.length === 0 && (
+              <p className="p-3 text-sm text-gray-500">No notifications yet.</p>
+            )}
+            {list.map(n => (
+              <div
+                key={n.id}
+                onClick={() => markOneRead(n.id)}
+                className={`p-3 text-sm border-b cursor-pointer hover:bg-gray-50 ${
+                  n.read ? "text-gray-500" : "font-medium text-gray-900 bg-yellow-50"
+                }`}
+              >
+                <div className="font-semibold">{n.title}</div>
+                <div className="text-xs text-gray-600">{n.message}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

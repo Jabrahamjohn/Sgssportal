@@ -157,7 +157,7 @@ export default function Register() {
           </div>
 
           {/* Membership & Contact */}
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="">
             <div>
               <label className="block text-sm font-medium mb-1">
                 Membership Type
@@ -236,7 +236,7 @@ export default function Register() {
               {dependants.map((d, i) => (
                 <div
                   key={i}
-                  className="border rounded-lg p-3 grid md:grid-cols-4 gap-2 items-end"
+                  className="border rounded-lg p-3 grid md:grid-cols-2 gap-2 items-end"
                 >
                   <Input
                     label="Full Name"
@@ -260,7 +260,7 @@ export default function Register() {
                       updateDependant(i, "blood_group", e.target.value)
                     }
                   />
-                  <div className="flex gap-2">
+                  <div className="flex gap-4">
                     <Input
                       label="ID / Birth Cert No."
                       value={d.id_number}

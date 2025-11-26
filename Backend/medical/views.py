@@ -1009,3 +1009,22 @@ def audit_all_logs(request):
     logs = AuditLog.objects.all().order_by("-created_at")[:500]
     data = AuditLogSerializer(logs, many=True).data
     return Response({"results": data})
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsAdmin])
+def committee_members(request):
+    group = Group.objects.filter(name="Committee").first()
+    if not group:
+        return Response({"results": []})
+    data = []
+    for u in group.user_set.all().order_by("first_name", "last_name"):
+        data.append({
+            "id": u.id,
+            "username": u.username,
+            "full_name": u.get_full_name() or u.username,
+            "email": u.email,
+            "is_superuser": u.is_superuser,
+        })
+    return Response({"results": data})

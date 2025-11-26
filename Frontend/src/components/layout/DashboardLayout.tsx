@@ -93,7 +93,7 @@ export default function DashboardLayout({ children }) {
 
               <Nav to="/dashboard/admin" icon={HomeIcon} active={active("/dashboard/admin")} label="Admin Dashboard" />
               <Nav to="/dashboard/admin/settings" icon={Cog6ToothIcon} active={active("/dashboard/admin/settings")} label="System Settings" />
-              <Nav to="/dashboard/admin/memberships" icon={DocumentDuplicateIcon} active={active("/dashboard/admin/memberships")} label="Membership Types" />
+              <Nav to="/dashboard/admin/settings/memberships" icon={DocumentDuplicateIcon} active={active("/dashboard/admin/settings/memberships")} label="Membership Types" />
               <Nav to="/dashboard/admin/users" icon={UsersIcon} active={active("/dashboard/admin/users")} label="Users & Roles" />
               <Nav to="/dashboard/admin/audit" icon={ShieldCheckIcon} active={active("/dashboard/admin/audit")} label="Audit Logs" />
               <Nav to="/dashboard/admin/reports" icon={ClipboardDocumentListIcon} active={active("/dashboard/admin/reports")} label="Reports" />

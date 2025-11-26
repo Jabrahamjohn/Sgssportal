@@ -1,29 +1,26 @@
-// Frontend/src/pages/dashboard/admin/settings/membership-types.tsx
+// Frontend/src/pages/dashboard/admin/settings/reimbursement.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
 import Button from "~/components/controls/button";
 import Input from "~/components/controls/input";
 import Alert from "~/components/controls/alert";
 
-type MembershipType = {
+type Scale = {
   id: string;
-  key: string;
-  name: string;
-  entry_fee: string | number | null;
-  term_years: number | null;
-  annual_limit: string | number;
-  fund_share_percent: number;
-  notes?: string;
+  category: string; // Outpatient / Inpatient / Chronic
+  fund_share: number; // %
+  member_share: number; // %
+  ceiling: number; // Ksh
 };
 
-export default function MembershipTypesSettings() {
-  const [items, setItems] = useState<MembershipType[]>([]);
+export default function ReimbursementSettings() {
+  const [items, setItems] = useState<Scale[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Partial<MembershipType>>({});
+  const [draft, setDraft] = useState<Partial<Scale>>({});
 
   const resetStatus = () => {
     setError("");
@@ -34,10 +31,11 @@ export default function MembershipTypesSettings() {
     resetStatus();
     setLoading(true);
     try {
-      const res = await api.get("memberships/");
+      const res = await api.get("reimbursement-scales/");
       setItems(res.data);
-    } catch {
-      setError("Failed to load membership types.");
+    } catch (e) {
+      console.error(e);
+      setError("Failed to load reimbursement scales.");
     } finally {
       setLoading(false);
     }
@@ -47,24 +45,21 @@ export default function MembershipTypesSettings() {
     load();
   }, []);
 
-  const startEdit = (mt: MembershipType) => {
-    resetStatus();
-    setEditingId(mt.id);
-    setDraft(mt);
-  };
-
   const startNew = () => {
     resetStatus();
     setEditingId("new");
     setDraft({
-      key: "",
-      name: "",
-      entry_fee: 0,
-      term_years: 2,
-      annual_limit: 250000,
-      fund_share_percent: 80,
-      notes: "",
+      category: "",
+      fund_share: 80,
+      member_share: 20,
+      ceiling: 250000,
     });
+  };
+
+  const startEdit = (scale: Scale) => {
+    resetStatus();
+    setEditingId(scale.id);
+    setDraft(scale);
   };
 
   const cancelEdit = () => {
@@ -72,34 +67,41 @@ export default function MembershipTypesSettings() {
     setDraft({});
   };
 
-  const handleChange = (field: keyof MembershipType, value: any) => {
+  const handleChange = (field: keyof Scale, value: any) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
   };
 
   const save = async () => {
-    if (!draft.key || !draft.name) {
-      setError("Key and Name are required.");
+    if (!draft.category) {
+      setError("Category is required.");
       return;
     }
-
     resetStatus();
     setSaving(true);
 
     try {
+      const payload = {
+        category: draft.category,
+        fund_share: Number(draft.fund_share ?? 80),
+        member_share: Number(draft.member_share ?? 20),
+        ceiling: Number(draft.ceiling ?? 0),
+      };
+
       if (editingId === "new") {
-        await api.post("memberships/", draft);
-        setSuccess("Membership type created.");
+        await api.post("reimbursement-scales/", payload);
+        setSuccess("Scale created.");
       } else if (editingId) {
-        await api.put(`memberships/${editingId}/`, draft);
-        setSuccess("Membership type updated.");
+        await api.put(`reimbursement-scales/${editingId}/`, payload);
+        setSuccess("Scale updated.");
       }
+
       await load();
       cancelEdit();
     } catch (e: any) {
       console.error(e);
       setError(
         e.response?.data?.detail ||
-          "Failed to save membership type. Check Byelaws constraints and try again."
+          "Failed to save reimbursement scale. Please check values."
       );
     } finally {
       setSaving(false);
@@ -110,17 +112,17 @@ export default function MembershipTypesSettings() {
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Membership Types</h2>
+          <h2 className="text-lg font-semibold">Reimbursement Scales</h2>
           <p className="text-xs text-gray-500">
-            Configure Single / Family / Senior etc, their entry fees, terms and
-            annual benefit limits.
+            Define fund vs member share and ceilings for Outpatient, Inpatient and
+            Chronic claims, as per Byelaws.
           </p>
         </div>
         <Button
           onClick={startNew}
           className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
         >
-          + New Membership Type
+          + New Scale
         </Button>
       </div>
 
@@ -134,125 +136,76 @@ export default function MembershipTypesSettings() {
           <table className="min-w-full text-sm border border-gray-100 rounded-lg overflow-hidden">
             <thead className="bg-gray-50">
               <tr className="text-left">
-                <th className="px-3 py-2 border-b">Key</th>
-                <th className="px-3 py-2 border-b">Name</th>
-                <th className="px-3 py-2 border-b">Entry Fee (Ksh)</th>
-                <th className="px-3 py-2 border-b">Term (years)</th>
-                <th className="px-3 py-2 border-b">Annual Limit (Ksh)</th>
+                <th className="px-3 py-2 border-b">Category</th>
                 <th className="px-3 py-2 border-b">Fund Share (%)</th>
-                <th className="px-3 py-2 border-b">Notes</th>
+                <th className="px-3 py-2 border-b">Member Share (%)</th>
+                <th className="px-3 py-2 border-b">Ceiling (Ksh)</th>
                 <th className="px-3 py-2 border-b w-32">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((mt) => {
-                const isEditing = editingId === mt.id;
+              {items.map((s) => {
+                const isEditing = editingId === s.id;
                 return (
-                  <tr key={mt.id} className="border-b last:border-b-0">
+                  <tr key={s.id} className="border-b last:border-b-0">
                     <td className="px-3 py-2">
                       {isEditing ? (
                         <Input
-                          value={draft.key || ""}
+                          value={draft.category || ""}
                           onChange={(e) =>
-                            handleChange("key", e.target.value.trim())
+                            handleChange("category", e.target.value)
                           }
                         />
                       ) : (
-                        <code className="text-xs bg-gray-100 rounded px-1 py-0.5">
-                          {mt.key}
-                        </code>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          value={draft.name || ""}
-                          onChange={(e) =>
-                            handleChange("name", e.target.value)
-                          }
-                        />
-                      ) : (
-                        mt.name
+                        s.category
                       )}
                     </td>
                     <td className="px-3 py-2">
                       {isEditing ? (
                         <Input
                           type="number"
-                          value={draft.entry_fee ?? ""}
+                          value={draft.fund_share ?? ""}
                           onChange={(e) =>
                             handleChange(
-                              "entry_fee",
-                              e.target.value ? Number(e.target.value) : null
-                            )
-                          }
-                        />
-                      ) : (
-                        (Number(mt.entry_fee || 0)).toLocaleString()
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={draft.term_years ?? ""}
-                          onChange={(e) =>
-                            handleChange(
-                              "term_years",
-                              e.target.value ? Number(e.target.value) : null
-                            )
-                          }
-                        />
-                      ) : (
-                        mt.term_years ?? "—"
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={draft.annual_limit ?? ""}
-                          onChange={(e) =>
-                            handleChange(
-                              "annual_limit",
+                              "fund_share",
                               e.target.value ? Number(e.target.value) : 0
                             )
                           }
                         />
                       ) : (
-                        Number(mt.annual_limit).toLocaleString()
+                        `${s.fund_share}%`
                       )}
                     </td>
                     <td className="px-3 py-2">
                       {isEditing ? (
                         <Input
                           type="number"
-                          value={draft.fund_share_percent ?? ""}
+                          value={draft.member_share ?? ""}
                           onChange={(e) =>
                             handleChange(
-                              "fund_share_percent",
-                              e.target.value ? Number(e.target.value) : 80
+                              "member_share",
+                              e.target.value ? Number(e.target.value) : 0
                             )
                           }
                         />
                       ) : (
-                        `${mt.fund_share_percent}%`
+                        `${s.member_share}%`
                       )}
                     </td>
                     <td className="px-3 py-2">
                       {isEditing ? (
-                        <textarea
-                          className="w-full border rounded px-2 py-1 text-xs"
-                          rows={2}
-                          value={draft.notes || ""}
+                        <Input
+                          type="number"
+                          value={draft.ceiling ?? ""}
                           onChange={(e) =>
-                            handleChange("notes", e.target.value)
+                            handleChange(
+                              "ceiling",
+                              e.target.value ? Number(e.target.value) : 0
+                            )
                           }
                         />
                       ) : (
-                        <span className="text-xs text-gray-500">
-                          {mt.notes || "—"}
-                        </span>
+                        Number(s.ceiling).toLocaleString()
                       )}
                     </td>
                     <td className="px-3 py-2">
@@ -275,7 +228,11 @@ export default function MembershipTypesSettings() {
                           </Button>
                         </div>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => startEdit(mt)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => startEdit(s)}
+                        >
                           Edit
                         </Button>
                       )}
@@ -288,51 +245,19 @@ export default function MembershipTypesSettings() {
                 <tr className="border-t bg-gray-50/60">
                   <td className="px-3 py-2">
                     <Input
-                      value={draft.key || ""}
+                      value={draft.category || ""}
                       onChange={(e) =>
-                        handleChange("key", e.target.value.trim())
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      value={draft.name || ""}
-                      onChange={(e) =>
-                        handleChange("name", e.target.value)
+                        handleChange("category", e.target.value)
                       }
                     />
                   </td>
                   <td className="px-3 py-2">
                     <Input
                       type="number"
-                      value={draft.entry_fee ?? ""}
+                      value={draft.fund_share ?? ""}
                       onChange={(e) =>
                         handleChange(
-                          "entry_fee",
-                          e.target.value ? Number(e.target.value) : null
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      value={draft.term_years ?? ""}
-                      onChange={(e) =>
-                        handleChange(
-                          "term_years",
-                          e.target.value ? Number(e.target.value) : null
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      value={draft.annual_limit ?? ""}
-                      onChange={(e) =>
-                        handleChange(
-                          "annual_limit",
+                          "fund_share",
                           e.target.value ? Number(e.target.value) : 0
                         )
                       }
@@ -341,22 +266,24 @@ export default function MembershipTypesSettings() {
                   <td className="px-3 py-2">
                     <Input
                       type="number"
-                      value={draft.fund_share_percent ?? ""}
+                      value={draft.member_share ?? ""}
                       onChange={(e) =>
                         handleChange(
-                          "fund_share_percent",
-                          e.target.value ? Number(e.target.value) : 80
+                          "member_share",
+                          e.target.value ? Number(e.target.value) : 0
                         )
                       }
                     />
                   </td>
                   <td className="px-3 py-2">
-                    <textarea
-                      className="w-full border rounded px-2 py-1 text-xs"
-                      rows={2}
-                      value={draft.notes || ""}
+                    <Input
+                      type="number"
+                      value={draft.ceiling ?? ""}
                       onChange={(e) =>
-                        handleChange("notes", e.target.value)
+                        handleChange(
+                          "ceiling",
+                          e.target.value ? Number(e.target.value) : 0
+                        )
                       }
                     />
                   </td>

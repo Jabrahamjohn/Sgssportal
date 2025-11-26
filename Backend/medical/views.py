@@ -20,13 +20,13 @@ from .models import (
     Member, MembershipType, MemberDependent,
     Claim, ClaimItem, ClaimReview, AuditLog,
     Notification, ReimbursementScale, Setting,
-    ChronicRequest, ClaimAttachment
+    ChronicRequest, ClaimAttachment, MemberDependent,
 )
 from .serializers import (
     MemberSerializer, MembershipTypeSerializer, ClaimSerializer, ClaimItemSerializer,
     ClaimReviewSerializer, NotificationSerializer, ReimbursementScaleSerializer,
     SettingSerializer, ChronicRequestSerializer, ClaimAttachmentSerializer,
-    AuditLogSerializer
+    AuditLogSerializer, MemberDependentSerializer, AdminUserSerializer
 )
 from .permissions import IsSelfOrAdmin, IsClaimOwnerOrCommittee, IsCommittee, IsAdmin
 from .audit import log_claim_event
@@ -101,6 +101,81 @@ class MemberViewSet(viewsets.ModelViewSet):
         )
 
         return Response(MemberSerializer(member).data)
+
+
+# ============================================================
+#   MEMBER PROFILE & DEPENDANTS
+# ============================================================
+
+@api_view(["GET", "PATCH"])
+@permission_classes([IsAuthenticated])
+def my_member_profile(request):
+    """
+    GET  -> full member profile + dependants
+    PATCH -> update editable profile fields (not membership_type, status, etc.)
+    """
+    try:
+        member = Member.objects.get(user=request.user)
+    except Member.DoesNotExist:
+        return Response({"detail": "Member profile not found."}, status=404)
+
+    if request.method == "GET":
+        return Response(MemberSerializer(member).data)
+
+    # PATCH
+    serializer = MemberSerializer(member, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=400)
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def my_dependants(request):
+    """
+    GET -> list logged-in member dependants
+    POST -> create dependant for logged-in member
+    """
+    try:
+        member = Member.objects.get(user=request.user)
+    except Member.DoesNotExist:
+        return Response({"detail": "Member profile not found."}, status=404)
+
+    if request.method == "GET":
+        deps = member.dependants.all()
+        return Response(MemberDependentSerializer(deps, many=True).data)
+
+    # POST
+    payload = request.data.copy()
+    payload["member"] = str(member.id)
+    serializer = MemberDependentSerializer(data=payload)
+    if serializer.is_valid():
+        serializer.save(member=member)
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
+
+
+@api_view(["PATCH", "DELETE"])
+@permission_classes([IsAuthenticated])
+def dependant_detail(request, pk):
+    """
+    PATCH/DELETE a dependant belonging to the logged-in member.
+    """
+    try:
+        dep = MemberDependent.objects.get(id=pk, member__user=request.user)
+    except MemberDependent.DoesNotExist:
+        return Response({"detail": "Not found."}, status=404)
+
+    if request.method == "DELETE":
+        dep.delete()
+        return Response(status=204)
+
+    serializer = MemberDependentSerializer(dep, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=400)
 
 
 
@@ -385,6 +460,12 @@ def mark_notifications_read(request):
     Notification.objects.filter(recipient=request.user, read=False).update(read=True)
     return Response({"ok": True, "message": "All notifications marked as read"})
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def unread_notifications_count(request):
+    count = Notification.objects.filter(recipient=request.user, read=False).count()
+    return Response({"unread": count})
+
 
 # ============================================================
 #                SETTINGS & REIMBURSEMENT
@@ -414,6 +495,8 @@ class ReportViewSet(viewsets.ViewSet):
             "message": "Reporting endpoints coming soon.",
             "available": []
         })
+
+
 
 
 # ============================================================
@@ -867,6 +950,109 @@ def export_claims_csv(request):
         ])
 
     return response
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsAdmin])
+def admin_users_list(request):
+    """
+    List all users with groups/roles.
+    Optional filters: ?q=<search>&role=admin|committee|member
+    """
+    qs = User.objects.all().order_by("username")
+
+    q = request.GET.get("q")
+    if q:
+        qs = qs.filter(
+            Q(username__icontains=q)
+            | Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(email__icontains=q)
+        )
+
+    role = request.GET.get("role")
+    if role:
+        role = role.lower()
+        if role == "admin":
+            qs = qs.filter(Q(is_superuser=True) | Q(groups__name="Admin"))
+        elif role == "committee":
+            qs = qs.filter(groups__name="Committee")
+        elif role == "member":
+            qs = qs.filter(groups__name="Member")
+
+    qs = qs.distinct()
+    data = AdminUserSerializer(qs, many=True).data
+    return Response({"results": data})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsAdmin])
+def admin_update_user_roles(request, user_id):
+    """
+    Body:
+    {
+      "make_admin": true|false,
+      "make_committee": true|false,
+      "make_member": true|false
+    }
+    """
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({"detail": "User not found"}, status=404)
+
+    make_admin = bool(request.data.get("make_admin"))
+    make_committee = bool(request.data.get("make_committee"))
+    make_member = bool(request.data.get("make_member"))
+
+    admin_group, _ = Group.objects.get_or_create(name="Admin")
+    committee_group, _ = Group.objects.get_or_create(name="Committee")
+    member_group, _ = Group.objects.get_or_create(name="Member")
+
+    # Admin flag & group
+    if make_admin:
+        user.is_staff = True
+        user.is_superuser = True
+        user.groups.add(admin_group)
+    else:
+        user.groups.remove(admin_group)
+
+    # Committee
+    if make_committee:
+        user.groups.add(committee_group)
+    else:
+        user.groups.remove(committee_group)
+
+    # Member
+    if make_member:
+        user.groups.add(member_group)
+    else:
+        user.groups.remove(member_group)
+
+    user.save()
+    return Response(AdminUserSerializer(user).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsAdmin])
+def admin_toggle_user_active(request, user_id):
+    """
+    Toggle a user's active flag.
+    Body: { "is_active": true|false }
+    """
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({"detail": "User not found"}, status=404)
+
+    is_active = request.data.get("is_active")
+    if is_active is None:
+        return Response({"detail": "is_active required"}, status=400)
+
+    user.is_active = bool(is_active)
+    user.save()
+    return Response(AdminUserSerializer(user).data)
+
 
 
 @api_view(["POST"])

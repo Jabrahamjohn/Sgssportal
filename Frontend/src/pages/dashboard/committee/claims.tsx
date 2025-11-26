@@ -1,215 +1,202 @@
+// Frontend/src/pages/dashboard/committee/claims.tsx
 import React, { useEffect, useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import api from "~/config/api";
-import Badge from "~/components/controls/badge";
-import Button from "~/components/controls/button";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  EyeIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  DocumentMagnifyingGlassIcon,
-} from "@heroicons/react/24/outline";
 
-type ClaimRow = {
+interface CommitteeClaim {
   id: string;
+  member_name: string;
+  membership_type: string | null;
   claim_type: string;
   status: string;
-  total_claimed: number;
-  total_payable: number;
-  member_payable: number;
+  total_claimed: string;
+  total_payable: string;
+  member_payable: string;
+  created_at: string;
   submitted_at: string | null;
-  member_user_email?: string;
-};
+}
+
+const statusOptions = [
+  { value: "", label: "All" },
+  { value: "submitted", label: "Submitted" },
+  { value: "reviewed", label: "Reviewed" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+  { value: "paid", label: "Paid" },
+];
+
+const typeOptions = [
+  { value: "", label: "All" },
+  { value: "outpatient", label: "Outpatient" },
+  { value: "inpatient", label: "Inpatient" },
+  { value: "chronic", label: "Chronic" },
+];
 
 export default function CommitteeClaimsPage() {
-  const [claims, setClaims] = useState<ClaimRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const nav = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [claims, setClaims] = useState<CommitteeClaim[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    api
-      .get("claims/")
-      .then((res) => setClaims(res.data || []))
-      .finally(() => setLoading(false));
-  }, []);
+  const [status, setStatus] = useState(searchParams.get("status") || "submitted");
+  const [cType, setCType] = useState(searchParams.get("type") || "");
+  const [q, setQ] = useState(searchParams.get("q") || "");
 
-  const statusColor = (status: string) => {
-    const s = status.toLowerCase();
-    if (s === "approved" || s === "paid") return "success";
-    if (s === "rejected") return "danger";
-    if (s === "reviewed") return "warning";
-    return "info";
+  const fetchClaims = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("claims/committee/", {
+        params: {
+          status: status || undefined,
+          type: cType || undefined,
+          q: q || undefined,
+        },
+      });
+      // You have two versions of committee_claims; we are assuming the JSON shape:
+      // { results: [...] }
+      const data = res.data.results || res.data;
+      setClaims(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-7 w-48 bg-gray-200 rounded animate-pulse" />
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-16 bg-gray-100 rounded-lg animate-pulse"
-          />
-        ))}
-      </div>
-    );
-  }
+  useEffect(() => {
+    fetchClaims();
+  }, [status, cType]);
+
+  const submitFilters = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params: any = {};
+    if (status) params.status = status;
+    if (cType) params.type = cType;
+    if (q) params.q = q;
+    setSearchParams(params, { replace: true });
+    fetchClaims();
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Claims (Committee)</h1>
+      </div>
+
+      <form
+        onSubmit={submitFilters}
+        className="bg-white rounded-xl shadow-sm border p-4 grid md:grid-cols-4 gap-3 text-sm"
+      >
         <div>
-          <h2 className="text-2xl font-semibold text-[#03045f]">
-            All Claims (Committee)
-          </h2>
-          <p className="text-sm text-gray-600">
-            Review, approve or reject member claims according to SGSS Byelaws.
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => nav("/dashboard/committee")}>
-          Back to Dashboard
-        </Button>
-      </div>
-
-      {/* Desktop table */}
-      <div className="hidden md:block border rounded-lg bg-white shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gradient-to-r from-[#03045f] to-[#0b2f7c] text-white">
-            <tr>
-              <th className="px-4 py-3 text-left">Claim ID</th>
-              <th className="px-4 py-3 text-left">Member</th>
-              <th className="px-4 py-3 text-left">Type</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-right">Total Claimed</th>
-              <th className="px-4 py-3 text-right">Fund Payable</th>
-              <th className="px-4 py-3 text-right">Member Share</th>
-              <th className="px-4 py-3 text-left">Submitted</th>
-              <th className="px-4 py-3 text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {claims.map((c) => (
-              <tr
-                key={c.id}
-                className="border-t hover:bg-gray-50 transition-colors"
-              >
-                <td className="px-4 py-3 font-mono text-xs">
-                  {String(c.id).slice(0, 8)}…
-                </td>
-                <td className="px-4 py-3 text-xs">
-                  {c.member_user_email || "N/A"}
-                </td>
-                <td className="px-4 py-3 capitalize">{c.claim_type}</td>
-                <td className="px-4 py-3">
-                  <Badge variant={statusColor(c.status)}>{c.status}</Badge>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  Ksh {Number(c.total_claimed || 0).toLocaleString()}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  Ksh {Number(c.total_payable || 0).toLocaleString()}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  Ksh {Number(c.member_payable || 0).toLocaleString()}
-                </td>
-                <td className="px-4 py-3 text-xs text-gray-600">
-                  {c.submitted_at
-                    ? new Date(c.submitted_at).toLocaleString()
-                    : "Pending"}
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <Link
-                    to={`/dashboard/committee/claims/${c.id}`}
-                    className="inline-flex items-center gap-1 text-[#03045f] hover:text-[#caa631] text-xs font-semibold"
-                  >
-                    <DocumentMagnifyingGlassIcon className="w-4 h-4" />
-                    Review
-                  </Link>
-                </td>
-              </tr>
-            ))}
-
-            {!claims.length && (
-              <tr>
-                <td
-                  colSpan={9}
-                  className="px-4 py-6 text-center text-gray-500 text-sm"
-                >
-                  No claims in the system yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-3">
-        {claims.map((c) => (
-          <div
-            key={c.id}
-            className="rounded-lg border bg-white shadow-sm p-4 flex flex-col gap-2"
+          <label className="block text-[11px] text-gray-500 mb-1">
+            Status
+          </label>
+          <select
+            className="w-full border rounded-lg px-2 py-2"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs text-gray-500">
-                  Claim ID:{" "}
-                  <span className="font-mono">
-                    {String(c.id).slice(0, 8)}…
-                  </span>
-                </p>
-                <p className="text-xs text-gray-600">
-                  {c.member_user_email || "Member"}
-                </p>
-                <p className="text-sm font-semibold capitalize mt-1">
-                  {c.claim_type} claim
-                </p>
-              </div>
-              <Badge variant={statusColor(c.status)}>{c.status}</Badge>
-            </div>
+            {statusOptions.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[11px] text-gray-500 mb-1">
+            Type
+          </label>
+          <select
+            className="w-full border rounded-lg px-2 py-2"
+            value={cType}
+            onChange={(e) => setCType(e.target.value)}
+          >
+            {typeOptions.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[11px] text-gray-500 mb-1">
+            Member / NHIF search
+          </label>
+          <input
+            className="w-full border rounded-lg px-3 py-2"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Name, username, NHIF..."
+          />
+        </div>
+        <div className="flex items-end justify-end gap-2">
+          <button
+            type="submit"
+            className="px-4 py-2 rounded-lg bg-[#03045f] text-white text-sm"
+          >
+            Apply Filters
+          </button>
+        </div>
+      </form>
 
-            <div className="grid grid-cols-2 gap-2 text-xs mt-1">
-              <div>
-                <strong>Claimed:</strong>{" "}
-                Ksh {Number(c.total_claimed || 0).toLocaleString()}
-              </div>
-              <div>
-                <strong>Fund:</strong>{" "}
-                Ksh {Number(c.total_payable || 0).toLocaleString()}
-              </div>
-              <div>
-                <strong>Member:</strong>{" "}
-                Ksh {Number(c.member_payable || 0).toLocaleString()}
-              </div>
-              <div className="flex items-center gap-1">
-                <ClockIcon className="w-4 h-4 text-gray-500" />
-                <span>
-                  {c.submitted_at
-                    ? new Date(c.submitted_at).toLocaleDateString()
-                    : "Pending"}
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <Button
-                size="small"
-                variant="outline"
-                onClick={() => nav(`/dashboard/committee/claims/${c.id}`)}
-              >
-                <EyeIcon className="w-4 h-4 mr-1" />
-                Review
-              </Button>
-            </div>
+      <div className="bg-white rounded-xl shadow-sm border overflow-auto">
+        {loading ? (
+          <div className="p-4 text-sm text-gray-500">Loading…</div>
+        ) : claims.length === 0 ? (
+          <div className="p-4 text-sm text-gray-500">
+            No claims match current filters.
           </div>
-        ))}
-
-        {!claims.length && (
-          <p className="text-sm text-center text-gray-500">
-            No claims available yet.
-          </p>
+        ) : (
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+                <th className="px-4 py-2">Ref</th>
+                <th className="px-4 py-2">Member</th>
+                <th className="px-4 py-2">Type</th>
+                <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2">Total</th>
+                <th className="px-4 py-2">Fund Payable</th>
+                <th className="px-4 py-2">Submitted</th>
+                <th className="px-4 py-2 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {claims.map((c) => (
+                <tr key={c.id} className="border-t">
+                  <td className="px-4 py-2 text-xs text-gray-500">
+                    {c.id.slice(0, 8)}
+                  </td>
+                  <td className="px-4 py-2">
+                    <div className="font-medium">{c.member_name}</div>
+                    <div className="text-[11px] text-gray-500">
+                      {c.membership_type || "—"}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2 capitalize">{c.claim_type}</td>
+                  <td className="px-4 py-2">
+                    <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] bg-yellow-100 text-yellow-800 capitalize">
+                      {c.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2">Ksh {c.total_claimed}</td>
+                  <td className="px-4 py-2">Ksh {c.total_payable}</td>
+                  <td className="px-4 py-2 text-xs">
+                    {c.submitted_at
+                      ? new Date(c.submitted_at).toLocaleDateString()
+                      : "—"}
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    <Link
+                      to={`/dashboard/committee/claims/${c.id}`}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Open
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

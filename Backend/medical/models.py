@@ -113,20 +113,26 @@ class Member(models.Model):
         return f"{self.user.get_full_name() or self.user.username}"
 
 
+# ---------------------------
+# Member Dependants
+# ---------------------------
 class MemberDependent(models.Model):
-    """
-    Dependants listed on the membership form.
-    Used for Family / Joint / other multi-person memberships.
-    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    member = models.ForeignKey(Member, related_name="dependants", on_delete=models.CASCADE)
-    full_name = models.CharField(max_length=255)
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name="dependants")
+    full_name = models.CharField(max_length=150)
     date_of_birth = models.DateField(blank=True, null=True)
-    blood_group = models.CharField(max_length=5, blank=True)
-    id_number = models.CharField(max_length=50, blank=True)
+    blood_group = models.CharField(max_length=10, blank=True, null=True)
+    id_number = models.CharField(max_length=50, blank=True, null=True)
+    relationship = models.CharField(max_length=50, blank=True, null=True)
+
+    # ✔ FIXED
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["full_name"]
 
     def __str__(self):
-        return f"{self.full_name} ({self.member})"
+        return f"{self.full_name} ({self.relationship})"
 
 
 # ---------------------------
@@ -439,3 +445,5 @@ class ClaimAttachment(models.Model):
     file = models.FileField(upload_to='claim_attachments/')
     content_type = models.CharField(max_length=100, blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+

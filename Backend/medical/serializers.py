@@ -1,12 +1,12 @@
 # Backend/medical/serializers.py
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, models as auth_models
 from django.utils import timezone
 from datetime import datetime, date
 from django.contrib.auth.models import Group
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview, AuditLog,
-    Notification, ReimbursementScale, Setting, ChronicRequest, ClaimAttachment
+    Notification, ReimbursementScale, Setting, ChronicRequest, ClaimAttachment, MemberDependent
 )
 
 User = get_user_model()
@@ -18,19 +18,68 @@ class MembershipTypeSerializer(serializers.ModelSerializer):
         fields = ["id", "key", "name", "annual_limit", "fund_share_percent"]
 
 
+class MemberDependentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MemberDependent
+        fields = [
+            "id",
+            "full_name",
+            "date_of_birth",
+            "blood_group",
+            "id_number",
+            "relationship",
+            "created_at",
+        ]
+
+
 class MemberSerializer(serializers.ModelSerializer):
-    user_email = serializers.EmailField(source="user.email", read_only=True)
-    user_full_name = serializers.CharField(source="user.get_full_name", read_only=True)
-    membership_type = serializers.PrimaryKeyRelatedField(queryset=MembershipType.objects.all(), allow_null=True)
+    user_full_name = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    dependants = MemberDependentSerializer(many=True, read_only=True)
 
     class Meta:
         model = Member
         fields = [
-            "id", "user", "user_email", "user_full_name",
-            "membership_type", "nhif_number", "valid_from", "valid_to"
+            "id",
+            "user_full_name",
+            "email",
+            "membership_type",
+            "nhif_number",
+            "mailing_address",
+            "phone_office",
+            "phone_home",
+            "phone_fax",
+            "phone_mobile",
+            "family_doctor_name",
+            "family_doctor_phone_office",
+            "family_doctor_phone_home",
+            "family_doctor_phone_fax",
+            "family_doctor_phone_mobile",
+            "other_medical_scheme",
+            "status",
+            "valid_from",
+            "valid_to",
+            "benefits_from",
+            "dependants",
         ]
-        read_only_fields = ["id", "user_email", "user_full_name"]
+        read_only_fields = ["status", "valid_from", "valid_to", "benefits_from"]
 
+    def get_user_full_name(self, obj):
+        return obj.user.get_full_name() or obj.user.username
+
+    def get_email(self, obj):
+        return obj.user.email
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    groups = serializers.SlugRelatedField(
+        many=True,
+        slug_field="name",
+        read_only=True,
+    )
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "first_name", "last_name", "is_active", "is_superuser", "groups"]
 
 class ClaimItemSerializer(serializers.ModelSerializer):
     class Meta:

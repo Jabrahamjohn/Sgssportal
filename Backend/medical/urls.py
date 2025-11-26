@@ -48,6 +48,20 @@ urlpatterns = [
     path("dashboard/admin/summary/", views.admin_dashboard_summary, name="admin-dashboard-summary"),
     path("dashboard/admin/audit/", views.audit_all_logs, name="admin-dashboard-audit"),
 
+    # Member profile & dependants
+    path("members/me/profile/", views.my_member_profile, name="my-member-profile"),
+    path("members/me/dependants/", views.my_dependants, name="my-dependants"),
+    path("dependants/<uuid:pk>/", views.dependant_detail, name="dependant-detail"),
+
+    # Notifications
+    path("notifications/unread-count/", views.unread_notifications_count, name="notifications-unread-count"),
+    path("notifications/mark-read/", views.mark_notifications_read, name="notifications-mark-read"),
+
+    # Admin users & roles
+    path("admin/users/", views.admin_users_list, name="admin-users"),
+    path("admin/users/<uuid:user_id>/roles/", views.admin_update_user_roles, name="admin-user-roles"),
+    path("admin/users/<uuid:user_id>/active/", views.admin_toggle_user_active, name="admin-user-active"),
+
     # router
     path("", include(router.urls)),
 ]

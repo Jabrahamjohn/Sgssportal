@@ -3,80 +3,147 @@ import React, { useEffect, useState } from "react";
 import { BellIcon } from "@heroicons/react/24/outline";
 import api from "~/config/api";
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  link?: string | null;
+  created_at: string;
+  read: boolean;
+}
+
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const [list, setList] = useState<any[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const load = async () => {
+  // Fetch unread count
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await api.get("notifications/unread-count/");
+      setUnread(res.data.unread || 0);
+    } catch (_e) {
+      // ignore
+    }
+  };
+
+  // Fetch full list
+  const fetchNotifications = async () => {
     setLoading(true);
     try {
       const res = await api.get("notifications/");
-      setList(res.data);
-    } catch (err) {
-      console.error(err);
+      setItems(res.data);
+    } catch (_e) {
+      // ignore
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  // Poll unread count
+  useEffect(() => {
+    fetchUnreadCount();
+    const id = setInterval(fetchUnreadCount, 20000);
+    return () => clearInterval(id);
+  }, []);
 
-  const unreadCount = list.filter(n => !n.read).length;
-
-  const markAllRead = async () => {
-    await api.post("notifications/mark-read/");
-    setList(prev => prev.map(n => ({ ...n, read: true })));
+  const toggleOpen = () => {
+    const next = !open;
+    setOpen(next);
+    if (next) {
+      fetchNotifications();
+    }
   };
 
   const markOneRead = async (id: string) => {
-    await api.post(`notifications/${id}/mark_read/`);
-    setList(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    try {
+      await api.post(`notifications/${id}/mark_read/`);
+      setItems((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+      setUnread((u) => Math.max(0, u - 1));
+    } catch (_e) {
+      //ignore
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      await api.post("notifications/mark-read/");
+      setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnread(0);
+    } catch (_e) {
+      // ignore
+    }
   };
 
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen(p => !p)}
-        className="relative p-2 rounded-full hover:bg-white/20 transition"
+        onClick={toggleOpen}
+        className="relative rounded-full p-2 hover:bg-white/10 transition"
       >
-        <BellIcon className="w-6 h-6 text-white" />
-        {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 bg-red-500 text-xs font-bold text-white rounded-full px-1.5 py-0.5">
-            {unreadCount}
+        <BellIcon className="w-6 h-6" />
+        {unread > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+            {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-3 w-80 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-100 z-50">
+        <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-auto bg-white text-gray-800 rounded-xl shadow-xl border border-gray-100 z-40">
           <div className="flex items-center justify-between px-4 py-2 border-b">
-            <h4 className="text-sm font-semibold">Notifications</h4>
-            {unreadCount > 0 && (
-              <button onClick={markAllRead} className="text-xs text-blue-600 hover:underline">
-                Mark all as read
-              </button>
-            )}
+            <h3 className="text-sm font-semibold">Notifications</h3>
+            <button
+              onClick={markAllRead}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              Mark all as read
+            </button>
           </div>
 
-          <div className="max-h-64 overflow-y-auto">
-            {loading && <p className="p-3 text-sm text-gray-500">Loading...</p>}
-            {!loading && list.length === 0 && (
-              <p className="p-3 text-sm text-gray-500">No notifications yet.</p>
-            )}
-            {list.map(n => (
-              <div
-                key={n.id}
-                onClick={() => markOneRead(n.id)}
-                className={`p-3 text-sm border-b cursor-pointer hover:bg-gray-50 ${
-                  n.read ? "text-gray-500" : "font-medium text-gray-900 bg-yellow-50"
-                }`}
-              >
-                <div className="font-semibold">{n.title}</div>
-                <div className="text-xs text-gray-600">{n.message}</div>
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="p-4 text-sm text-gray-500">Loading...</div>
+          ) : items.length === 0 ? (
+            <div className="p-4 text-sm text-gray-500">No notifications.</div>
+          ) : (
+            <ul className="divide-y text-sm">
+              {items.map((n) => (
+                <li
+                  key={n.id}
+                  className={`px-4 py-3 flex flex-col gap-1 ${
+                    !n.read ? "bg-blue-50" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold">{n.title}</span>
+                    {!n.read && (
+                      <button
+                        onClick={() => markOneRead(n.id)}
+                        className="text-[11px] text-blue-600 hover:underline"
+                      >
+                        Mark read
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-600">{n.message}</p>
+                  {n.link && (
+                    <a
+                      href={n.link}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      View →
+                    </a>
+                  )}
+                  <span className="text-[10px] text-gray-400">
+                    {new Date(n.created_at).toLocaleString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>

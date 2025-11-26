@@ -49,6 +49,7 @@ import AdminUsersPage from "./pages/dashboard/admin/users";
 
 import NotFound from "./pages/404";
 
+
 // ROLE REDIRECT
 function RoleRedirect() {
   const { auth } = useAuth();
@@ -64,12 +65,10 @@ function SmartRedirect() {
   const nav = useNavigate();
 
   useEffect(() => {
-    api
-      .get("auth/me/")
+    api.get("auth/me/")
       .then((res) => {
-        const role = res.data.role;
-        if (role === "committee") nav("/dashboard/committee");
-        else if (role === "admin") nav("/dashboard/admin");
+        if (res.data.role === "committee") nav("/dashboard/committee");
+        else if (res.data.role === "admin") nav("/dashboard/admin");
         else nav("/dashboard/member");
       })
       .catch(() => nav("/login"));
@@ -78,35 +77,29 @@ function SmartRedirect() {
   return <div className="p-6">Loading...</div>;
 }
 
+
 // MAIN ROUTER
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+
         {/* PUBLIC */}
         <Route path="/" element={<LandingPage />} />
 
         <Route
           path="/login"
-          element={
-            <Unauthenticated>
-              <Login />
-            </Unauthenticated>
-          }
+          element={<Unauthenticated><Login /></Unauthenticated>}
         />
 
         <Route
           path="/register"
-          element={
-            <Unauthenticated>
-              <Register />
-            </Unauthenticated>
-          }
+          element={<Unauthenticated><Register /></Unauthenticated>}
         />
 
-        {/* PROTECTED */}
+        {/* PROTECTED APP */}
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <Authenticated>
               <AppLayout />
@@ -114,40 +107,43 @@ export default function AppRouter() {
           }
         >
           <Route index element={<RoleRedirect />} />
-          <Route path="dashboard" element={<SmartRedirect />} />
+
+          {/* Smart redirect handler */}
+          <Route path="redirect" element={<SmartRedirect />} />
 
           {/* MEMBER */}
-          <Route path="dashboard/member" element={<MemberDashboard />} />
-          <Route path="dashboard/member/claims" element={<ClaimsList />} />
-          <Route path="dashboard/member/claims/new" element={<NewClaim />} />
-          <Route path="dashboard/member/claims/:id" element={<MemberClaimDetail />} />
-          <Route path="dashboard/member/claims/:id/view" element={<ClaimView />} />
-          <Route path="dashboard/member/chronic" element={<ChronicPage />} />
-          <Route path="dashboard/member/profile" element={<MemberProfilePage />} />
-          <Route path="dashboard/member/dependants" element={<MemberDependantsPage />} />
+          <Route path="member" element={<MemberDashboard />} />
+          <Route path="member/claims" element={<ClaimsList />} />
+          <Route path="member/claims/new" element={<NewClaim />} />
+          <Route path="member/claims/:id" element={<MemberClaimDetail />} />
+          <Route path="member/claims/:id/view" element={<ClaimView />} />
+          <Route path="member/chronic" element={<ChronicPage />} />
+          <Route path="member/profile" element={<MemberProfilePage />} />
+          <Route path="member/dependants" element={<MemberDependantsPage />} />
 
           {/* COMMITTEE */}
-          <Route path="dashboard/committee" element={<CommitteeDashboard />} />
-          <Route path="dashboard/committee/claims" element={<CommitteeClaimsPage />} />
-          <Route path="dashboard/committee/claims/:id" element={<CommitteeClaimDetail />} />
-          <Route path="dashboard/committee/members" element={<CommitteeMembersPage />} />
+          <Route path="committee" element={<CommitteeDashboard />} />
+          <Route path="committee/claims" element={<CommitteeClaimsPage />} />
+          <Route path="committee/claims/:id" element={<CommitteeClaimDetail />} />
+          <Route path="committee/members" element={<CommitteeMembersPage />} />
 
           {/* ADMIN */}
-          <Route path="dashboard/admin" element={<AdminDashboard />} />
-          <Route path="dashboard/admin/audit" element={<AdminAuditPage />} />
-          <Route path="dashboard/admin/users" element={<AdminUsersPage />} />
+          <Route path="admin" element={<AdminDashboard />} />
+          <Route path="admin/audit" element={<AdminAuditPage />} />
+          <Route path="admin/users" element={<AdminUsersPage />} />
 
           {/* ADMIN SETTINGS */}
-          <Route path="dashboard/admin/settings" element={<AdminSettingsIndex />} />
-          <Route path="dashboard/admin/settings/memberships" element={<AdminMembershipTypes />} />
-          <Route path="dashboard/admin/settings/reimbursement" element={<AdminReimbursementScales />} />
-          <Route path="dashboard/admin/settings/general" element={<AdminGeneralSettings />} />
-          <Route path="dashboard/admin/settings/committee" element={<AdminCommitteeSettings />} />
-          <Route path="dashboard/admin/settings/registrations" element={<AdminRegistrations />} />
+          <Route path="admin/settings" element={<AdminSettingsIndex />} />
+          <Route path="admin/settings/memberships" element={<AdminMembershipTypes />} />
+          <Route path="admin/settings/reimbursement" element={<AdminReimbursementScales />} />
+          <Route path="admin/settings/general" element={<AdminGeneralSettings />} />
+          <Route path="admin/settings/committee" element={<AdminCommitteeSettings />} />
+          <Route path="admin/settings/registrations" element={<AdminRegistrations />} />
         </Route>
 
-        {/* 404 */}
+        {/* NOT FOUND */}
         <Route path="*" element={<NotFound />} />
+
       </Routes>
     </BrowserRouter>
   );

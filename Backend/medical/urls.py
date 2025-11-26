@@ -27,6 +27,12 @@ urlpatterns = [
     # member info
     path("members/me/", views.my_member, name="my-member"),
     path("members/me/benefit_balance/", views.benefit_balance, name="benefit-balance"),
+    # Member profile & dependants
+    path("members/me/profile/", views.my_member_profile, name="my-member-profile"),
+    path("members/me/update/", views.update_my_member, name="my-member-update"),
+
+    path("members/me/dependants/", views.my_dependants, name="my-dependants"),
+    path("dependants/<uuid:pk>/", views.dependant_detail, name="dependant-detail"),
 
     # dashboards
     path("dashboard/member/info/", views.member_dashboard_info, name="member-dashboard-info"),

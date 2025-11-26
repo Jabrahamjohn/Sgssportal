@@ -177,6 +177,36 @@ def dependant_detail(request, pk):
         return Response(serializer.data)
     return Response(serializer.errors, status=400)
 
+@api_view(["PUT", "PATCH"])
+@permission_classes([IsAuthenticated])
+def update_my_member(request):
+    """Update editable fields of member profile."""
+    try:
+        member = Member.objects.get(user=request.user)
+    except Member.DoesNotExist:
+        return Response({"detail": "Member not found"}, status=404)
+
+    allowed_fields = [
+        "mailing_address",
+        "phone_office",
+        "phone_home",
+        "phone_mobile",
+        "phone_fax",
+        "family_doctor_name",
+        "family_doctor_phone_office",
+        "family_doctor_phone_home",
+        "family_doctor_phone_mobile",
+        "family_doctor_phone_fax",
+        "nhif_number",
+        "other_medical_scheme",
+    ]
+
+    for field in allowed_fields:
+        if field in request.data:
+            setattr(member, field, request.data[field])
+
+    member.save()
+    return Response(MemberSerializer(member).data)
 
 
 # ============================================================

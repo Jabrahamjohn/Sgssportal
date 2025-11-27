@@ -42,7 +42,7 @@ export default function RegistrationQueue() {
     setLoading(true);
     try {
       const res = await api.get("members/");
-      const all: MemberType[] = res.data;
+      const all: MemberType[] = res.data.results || res.data;
       // filter pending in frontend for now
       const pending = all.filter((m) => m.status === "pending");
       setMembers(pending);

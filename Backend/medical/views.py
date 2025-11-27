@@ -107,6 +107,30 @@ class MemberViewSet(viewsets.ModelViewSet):
 
         return Response(MemberSerializer(member).data)
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def my_member_rules(request):
+    try:
+        member = Member.objects.select_related("membership_type").get(user=request.user)
+    except Member.DoesNotExist:
+        return Response({"detail": "Member not found"}, status=404)
+
+    mt = member.membership_type
+    annual_limit = getattr(mt, "annual_limit", None)
+    fund_share = getattr(mt, "fund_share_percent", 80)
+
+    data = {
+      "status": member.status,
+      "benefits_from": member.benefits_from,
+      "valid_from": getattr(member, "valid_from", None),
+      "valid_to": getattr(member, "valid_to", None),
+      "annual_limit": annual_limit,
+      "fund_share_percent": fund_share,
+      "waiting_period_days": 60,
+      "claim_window_days": 90,
+    }
+    return Response(data)
+
 
 # ============================================================
 #   MEMBER PROFILE & DEPENDANTS

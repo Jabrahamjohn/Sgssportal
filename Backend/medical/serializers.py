@@ -34,7 +34,10 @@ class MemberDependentSerializer(serializers.ModelSerializer):
 class MemberApplicationSerializer(serializers.ModelSerializer):
     user_full_name = serializers.CharField(source="user.get_full_name", read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
-    membership_type_name = serializers.CharField(source="membership_type.name", read_only=True)
+    membership_type_name = serializers.SerializerMethodField()
+
+    def get_membership_type_name(self, obj):
+        return obj.membership_type.name if obj.membership_type else ""
 
     class Meta:
         model = Member
@@ -50,7 +53,6 @@ class MemberApplicationSerializer(serializers.ModelSerializer):
             "benefits_from",
             "valid_from",
             "valid_to",
-            # add anything else you want to expose
         ]
 
 

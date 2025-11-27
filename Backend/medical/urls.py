@@ -18,6 +18,17 @@ router.register(r"settings", views.SettingViewSet, basename="settings")
 router.register(r"reimbursement-scales", views.ReimbursementScaleViewSet, basename="reimbursement-scales")
 
 urlpatterns = [
+
+    path(
+        "committee/members/applications/",
+        views.committee_membership_applications,
+        name="committee-membership-applications",
+    ),
+    path(
+        "committee/members/applications/<uuid:pk>/",
+        views.committee_membership_application_detail,
+        name="committee-membership-application-detail",
+    ),
     # auth
     path("auth/me/", views.me, name="me"),
     path("auth/login/", views.login_view, name="login"),
@@ -26,6 +37,7 @@ urlpatterns = [
 
     # member info
     path("members/me/", views.my_member, name="my-member"),
+    path("members/me/rules/", views.my_member_rules, name="my-member-rules"),
     path("members/me/benefit_balance/", views.benefit_balance, name="benefit-balance"),
     
 
@@ -38,18 +50,7 @@ urlpatterns = [
     path("claims/committee/<uuid:pk>/", views.committee_claim_detail),
     path("committee/claims/", views.committee_claims),
     path("admin/committee-members/", views.committee_members),
-        # Committee: membership applications
-    path("committee/members/applications/",views.committee_membership_applications,name="committee-membership-applications",
-    ),
-    path(
-        "committee/members/applications/<uuid:pk>/",
-        views.committee_membership_application_detail,
-        name="committee-membership-application-detail",
-    ),
-
-
-
-
+        
     # uploads / reports
     path("reports/export/", views.export_claims_csv),
     path("claims/bulk_status/", views.bulk_change_status),

@@ -85,22 +85,16 @@ export default function AppRouter() {
     <BrowserRouter>
       <Routes>
 
-        {/* PUBLIC */}
+        {/* Public Landing */}
         <Route path="/" element={<LandingPage />} />
 
-        <Route
-          path="/login"
-          element={<Unauthenticated><Login /></Unauthenticated>}
-        />
+        {/* Auth */}
+        <Route path="/login" element={<Unauthenticated><Login /></Unauthenticated>} />
+        <Route path="/register" element={<Unauthenticated><Register /></Unauthenticated>} />
 
+        {/* Protected Dashboard */}
         <Route
-          path="/register"
-          element={<Unauthenticated><Register /></Unauthenticated>}
-        />
-
-        {/* PROTECTED APP */}
-        <Route
-          path="/dashboard"
+          path="/dashboard/*"
           element={
             <Authenticated>
               <AppLayout />
@@ -108,33 +102,23 @@ export default function AppRouter() {
           }
         >
           <Route index element={<RoleRedirect />} />
-
-          {/* Smart redirect handler */}
-          <Route path="redirect" element={<SmartRedirect />} />
-
-          {/* MEMBER */}
           <Route path="member" element={<MemberDashboard />} />
           <Route path="member/claims" element={<ClaimsList />} />
           <Route path="member/claims/new" element={<NewClaim />} />
           <Route path="member/claims/:id" element={<MemberClaimDetail />} />
-          <Route path="member/claims/:id/view" element={<ClaimView />} />
           <Route path="member/chronic" element={<ChronicPage />} />
           <Route path="member/profile" element={<MemberProfilePage />} />
           <Route path="member/dependants" element={<MemberDependantsPage />} />
 
-          {/* COMMITTEE */}
           <Route path="committee" element={<CommitteeDashboard />} />
           <Route path="committee/claims" element={<CommitteeClaimsPage />} />
           <Route path="committee/claims/:id" element={<CommitteeClaimDetail />} />
           <Route path="committee/members" element={<CommitteeMembersPage />} />
-          <Route path="committee/members/applications" element={<CommitteeApplicationsPage />} />
 
-          {/* ADMIN */}
           <Route path="admin" element={<AdminDashboard />} />
           <Route path="admin/audit" element={<AdminAuditPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />
 
-          {/* ADMIN SETTINGS */}
           <Route path="admin/settings" element={<AdminSettingsIndex />} />
           <Route path="admin/settings/memberships" element={<AdminMembershipTypes />} />
           <Route path="admin/settings/reimbursement" element={<AdminReimbursementScales />} />
@@ -143,10 +127,11 @@ export default function AppRouter() {
           <Route path="admin/settings/registrations" element={<AdminRegistrations />} />
         </Route>
 
-        {/* NOT FOUND */}
+        {/* 404 */}
         <Route path="*" element={<NotFound />} />
 
       </Routes>
     </BrowserRouter>
+
   );
 }

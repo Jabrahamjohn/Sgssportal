@@ -31,6 +31,28 @@ class MemberDependentSerializer(serializers.ModelSerializer):
             "created_at",
         ]
 
+class MemberApplicationSerializer(serializers.ModelSerializer):
+    user_full_name = serializers.CharField(source="user.get_full_name", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    membership_type_name = serializers.CharField(source="membership_type.name", read_only=True)
+
+    class Meta:
+        model = Member
+        fields = [
+            "id",
+            "user_full_name",
+            "email",
+            "membership_type_name",
+            "status",
+            "nhif_number",
+            "mailing_address",
+            "phone_mobile",
+            "benefits_from",
+            "valid_from",
+            "valid_to",
+            # add anything else you want to expose
+        ]
+
 
 class MemberSerializer(serializers.ModelSerializer):
     user_full_name = serializers.SerializerMethodField()

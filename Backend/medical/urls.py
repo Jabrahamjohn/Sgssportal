@@ -38,6 +38,15 @@ urlpatterns = [
     path("claims/committee/<uuid:pk>/", views.committee_claim_detail),
     path("committee/claims/", views.committee_claims),
     path("admin/committee-members/", views.committee_members),
+        # Committee: membership applications
+    path("committee/members/applications/",views.committee_membership_applications,name="committee-membership-applications",
+    ),
+    path(
+        "committee/members/applications/<uuid:pk>/",
+        views.committee_membership_application_detail,
+        name="committee-membership-application-detail",
+    ),
+
 
 
 

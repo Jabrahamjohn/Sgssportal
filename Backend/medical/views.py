@@ -33,6 +33,11 @@ from .audit import log_claim_event
 
 User = get_user_model()
 
+def _user_is_committee_or_admin(user):
+    return (
+        user.is_superuser
+        or user.groups.filter(name__in=["Admin", "Committee"]).exists()
+    )
 
 # ============================================================
 #                MEMBERSHIP MANAGEMENT
@@ -154,6 +159,7 @@ def my_dependants(request):
         serializer.save(member=member)
         return Response(serializer.data, status=201)
     return Response(serializer.errors, status=400)
+
 
 
 @api_view(["PATCH", "DELETE"])
@@ -1244,3 +1250,70 @@ def committee_members(request):
             "is_superuser": u.is_superuser,
         })
     return Response({"results": data})
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def committee_membership_applications(request):
+    """List all pending membership applications for committee/admin."""
+    if not _user_is_committee_or_admin(request.user):
+        return Response({"detail": "Not allowed"}, status=403)
+
+    qs = (
+        Member.objects.filter(status="pending")
+        .select_related("user", "membership_type")
+        .order_by("user__first_name", "user__last_name")
+    )
+    serializer = MemberApplicationSerializer(qs, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def committee_membership_application_detail(request, pk):
+    """
+    GET -> view application
+    POST -> action {action: "approve"|"reject", membership_number?, note?}
+    """
+    if not _user_is_committee_or_admin(request.user):
+        return Response({"detail": "Not allowed"}, status=403)
+
+    try:
+        member = Member.objects.select_related("user", "membership_type").get(id=pk)
+    except Member.DoesNotExist:
+        return Response({"detail": "Application not found"}, status=404)
+
+    if request.method == "GET":
+        return Response(MemberApplicationSerializer(member).data)
+
+    # POST action
+    action = request.data.get("action")
+    note = request.data.get("note", "").strip()
+    membership_number = request.data.get("membership_number", "").strip()
+
+    if action not in ["approve", "reject"]:
+        return Response({"detail": "Invalid action"}, status=400)
+
+    with transaction.atomic():
+        if action == "approve":
+            member.status = "active"
+            if hasattr(member, "membership_number") and membership_number:
+                member.membership_number = membership_number
+
+            # benefits start now if not already set
+            if not member.benefits_from:
+                member.benefits_from = timezone.now().date()
+
+            # Add to "Member" group at least
+            member_group, _ = Group.objects.get_or_create(name="Member")
+            member.user.groups.add(member_group)
+
+            member.save()
+
+            # TODO: optional: create Notification to user about approval
+
+        elif action == "reject":
+            member.status = "rejected"
+            member.save()
+            # Optional: store note somewhere or create Notification
+
+    return Response(MemberApplicationSerializer(member).data)

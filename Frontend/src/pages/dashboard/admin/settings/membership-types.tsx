@@ -1,390 +1,257 @@
-// Frontend/src/pages/dashboard/admin/settings/membership-types.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
-import Button from "~/components/controls/button";
-import Input from "~/components/controls/input";
-import Alert from "~/components/controls/alert";
 
-type MembershipType = {
+interface MembershipType {
   id: string;
-  key: string;
   name: string;
-  entry_fee: string | number | null;
-  term_years: number | null;
-  annual_limit: string | number;
-  fund_share_percent: number;
+  annual_limit: string;
+  fund_share_percent: string;
+  entry_fee?: string;
+  term_years?: number | null;
   notes?: string;
+}
+
+const emptyType: MembershipType = {
+  id: "",
+  name: "",
+  annual_limit: "",
+  fund_share_percent: "80",
+  entry_fee: "",
+  term_years: 1,
+  notes: "",
 };
 
-export default function MembershipTypesSettings() {
+export default function AdminMembershipTypes() {
   const [items, setItems] = useState<MembershipType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Partial<MembershipType>>({});
+  const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState<MembershipType | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const resetStatus = () => {
-    setError("");
-    setSuccess("");
-  };
-
-  const load = async () => {
-    resetStatus();
+  const fetchItems = async () => {
     setLoading(true);
     try {
       const res = await api.get("memberships/");
       setItems(res.data);
-    } catch {
-      setError("Failed to load membership types.");
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    load();
+    fetchItems();
   }, []);
 
-  const startEdit = (mt: MembershipType) => {
-    resetStatus();
-    setEditingId(mt.id);
-    setDraft(mt);
+  const openNew = () => {
+    setEditing({ ...emptyType });
+    setModalOpen(true);
   };
 
-  const startNew = () => {
-    resetStatus();
-    setEditingId("new");
-    setDraft({
-      key: "",
-      name: "",
-      entry_fee: 0,
-      term_years: 2,
-      annual_limit: 250000,
-      fund_share_percent: 80,
-      notes: "",
-    });
+  const openEdit = (m: MembershipType) => {
+    setEditing({ ...m });
+    setModalOpen(true);
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    setDraft({});
-  };
-
-  const handleChange = (field: keyof MembershipType, value: any) => {
-    setDraft((prev) => ({ ...prev, [field]: value }));
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditing(null);
   };
 
   const save = async () => {
-    if (!draft.key || !draft.name) {
-      setError("Key and Name are required.");
-      return;
-    }
+    if (!editing) return;
 
-    resetStatus();
-    setSaving(true);
+    const payload: any = {
+      name: editing.name,
+      annual_limit: editing.annual_limit,
+      fund_share_percent: editing.fund_share_percent,
+      entry_fee: editing.entry_fee,
+      term_years: editing.term_years,
+      notes: editing.notes,
+    };
 
     try {
-      if (editingId === "new") {
-        await api.post("memberships/", draft);
-        setSuccess("Membership type created.");
-      } else if (editingId) {
-        await api.put(`memberships/${editingId}/`, draft);
-        setSuccess("Membership type updated.");
+      if (editing.id) {
+        const res = await api.patch(`memberships/${editing.id}/`, payload);
+        const updated: MembershipType = res.data;
+        setItems((prev) =>
+          prev.map((m) => (m.id === updated.id ? updated : m))
+        );
+      } else {
+        const res = await api.post("memberships/", payload);
+        const created: MembershipType = res.data;
+        setItems((prev) => [...prev, created]);
       }
-      await load();
-      cancelEdit();
-    } catch (e: any) {
+      closeModal();
+    } catch (e) {
       console.error(e);
-      setError(
-        e.response?.data?.detail ||
-          "Failed to save membership type. Check Byelaws constraints and try again."
-      );
-    } finally {
-      setSaving(false);
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">Membership Types</h2>
-          <p className="text-xs text-gray-500">
-            Configure Single / Family / Senior etc, their entry fees, terms and
-            annual benefit limits.
-          </p>
-        </div>
-        <Button
-          onClick={startNew}
-          className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Membership Types</h1>
+        <button
+          onClick={openNew}
+          className="px-4 py-2 bg-[#03045f] text-white rounded-lg text-sm font-medium hover:bg-[#021f4a]"
         >
-          + New Membership Type
-        </Button>
+          New Membership Type
+        </button>
       </div>
 
-      {error && <Alert type="error" message={error} />}
-      {success && <Alert type="success" message={success} />}
-
-      {loading ? (
-        <p className="text-sm text-gray-500">Loading…</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm border border-gray-100 rounded-lg overflow-hidden">
-            <thead className="bg-gray-50">
-              <tr className="text-left">
-                <th className="px-3 py-2 border-b">Key</th>
-                <th className="px-3 py-2 border-b">Name</th>
-                <th className="px-3 py-2 border-b">Entry Fee (Ksh)</th>
-                <th className="px-3 py-2 border-b">Term (years)</th>
-                <th className="px-3 py-2 border-b">Annual Limit (Ksh)</th>
-                <th className="px-3 py-2 border-b">Fund Share (%)</th>
-                <th className="px-3 py-2 border-b">Notes</th>
-                <th className="px-3 py-2 border-b w-32">Actions</th>
+      <div className="bg-white rounded-xl shadow-sm border overflow-auto">
+        {loading ? (
+          <div className="p-4 text-sm text-gray-500">Loading…</div>
+        ) : items.length === 0 ? (
+          <div className="p-4 text-sm text-gray-500">No membership types yet.</div>
+        ) : (
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+                <th className="px-4 py-2">Name</th>
+                <th className="px-4 py-2">Annual Limit</th>
+                <th className="px-4 py-2">Fund Share %</th>
+                <th className="px-4 py-2">Entry Fee</th>
+                <th className="px-4 py-2">Term (Years)</th>
+                <th className="px-4 py-2">Notes</th>
+                <th className="px-4 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((mt) => {
-                const isEditing = editingId === mt.id;
-                return (
-                  <tr key={mt.id} className="border-b last:border-b-0">
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          value={draft.key || ""}
-                          onChange={(e) =>
-                            handleChange("key", e.target.value.trim())
-                          }
-                        />
-                      ) : (
-                        <code className="text-xs bg-gray-100 rounded px-1 py-0.5">
-                          {mt.key}
-                        </code>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          value={draft.name || ""}
-                          onChange={(e) =>
-                            handleChange("name", e.target.value)
-                          }
-                        />
-                      ) : (
-                        mt.name
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={draft.entry_fee ?? ""}
-                          onChange={(e) =>
-                            handleChange(
-                              "entry_fee",
-                              e.target.value ? Number(e.target.value) : null
-                            )
-                          }
-                        />
-                      ) : (
-                        (Number(mt.entry_fee || 0)).toLocaleString()
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={draft.term_years ?? ""}
-                          onChange={(e) =>
-                            handleChange(
-                              "term_years",
-                              e.target.value ? Number(e.target.value) : null
-                            )
-                          }
-                        />
-                      ) : (
-                        mt.term_years ?? "—"
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={draft.annual_limit ?? ""}
-                          onChange={(e) =>
-                            handleChange(
-                              "annual_limit",
-                              e.target.value ? Number(e.target.value) : 0
-                            )
-                          }
-                        />
-                      ) : (
-                        Number(mt.annual_limit).toLocaleString()
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={draft.fund_share_percent ?? ""}
-                          onChange={(e) =>
-                            handleChange(
-                              "fund_share_percent",
-                              e.target.value ? Number(e.target.value) : 80
-                            )
-                          }
-                        />
-                      ) : (
-                        `${mt.fund_share_percent}%`
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <textarea
-                          className="w-full border rounded px-2 py-1 text-xs"
-                          rows={2}
-                          value={draft.notes || ""}
-                          onChange={(e) =>
-                            handleChange("notes", e.target.value)
-                          }
-                        />
-                      ) : (
-                        <span className="text-xs text-gray-500">
-                          {mt.notes || "—"}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            onClick={save}
-                            disabled={saving}
-                            className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
-                          >
-                            {saving ? "Saving…" : "Save"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={cancelEdit}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button size="sm" variant="outline" onClick={() => startEdit(mt)}>
-                          Edit
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {editingId === "new" && (
-                <tr className="border-t bg-gray-50/60">
-                  <td className="px-3 py-2">
-                    <Input
-                      value={draft.key || ""}
-                      onChange={(e) =>
-                        handleChange("key", e.target.value.trim())
-                      }
-                    />
+              {items.map((m) => (
+                <tr key={m.id} className="border-t">
+                  <td className="px-4 py-2 font-medium">{m.name}</td>
+                  <td className="px-4 py-2">{m.annual_limit}</td>
+                  <td className="px-4 py-2">{m.fund_share_percent}%</td>
+                  <td className="px-4 py-2">{m.entry_fee || "—"}</td>
+                  <td className="px-4 py-2">
+                    {m.term_years != null ? m.term_years : "—"}
                   </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      value={draft.name || ""}
-                      onChange={(e) =>
-                        handleChange("name", e.target.value)
-                      }
-                    />
+                  <td className="px-4 py-2 text-xs text-gray-600">
+                    {m.notes || "—"}
                   </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      value={draft.entry_fee ?? ""}
-                      onChange={(e) =>
-                        handleChange(
-                          "entry_fee",
-                          e.target.value ? Number(e.target.value) : null
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      value={draft.term_years ?? ""}
-                      onChange={(e) =>
-                        handleChange(
-                          "term_years",
-                          e.target.value ? Number(e.target.value) : null
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      value={draft.annual_limit ?? ""}
-                      onChange={(e) =>
-                        handleChange(
-                          "annual_limit",
-                          e.target.value ? Number(e.target.value) : 0
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      value={draft.fund_share_percent ?? ""}
-                      onChange={(e) =>
-                        handleChange(
-                          "fund_share_percent",
-                          e.target.value ? Number(e.target.value) : 80
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <textarea
-                      className="w-full border rounded px-2 py-1 text-xs"
-                      rows={2}
-                      value={draft.notes || ""}
-                      onChange={(e) =>
-                        handleChange("notes", e.target.value)
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        onClick={save}
-                        disabled={saving}
-                        className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
-                      >
-                        {saving ? "Saving…" : "Create"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={cancelEdit}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
+                  <td className="px-4 py-2 text-right">
+                    <button
+                      onClick={() => openEdit(m)}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Edit
+                    </button>
                   </td>
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
+        )}
+      </div>
+
+      {modalOpen && editing && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4">
+            <h2 className="text-lg font-semibold">
+              {editing.id ? "Edit Membership Type" : "New Membership Type"}
+            </h2>
+            <div className="space-y-3 text-sm">
+              <Field
+                label="Name"
+                value={editing.name}
+                onChange={(v) =>
+                  setEditing((e) => e && { ...e, name: v })
+                }
+              />
+              <Field
+                label="Annual Limit (Ksh)"
+                value={editing.annual_limit || ""}
+                onChange={(v) =>
+                  setEditing((e) => e && { ...e, annual_limit: v })
+                }
+              />
+              <Field
+                label="Fund Share Percent (Fund → Member pays rest)"
+                value={editing.fund_share_percent || ""}
+                onChange={(v) =>
+                  setEditing((e) => e && { ...e, fund_share_percent: v })
+                }
+              />
+              <Field
+                label="Entry Fee (Ksh)"
+                value={editing.entry_fee || ""}
+                onChange={(v) =>
+                  setEditing((e) => e && { ...e, entry_fee: v })
+                }
+              />
+              <Field
+                label="Term (Years)"
+                value={
+                  editing.term_years != null
+                    ? String(editing.term_years)
+                    : ""
+                }
+                onChange={(v) =>
+                  setEditing((e) =>
+                    e && {
+                      ...e,
+                      term_years: v ? Number(v) : null,
+                    }
+                  )
+                }
+              />
+              <label className="block text-xs">
+                <span className="block text-[11px] text-gray-500 mb-1">
+                  Notes
+                </span>
+                <textarea
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-100"
+                  rows={3}
+                  value={editing.notes || ""}
+                  onChange={(e) =>
+                    setEditing((s) =>
+                      s && { ...s, notes: e.target.value }
+                    )
+                  }
+                />
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={save}
+                className="px-4 py-2 text-sm rounded-lg bg-[#03045f] text-white"
+              >
+                Save
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block text-xs">
+      <span className="block text-[11px] text-gray-500 mb-1">{label}</span>
+      <input
+        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-100"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
   );
 }

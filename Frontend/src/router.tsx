@@ -35,6 +35,7 @@ import CommitteeDashboard from "./pages/dashboard/committee";
 import CommitteeClaimDetail from "./pages/dashboard/committee/claim";
 import CommitteeMembersPage from "./pages/dashboard/committee/members";
 import CommitteeClaimsPage from "./pages/dashboard/committee/claims";
+import CommitteeApplicationsPage from "./pages/dashboard/committee/applications";
 
 // Admin
 import AdminDashboard from "./pages/dashboard/admin";
@@ -126,6 +127,7 @@ export default function AppRouter() {
           <Route path="committee/claims" element={<CommitteeClaimsPage />} />
           <Route path="committee/claims/:id" element={<CommitteeClaimDetail />} />
           <Route path="committee/members" element={<CommitteeMembersPage />} />
+          <Route path="committee/members/applications" element={<CommitteeApplicationsPage />} />
 
           {/* ADMIN */}
           <Route path="admin" element={<AdminDashboard />} />

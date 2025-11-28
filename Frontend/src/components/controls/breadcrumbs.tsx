@@ -1,6 +1,6 @@
 import { Breadcrumb as AntdBreadcrumb, type BreadcrumbProps } from 'antd';
 
-import Link from './link';
+import { Link } from "react-router-dom";
 
 export type BreadcrumbType = BreadcrumbProps;
 

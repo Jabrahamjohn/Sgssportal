@@ -1,6 +1,9 @@
 // Frontend/src/components/layout/Sidebar.tsx
 import React, { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink as RouterLink } from "react-router-dom";
+import { useAuth } from "~/store/contexts/AuthContext";
+import api from "~/config/api";
+
 import {
   Home,
   FileText,
@@ -10,54 +13,48 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { useAuth } from "~/store/contexts/AuthContext";
-import { api } from "~/config/api";
-import { HomeIcon, ClipboardDocumentListIcon } from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { auth } = useAuth();
+  const [me, setMe] = useState<any>(null);
 
   const toggleSidebar = () => setCollapsed((p) => !p);
-
-  const [me, setMe] = useState<any>(null);
 
   useEffect(() => {
     api.get("auth/me/").then((res) => setMe(res.data));
   }, []);
 
   const isCommittee =
-    me?.role === "Committee" ||
-    me?.groups?.includes("Committee") ||
-    me?.groups?.includes("Admin") ||
-    me?.is_superuser;
+    me?.role?.toLowerCase() === "committee" ||
+    me?.role?.toLowerCase() === "admin";
 
+  const isAdmin = me?.role?.toLowerCase() === "admin";
 
   const navItem =
     "flex items-center gap-3 px-4 py-2.5 rounded-xl transition font-medium text-sm";
   const active = "bg-blue-600 text-white shadow-sm";
-  const inactive =
-    "text-gray-600 hover:bg-blue-50 hover:text-blue-700";
+  const inactive = "text-gray-600 hover:bg-blue-50 hover:text-blue-700";
 
-  // 🧭 Menu based on role
+  // Menu sets
   const commonLinks = [
-    { to: "/dashboard/member", icon: <Home className="w-5 h-5" />, label: "Dashboard" },
-    { to: "/dashboard/member/claims", icon: <FileText className="w-5 h-5" />, label: "Claims" },
-    { to: "/dashboard/member/chronic", icon: <Pill className="w-5 h-5" />, label: "Chronic Illness" },
+    { to: "/dashboard/member", icon: Home, label: "Dashboard" },
+    { to: "/dashboard/member/claims", icon: FileText, label: "Claims" },
+    { to: "/dashboard/member/chronic", icon: Pill, label: "Chronic Illness" },
   ];
 
   const committeeLinks = [
-    { to: "/dashboard/committee", icon: <Users className="w-5 h-5" />, label: "Committee" },
+    { to: "/dashboard/committee", icon: Users, label: "Committee" },
   ];
 
   const adminLinks = [
-    { to: "/dashboard/admin/settings", icon: <Settings className="w-5 h-5" />, label: "Settings" },
+    { to: "/dashboard/admin/settings", icon: Settings, label: "Settings" },
   ];
 
   const links = [
     ...commonLinks,
-    ...(auth?.role === "committee" || auth?.role === "admin" ? committeeLinks : []),
-    ...(auth?.role === "admin" ? adminLinks : []),
+    ...(isCommittee ? committeeLinks : []),
+    ...(isAdmin ? adminLinks : []),
   ];
 
   return (
@@ -68,17 +65,13 @@ export default function Sidebar() {
     >
       {/* Header */}
       <div>
-        <div className="sgss-sidebar bg-sgss-navy text-white w-64 h-screen py-6 space-y-2">
-          <h2
-            className={`text-lg font-bold text-gray-800 transition-all ${
-              collapsed ? "hidden" : "block"
-            }`}
-          >
-            SGSS
-          </h2>
+        <div className="sgss-sidebar bg-sgss-navy text-white w-full py-6 px-4 flex items-center justify-between">
+          {!collapsed && (
+            <h2 className="text-lg font-bold text-white">SGSS</h2>
+          )}
           <button
             onClick={toggleSidebar}
-            className="p-2 rounded-full hover:bg-gray-100 transition"
+            className="p-2 rounded-full hover:bg-gray-100 transition bg-white"
             title={collapsed ? "Expand menu" : "Collapse menu"}
           >
             {collapsed ? (
@@ -90,9 +83,9 @@ export default function Sidebar() {
         </div>
 
         {/* Nav Links */}
-        <nav className="mt-6 flex flex-col gap-1">
-          {links.map(({ to, icon, label }) => (
-            <NavLink
+        <nav className="mt-4 flex flex-col gap-1 px-2">
+          {links.map(({ to, icon: Icon, label }) => (
+            <RouterLink
               key={to}
               to={to}
               className={({ isActive }) =>
@@ -100,9 +93,9 @@ export default function Sidebar() {
               }
               title={collapsed ? label : undefined}
             >
-              {icon}
+              <Icon className="w-5 h-5" />
               {!collapsed && <span>{label}</span>}
-            </NavLink>
+            </RouterLink>
           ))}
         </nav>
       </div>

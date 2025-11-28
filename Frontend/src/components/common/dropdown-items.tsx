@@ -6,7 +6,7 @@ import Dropdown, { type DropdownType } from '../controls/dropdown';
 import IconButton, {
 	type ButtonType as IconButtonType,
 } from '../controls/icon-button';
-import Link from '../controls/link';
+import { Link } from "react-router-dom";
 
 export type DropdownItemsType = DropdownType & {
 	actions?: (ButtonType & {

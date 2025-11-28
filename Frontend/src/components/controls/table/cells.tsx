@@ -2,7 +2,7 @@ import { Tooltip } from 'antd';
 import React from 'react';
 
 import Button from '../button';
-import Link from '../link';
+import { Link } from "react-router-dom";
 import { DisplayImage } from '../image';
 
 import type { ButtonProps } from 'antd';

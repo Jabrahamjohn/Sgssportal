@@ -17,7 +17,7 @@ export { default as Form } from './form';
 export { default as IconButton } from './icon-button';
 export { default as AppImage, DisplayImage } from './image';
 export { default as Input, InputPassword, InputNumber, InputOTP, InputSearch, Textarea } from './input';
-export { default as Link } from './link';
+export { Link } from "react-router-dom";
 export { default as Modal } from './modal';
 export { default as Popconfirm } from './popconfirm';
 export { default as Popover } from './popover';

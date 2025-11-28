@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { NavLink } from "react-router-dom";
 import { listNotifications, markNotificationsRead } from "~/server/services/notification.service";
 
 export default function TopBar() {
@@ -41,9 +42,9 @@ export default function TopBar() {
               <p className="font-medium">{n.title}</p>
               <p className="text-xs text-gray-500">{n.message}</p>
               {n.link && (
-                <a href={n.link} className="text-blue-600 text-sm underline">
+                <NavLink to={n.link} className="text-blue-600 text-sm underline">
                   Open
-                </a>
+                </NavLink>
               )}
             </div>
           ))}

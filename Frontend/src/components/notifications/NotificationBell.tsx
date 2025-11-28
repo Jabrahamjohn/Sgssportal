@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { BellIcon } from "@heroicons/react/24/outline";
 import api from "~/config/api";
+import { NavLink } from "react-router-dom";
 
 interface Notification {
   id: string;
@@ -130,12 +131,12 @@ export default function NotificationBell() {
                   </div>
                   <p className="text-xs text-gray-600">{n.message}</p>
                   {n.link && (
-                    <a
-                      href={n.link}
+                    <NavLink
+                      to={n.link}
                       className="text-xs text-blue-600 hover:underline"
                     >
                       View →
-                    </a>
+                    </NavLink>
                   )}
                   <span className="text-[10px] text-gray-400">
                     {new Date(n.created_at).toLocaleString()}

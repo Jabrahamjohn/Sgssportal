@@ -45,6 +45,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // highlight based on route path
   const active = (path: string) => location.pathname.startsWith(path);
+  console.log("Router context:", useLocation());
+
 
   return (
     <div className="flex h-screen bg-[var(--sgss-bg)]">

@@ -82,56 +82,53 @@ function SmartRedirect() {
 // MAIN ROUTER
 export default function AppRouter() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
 
-        {/* Public Landing */}
-        <Route path="/" element={<LandingPage />} />
+      {/* Auth */}
+      <Route path="/login" element={<Unauthenticated><Login /></Unauthenticated>} />
+      <Route path="/register" element={<Unauthenticated><Register /></Unauthenticated>} />
 
-        {/* Auth */}
-        <Route path="/login" element={<Unauthenticated><Login /></Unauthenticated>} />
-        <Route path="/register" element={<Unauthenticated><Register /></Unauthenticated>} />
+      {/* Protected */}
+      <Route
+        path="/dashboard/*"
+        element={
+          <Authenticated>
+            <AppLayout />
+          </Authenticated>
+        }
+      >
+        <Route index element={<RoleRedirect />} />
 
-        {/* Protected Dashboard */}
-        <Route
-          path="/dashboard/*"
-          element={
-            <Authenticated>
-              <AppLayout />
-            </Authenticated>
-          }
-        >
-          <Route index element={<RoleRedirect />} />
-          <Route path="member" element={<MemberDashboard />} />
-          <Route path="member/claims" element={<ClaimsList />} />
-          <Route path="member/claims/new" element={<NewClaim />} />
-          <Route path="member/claims/:id" element={<MemberClaimDetail />} />
-          <Route path="member/chronic" element={<ChronicPage />} />
-          <Route path="member/profile" element={<MemberProfilePage />} />
-          <Route path="member/dependants" element={<MemberDependantsPage />} />
+        {/* MEMBER */}
+        <Route path="member" element={<MemberDashboard />} />
+        <Route path="member/claims" element={<ClaimsList />} />
+        <Route path="member/claims/new" element={<NewClaim />} />
+        <Route path="member/claims/:id" element={<MemberClaimDetail />} />
+        <Route path="member/chronic" element={<ChronicPage />} />
+        <Route path="member/profile" element={<MemberProfilePage />} />
+        <Route path="member/dependants" element={<MemberDependantsPage />} />
 
-          <Route path="committee" element={<CommitteeDashboard />} />
-          <Route path="committee/claims" element={<CommitteeClaimsPage />} />
-          <Route path="committee/claims/:id" element={<CommitteeClaimDetail />} />
-          <Route path="committee/members" element={<CommitteeMembersPage />} />
+        {/* COMMITTEE */}
+        <Route path="committee" element={<CommitteeDashboard />} />
+        <Route path="committee/claims" element={<CommitteeClaimsPage />} />
+        <Route path="committee/claims/:id" element={<CommitteeClaimDetail />} />
+        <Route path="committee/members" element={<CommitteeMembersPage />} />
 
-          <Route path="admin" element={<AdminDashboard />} />
-          <Route path="admin/audit" element={<AdminAuditPage />} />
-          <Route path="admin/users" element={<AdminUsersPage />} />
+        {/* ADMIN */}
+        <Route path="admin" element={<AdminDashboard />} />
+        <Route path="admin/audit" element={<AdminAuditPage />} />
+        <Route path="admin/users" element={<AdminUsersPage />} />
+        <Route path="admin/settings" element={<AdminSettingsIndex />} />
+        <Route path="admin/settings/memberships" element={<AdminMembershipTypes />} />
+        <Route path="admin/settings/reimbursement" element={<AdminReimbursementScales />} />
+        <Route path="admin/settings/general" element={<AdminGeneralSettings />} />
+        <Route path="admin/settings/committee" element={<AdminCommitteeSettings />} />
+        <Route path="admin/settings/registrations" element={<AdminRegistrations />} />
+      </Route>
 
-          <Route path="admin/settings" element={<AdminSettingsIndex />} />
-          <Route path="admin/settings/memberships" element={<AdminMembershipTypes />} />
-          <Route path="admin/settings/reimbursement" element={<AdminReimbursementScales />} />
-          <Route path="admin/settings/general" element={<AdminGeneralSettings />} />
-          <Route path="admin/settings/committee" element={<AdminCommitteeSettings />} />
-          <Route path="admin/settings/registrations" element={<AdminRegistrations />} />
-        </Route>
-
-        {/* 404 */}
-        <Route path="*" element={<NotFound />} />
-
-      </Routes>
-    </BrowserRouter>
-
+      {/* 404 */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }

@@ -7,7 +7,7 @@ import Alert from "~/components/controls/alert";
 type MemberType = {
   id: string;
   user: {
-    id: number | string;
+    id: string | number;
     username: string;
     email: string;
     first_name?: string;
@@ -18,7 +18,7 @@ type MemberType = {
     name: string;
     key: string;
   } | null;
-  status: "pending" | "active" | "inactive" | string;
+  status: string;
   nhif_number?: string | null;
   mailing_address?: string | null;
   phone_mobile?: string | null;
@@ -28,27 +28,30 @@ type MemberType = {
 export default function RegistrationQueue() {
   const [members, setMembers] = useState<MemberType[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [actingId, setActingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const resetStatus = () => {
+  const resetMessages = () => {
     setError("");
     setSuccess("");
   };
 
   const load = async () => {
-    resetStatus();
+    resetMessages();
     setLoading(true);
+
     try {
       const res = await api.get("members/");
-      const all: MemberType[] = res.data.results || res.data;
-      // filter pending in frontend for now
-      const pending = all.filter((m) => m.status === "pending");
+      const rows: MemberType[] = res.data.results || res.data || [];
+
+      const pending = rows.filter((m) => m.status === "pending");
+
       setMembers(pending);
     } catch (e) {
-      console.error(e);
-      setError("Failed to load member registrations.");
+      console.error("Load registrations error:", e);
+      setError("Failed to load registrations.");
     } finally {
       setLoading(false);
     }
@@ -59,76 +62,68 @@ export default function RegistrationQueue() {
   }, []);
 
   const approve = async (id: string) => {
-    resetStatus();
+    resetMessages();
     setActingId(id);
+
     try {
-      await api.post(`members/${id}/approve/`, {});
-      setSuccess("Membership approved.");
+      await api.post(`members/${id}/approve/`);
+      setSuccess("Member successfully approved.");
       await load();
     } catch (e: any) {
-      console.error(e);
-      setError(
-        e.response?.data?.detail ||
-          "Failed to approve member. Please check Byelaw constraints."
-      );
+      console.error("Approve error:", e);
+      setError(e.response?.data?.detail || "Approval failed.");
     } finally {
       setActingId(null);
     }
   };
 
-  // Simple "reject" = patch status to inactive
   const reject = async (id: string) => {
-    resetStatus();
+    resetMessages();
     setActingId(id);
+
     try {
       await api.patch(`members/${id}/`, { status: "inactive" });
-      setSuccess("Membership marked as inactive / rejected.");
+      setSuccess("Member marked as inactive.");
       await load();
     } catch (e: any) {
-      console.error(e);
-      setError(
-        e.response?.data?.detail ||
-          "Failed to update member status. Ensure admin permissions."
-      );
+      console.error("Reject error:", e);
+      setError(e.response?.data?.detail || "Unable to update member.");
     } finally {
       setActingId(null);
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">Pending Member Registrations</h2>
+    <div className="space-y-5">
+      <header>
+        <h2 className="text-lg font-semibold">Pending Registrations</h2>
         <p className="text-xs text-gray-500">
-          Prospective members who have registered via the public form appear here
-          in <strong>Pending</strong> state. Approvals activate their coverage
-          according to the Constitution and Byelaws.
+          Approve or reject new Medical Fund registrations.
         </p>
-      </div>
+      </header>
 
       {error && <Alert type="error" message={error} />}
       {success && <Alert type="success" message={success} />}
 
       {loading ? (
-        <p className="text-sm text-gray-500">Loading pending registrations…</p>
+        <p className="text-sm text-gray-500">Loading…</p>
       ) : members.length === 0 ? (
-        <p className="text-sm text-gray-500">
-          No pending registrations at the moment.
-        </p>
+        <p className="text-sm text-gray-500">No pending registrations.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm border border-gray-100 rounded-lg overflow-hidden">
+          <table className="min-w-full text-sm border rounded-lg overflow-hidden">
             <thead className="bg-gray-50">
               <tr className="text-left">
                 <th className="px-3 py-2 border-b">Name</th>
                 <th className="px-3 py-2 border-b">Email</th>
-                <th className="px-3 py-2 border-b">Membership Type</th>
+                <th className="px-3 py-2 border-b">Membership</th>
                 <th className="px-3 py-2 border-b">NHIF</th>
                 <th className="px-3 py-2 border-b">Phone</th>
                 <th className="px-3 py-2 border-b">Address</th>
-                <th className="px-3 py-2 border-b w-40">Actions</th>
+                <th className="px-3 py-2 border-b w-40 text-right">Actions</th>
               </tr>
             </thead>
+
             <tbody>
               {members.map((m) => {
                 const fullName =
@@ -139,31 +134,27 @@ export default function RegistrationQueue() {
                 return (
                   <tr key={m.id} className="border-b last:border-b-0">
                     <td className="px-3 py-2">{fullName}</td>
-                    <td className="px-3 py-2 text-xs text-gray-700">
-                      {m.user.email}
-                    </td>
+                    <td className="px-3 py-2 text-xs">{m.user.email}</td>
                     <td className="px-3 py-2 text-xs">
-                      {m.membership_type?.name || "Not specified"}
+                      {m.membership_type?.name || "—"}
                     </td>
-                    <td className="px-3 py-2 text-xs">
-                      {m.nhif_number || "—"}
-                    </td>
-                    <td className="px-3 py-2 text-xs">
-                      {m.phone_mobile || "—"}
-                    </td>
-                    <td className="px-3 py-2 text-xs max-w-xs truncate">
+                    <td className="px-3 py-2 text-xs">{m.nhif_number || "—"}</td>
+                    <td className="px-3 py-2 text-xs">{m.phone_mobile || "—"}</td>
+                    <td className="px-3 py-2 text-xs truncate max-w-xs">
                       {m.mailing_address || "—"}
                     </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap gap-1">
+
+                    <td className="px-3 py-2 text-right">
+                      <div className="flex gap-1 justify-end">
                         <Button
                           size="sm"
                           className="bg-emerald-600 hover:bg-emerald-700 text-white"
                           disabled={actingId === m.id}
                           onClick={() => approve(m.id)}
                         >
-                          {actingId === m.id ? "Approving…" : "Approve"}
+                          {actingId === m.id ? "…" : "Approve"}
                         </Button>
+
                         <Button
                           size="sm"
                           variant="outline"
@@ -171,7 +162,7 @@ export default function RegistrationQueue() {
                           disabled={actingId === m.id}
                           onClick={() => reject(m.id)}
                         >
-                          {actingId === m.id ? "Updating…" : "Reject"}
+                          {actingId === m.id ? "…" : "Reject"}
                         </Button>
                       </div>
                     </td>

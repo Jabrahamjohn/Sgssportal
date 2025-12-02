@@ -5,7 +5,7 @@ import { ErrorBoundary } from "./components/common";
 import AppRouter from "./router";
 import api from "./config/api";
 
-import "./styles/theme.css";       // ✅ SGSS theme variables
+import "./styles/theme.css";
 import "./styles/index.css";
 import "./styles/antd-override.css";
 

@@ -2,6 +2,7 @@
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.models import Group
 from django.db import transaction
+from django.db import models
 from django.db.models import Q, Sum, Count
 from django.db.models.functions import TruncMonth
 from django.http import JsonResponse, HttpResponse
@@ -20,7 +21,7 @@ from .models import (
     Member, MembershipType, MemberDependent,
     Claim, ClaimItem, ClaimReview, AuditLog,
     Notification, ReimbursementScale, Setting,
-    ChronicRequest, ClaimAttachment, MemberDependent,
+    ChronicRequest, ClaimAttachment,
 )
 from .serializers import (
     MemberSerializer, MembershipTypeSerializer, ClaimSerializer, ClaimItemSerializer,
@@ -238,6 +239,79 @@ def update_my_member(request):
     member.save()
     return Response(MemberSerializer(member).data)
 
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def member_rules(request):
+    user = request.user
+
+    try:
+        member = Member.objects.get(user=user)
+    except Member.DoesNotExist:
+        return Response({
+            "can_submit": False,
+            "errors": ["You are not registered as a member."]
+        }, status=400)
+
+    today = timezone.now().date()
+    messages = []
+    can_submit = True
+
+    # 1️⃣ STATUS CHECK
+    if member.status != "active":
+        can_submit = False
+        messages.append("Your membership is not active.")
+
+    # 2️⃣ VALIDITY DATE CHECK
+    if member.valid_from and member.valid_from > today:
+        can_submit = False
+        messages.append("Your coverage has not started yet.")
+
+    if member.valid_to and member.valid_to < today:
+        can_submit = False
+        messages.append("Your coverage period has expired.")
+
+    # 3️⃣ WAITING PERIOD CHECK (default 30 days)
+    waiting_days = 30
+    if member.created_at and (today - member.created_at).days < waiting_days:
+        remaining = waiting_days - (today - member.created_at).days
+        can_submit = False
+        messages.append(f"Waiting period in effect. {remaining} days remaining.")
+
+    # 4️⃣ BENEFIT LIMIT CHECK
+    # Total claims PAID this year
+    year_start = today.replace(month=1, day=1)
+    total_paid = Claim.objects.filter(
+        member=member,
+        status="approved",
+        paid_amount__isnull=False,
+        created_at__date__gte=year_start
+    ).aggregate(total=models.Sum("paid_amount"))["total"] or 0
+
+    annual_limit = 250000
+
+    # Extra 200k if critical illness flag exists
+    if hasattr(member, "critical_illness") and member.critical_illness:
+        annual_limit += 200000
+
+    remaining_balance = annual_limit - total_paid
+
+    if remaining_balance <= 0:
+        can_submit = False
+        messages.append("You have exhausted your annual medical benefit limit.")
+
+    return Response({
+        "can_submit": can_submit,
+        "messages": messages,
+        "status": member.status,
+        "valid_from": member.valid_from,
+        "valid_to": member.valid_to,
+        "annual_limit": annual_limit,
+        "used_amount": total_paid,
+        "remaining_balance": remaining_balance,
+        "waiting_period_days": waiting_days,
+    })
 
 # ============================================================
 #                CLAIMS MANAGEMENT
@@ -1287,7 +1361,7 @@ def committee_membership_applications(request):
         .select_related("user", "membership_type")
         .order_by("user__first_name", "user__last_name")
     )
-    serializer = MemberApplicationSerializer(qs, many=True)
+    serializer = MemberSerializer(qs, many=True)
     return Response(serializer.data)
 
 
@@ -1307,7 +1381,7 @@ def committee_membership_application_detail(request, pk):
         return Response({"detail": "Application not found"}, status=404)
 
     if request.method == "GET":
-        return Response(MemberApplicationSerializer(member).data)
+        return Response(MemberSerializer(member).data)
 
     # POST action
     action = request.data.get("action")
@@ -1340,4 +1414,4 @@ def committee_membership_application_detail(request, pk):
             member.save()
             # Optional: store note somewhere or create Notification
 
-    return Response(MemberApplicationSerializer(member).data)
+    return Response(MemberSerializer(member).data)

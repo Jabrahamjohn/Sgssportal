@@ -81,6 +81,15 @@ export default function NewClaim() {
       .get("members/me/benefit_balance/")
       .then((res) => setBalance(res.data.remaining_balance))
       .catch(() => setBalance(null));
+    api
+      .get("members/me/rules/")
+      .then((res) => {
+        // You can handle the rules response here if needed
+        console.log("Member rules:", res.data);
+      })
+      .catch(() => {
+        // Handle error if needed
+      });
   }, []);
 
   const handleChange = (key: string, value: any) =>

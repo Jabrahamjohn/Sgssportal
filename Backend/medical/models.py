@@ -1,3 +1,4 @@
+# Backend/medical/models.py
 from __future__ import annotations
 from django.db import models, transaction
 from django.contrib.auth import get_user_model
@@ -60,6 +61,8 @@ class Member(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     membership_type = models.ForeignKey(MembershipType, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     # Constitution / form fields
     mailing_address = models.CharField(max_length=255, blank=True)

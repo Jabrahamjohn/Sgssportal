@@ -4,30 +4,33 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "~/config/api";
 import Button from "~/components/controls/button";
 import Skeleton from "~/components/loader/skeleton";
-import list from "antd/es/transfer/list";
 
 type MemberRow = {
   id: string;
   user: {
-    username: string;
-    email: string;
-    full_name: string;
+    username?: string;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    full_name?: string;
   };
-  membership_type: {
+  membership_type?: {
     name: string;
     key: string;
   } | null;
   status: string;
-  nhif_number: string | null;
-  valid_from: string | null;
-  valid_to: string | null;
+  nhif_number?: string | null;
+  valid_from?: string | null;
+  valid_to?: string | null;
 };
 
 export default function CommitteeMembersPage() {
   const { id: highlightId } = useParams();
   const nav = useNavigate();
 
-  const [filter, setFilter] = useState<"pending" | "active" | "all">("pending");
+  const [statusFilter, setStatusFilter] = useState<"pending" | "active" | "all">(
+    "pending"
+  );
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [actingId, setActingId] = useState<string | null>(null);
@@ -36,12 +39,12 @@ export default function CommitteeMembersPage() {
     setLoading(true);
     try {
       const params: any = {};
-      if (filter !== "all") params.status = filter;
+      if (statusFilter !== "all") params.status = statusFilter;
 
       const res = await api.get("members/", { params });
       setMembers(Array.isArray(res.data) ? res.data : []);
-    } catch (e) {
-      console.error("Load members error:", e);
+    } catch (err) {
+      console.error("Error loading members:", err);
       setMembers([]);
     } finally {
       setLoading(false);
@@ -50,42 +53,51 @@ export default function CommitteeMembersPage() {
 
   useEffect(() => {
     load();
-  }, [filter]);
+  }, [statusFilter]);
 
   const approve = async (memberId: string) => {
-    if (!confirm("Approve this membership?")) return;
-
+    if (!window.confirm("Approve this membership?")) return;
     setActingId(memberId);
     try {
       await api.post(`members/${memberId}/approve/`);
       await load();
-    } catch (e) {
-      console.error("Approve error:", e);
+    } catch (err) {
+      console.error("Approval failed:", err);
       alert("Unable to approve member.");
     } finally {
       setActingId(null);
     }
   };
 
+  const getFullName = (u: MemberRow["user"]) => {
+    return (
+      u?.full_name ||
+      `${u?.first_name || ""} ${u?.last_name || ""}`.trim() ||
+      u?.username ||
+      "Unknown User"
+    );
+  };
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <header className="flex flex-col md:flex-row md:justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-[var(--sgss-navy)]">
             Committee – Membership Review
           </h2>
           <p className="text-xs text-gray-500">
-            Review & approve new Medical Fund members.
+            Review & approve Medical Fund members.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-600">Filter:</label>
+          <label className="text-xs text-gray-600">Status:</label>
           <select
             className="border rounded px-2 py-1 text-sm"
-            value={filter}
+            value={statusFilter}
             onChange={(e) =>
-              setFilter(e.target.value as "pending" | "active" | "all")
+              setStatusFilter(e.target.value as "pending" | "active" | "all")
             }
           >
             <option value="pending">Pending</option>
@@ -95,6 +107,7 @@ export default function CommitteeMembersPage() {
         </div>
       </header>
 
+      {/* Table */}
       <div className="sgss-card overflow-x-auto">
         {loading ? (
           <div className="space-y-2">
@@ -125,12 +138,10 @@ export default function CommitteeMembersPage() {
                 return (
                   <tr
                     key={m.id}
-                    className={`border-b ${
-                      highlight ? "bg-amber-50" : ""
-                    }`}
+                    className={`border-b ${highlight ? "bg-amber-50" : ""}`}
                   >
-                    <td className="py-2">{m.user.full_name}</td>
-                    <td className="py-2">{m.user.email}</td>
+                    <td className="py-2">{getFullName(m.user)}</td>
+                    <td className="py-2">{m.user?.email || "—"}</td>
                     <td className="py-2">{m.membership_type?.name || "—"}</td>
                     <td className="py-2">{m.nhif_number || "—"}</td>
 
@@ -168,25 +179,20 @@ export default function CommitteeMembersPage() {
         )}
       </div>
 
+      {/* Back Button */}
       <button
         className="text-xs text-[var(--sgss-navy)] underline"
         onClick={() => nav(-1)}
       >
         ← Back
       </button>
-       {/* DEBUG: remove in production */}
-      {process.env.NODE_ENV === "development" && (
-        <pre className="mt-4 text-[10px] text-gray-500 bg-gray-50 p-2 rounded">
-          {JSON.stringify(list, null, 2)}
-        </pre>
-      )}
     </div>
   );
-} 
+}
 
 function StatusBadge({ status }: { status: string }) {
-  const s = status.toLowerCase();
-  const styles: Record<string, string> = {
+  const s = status?.toLowerCase();
+  const map: Record<string, string> = {
     pending: "bg-yellow-100 text-yellow-800",
     active: "bg-emerald-100 text-emerald-800",
     rejected: "bg-red-100 text-red-800",
@@ -195,7 +201,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-        styles[s] || "bg-gray-100 text-gray-700"
+        map[s] || "bg-gray-100 text-gray-700"
       }`}
     >
       {status}

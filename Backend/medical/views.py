@@ -34,12 +34,6 @@ from .audit import log_claim_event
 
 User = get_user_model()
 
-def _user_is_committee_or_admin(user):
-    return (
-        user.is_superuser
-        or user.groups.filter(name__in=["Admin", "Committee"]).exists()
-    )
-
 # ============================================================
 #                MEMBERSHIP MANAGEMENT
 # ============================================================
@@ -64,6 +58,7 @@ class MemberViewSet(viewsets.ModelViewSet):
     queryset = Member.objects.select_related("user", "membership_type").all()
     serializer_class = MemberSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
 
     def get_permissions(self):
         # Committee/Admin can list + modify

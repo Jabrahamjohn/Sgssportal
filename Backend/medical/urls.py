@@ -19,16 +19,7 @@ router.register(r"reimbursement-scales", views.ReimbursementScaleViewSet, basena
 
 urlpatterns = [
 
-    path(
-        "committee/members/applications/",
-        views.committee_membership_applications,
-        name="committee-membership-applications",
-    ),
-    path(
-        "committee/members/applications/<uuid:pk>/",
-        views.committee_membership_application_detail,
-        name="committee-membership-application-detail",
-    ),
+   
     # auth
     path("auth/me/", views.me, name="me"),
     path("auth/login/", views.login_view, name="login"),

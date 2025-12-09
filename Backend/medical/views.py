@@ -88,57 +88,26 @@ class MemberViewSet(viewsets.ModelViewSet):
         # Normal member sees only own record
         return qs.filter(user=user)
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[permissions.IsAuthenticated, IsCommittee],
-    )
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsCommittee])
     def approve(self, request, pk=None):
-        """
-        Single, canonical approval endpoint.
-
-        - Sets member.status = 'active'
-        - Sets valid_from / valid_to based on membership_type.term_years (default 2)
-        - Keeps benefits_from (waiting period) if already set
-        - Sends notification to member
-        """
         member = self.get_object()
 
-        if member.status == "active":
-            return Response({"detail": "Already active."})
-
-        if not member.membership_type:
-            return Response(
-                {"detail": "Membership type is missing. Cannot approve."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        today = timezone.now().date()
-        term_years = member.membership_type.term_years or 2
-
-        member.status = "active"
-        member.valid_from = today
-        member.valid_to = today.replace(year=today.year + term_years)
-
-        # benefits_from already set at registration (today + 60 days); if not, set now
-        if not member.benefits_from:
-            member.benefits_from = today + timezone.timedelta(days=60)
-
-        member.save(update_fields=["status", "valid_from", "valid_to", "benefits_from"])
-
-        # Ensure they are in Member group
-        member_group, _ = Group.objects.get_or_create(name="Member")
-        member.user.groups.add(member_group)
-
-        # Notify the member
-        notify(
-            member.user,
-            "Membership Approved",
-            f"Your {member.membership_type.name} membership has been approved.",
-            link="/dashboard/member",
-        )
+        from medical.services.membership import approve_member
+        member = approve_member(member)
 
         return Response(MemberSerializer(member).data)
+    
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsCommittee])
+    def reject(self, request, pk=None):
+        member = self.get_object()
+
+        reason = request.data.get("reason", "")
+        from medical.services.membership import reject_member
+        member = reject_member(member, reason)
+
+        return Response(MemberSerializer(member).data)
+
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])

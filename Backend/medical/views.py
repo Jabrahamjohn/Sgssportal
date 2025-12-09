@@ -51,12 +51,22 @@ class MembershipTypeViewSet(viewsets.ModelViewSet):
 
 
 class MemberViewSet(viewsets.ModelViewSet):
+    """
+    Core member management.
+
+    - Committee/Admin:
+        * list members
+        * filter by ?status=pending|active|...
+        * approve membership via /members/<id>/approve/
+    - Normal members:
+        * can only see their own record (retrieve)
+    """
     queryset = Member.objects.select_related("user", "membership_type").all()
     serializer_class = MemberSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
-        # Admin & Committee can list/modify
+        # Committee/Admin can list + modify
         if self.action in ["list", "update", "partial_update", "destroy", "approve"]:
             return [permissions.IsAuthenticated(), IsCommittee()]
         # Members can view their own profile
@@ -73,7 +83,7 @@ class MemberViewSet(viewsets.ModelViewSet):
 
         user = self.request.user
 
-        # Committee / Admin see all
+        # Committee / Admin see all, with optional ?status filter
         if user.is_superuser or user.groups.filter(name__in=["Admin", "Committee"]).exists():
             status_f = self.request.GET.get("status")
             if status_f:
@@ -83,11 +93,30 @@ class MemberViewSet(viewsets.ModelViewSet):
         # Normal member sees only own record
         return qs.filter(user=user)
 
-    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsCommittee])
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[permissions.IsAuthenticated, IsCommittee],
+    )
     def approve(self, request, pk=None):
+        """
+        Single, canonical approval endpoint.
+
+        - Sets member.status = 'active'
+        - Sets valid_from / valid_to based on membership_type.term_years (default 2)
+        - Keeps benefits_from (waiting period) if already set
+        - Sends notification to member
+        """
         member = self.get_object()
+
         if member.status == "active":
             return Response({"detail": "Already active."})
+
+        if not member.membership_type:
+            return Response(
+                {"detail": "Membership type is missing. Cannot approve."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         today = timezone.now().date()
         term_years = member.membership_type.term_years or 2
@@ -95,8 +124,16 @@ class MemberViewSet(viewsets.ModelViewSet):
         member.status = "active"
         member.valid_from = today
         member.valid_to = today.replace(year=today.year + term_years)
-        # benefits_from already set at registration (today+60); keep as is
-        member.save(update_fields=["status", "valid_from", "valid_to"])
+
+        # benefits_from already set at registration (today + 60 days); if not, set now
+        if not member.benefits_from:
+            member.benefits_from = today + timezone.timedelta(days=60)
+
+        member.save(update_fields=["status", "valid_from", "valid_to", "benefits_from"])
+
+        # Ensure they are in Member group
+        member_group, _ = Group.objects.get_or_create(name="Member")
+        member.user.groups.add(member_group)
 
         # Notify the member
         notify(
@@ -1348,70 +1385,3 @@ def committee_members(request):
             "is_superuser": u.is_superuser,
         })
     return Response({"results": data})
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def committee_membership_applications(request):
-    """List all pending membership applications for committee/admin."""
-    if not _user_is_committee_or_admin(request.user):
-        return Response({"detail": "Not allowed"}, status=403)
-
-    qs = (
-        Member.objects.filter(status="pending")
-        .select_related("user", "membership_type")
-        .order_by("user__first_name", "user__last_name")
-    )
-    serializer = MemberSerializer(qs, many=True)
-    return Response(serializer.data)
-
-
-@api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
-def committee_membership_application_detail(request, pk):
-    """
-    GET -> view application
-    POST -> action {action: "approve"|"reject", membership_number?, note?}
-    """
-    if not _user_is_committee_or_admin(request.user):
-        return Response({"detail": "Not allowed"}, status=403)
-
-    try:
-        member = Member.objects.select_related("user", "membership_type").get(id=pk)
-    except Member.DoesNotExist:
-        return Response({"detail": "Application not found"}, status=404)
-
-    if request.method == "GET":
-        return Response(MemberSerializer(member).data)
-
-    # POST action
-    action = request.data.get("action")
-    note = request.data.get("note", "").strip()
-    membership_number = request.data.get("membership_number", "").strip()
-
-    if action not in ["approve", "reject"]:
-        return Response({"detail": "Invalid action"}, status=400)
-
-    with transaction.atomic():
-        if action == "approve":
-            member.status = "active"
-            if hasattr(member, "membership_number") and membership_number:
-                member.membership_number = membership_number
-
-            # benefits start now if not already set
-            if not member.benefits_from:
-                member.benefits_from = timezone.now().date()
-
-            # Add to "Member" group at least
-            member_group, _ = Group.objects.get_or_create(name="Member")
-            member.user.groups.add(member_group)
-
-            member.save()
-
-            # TODO: optional: create Notification to user about approval
-
-        elif action == "reject":
-            member.status = "rejected"
-            member.save()
-            # Optional: store note somewhere or create Notification
-
-    return Response(MemberSerializer(member).data)

@@ -173,6 +173,13 @@ export default function RegistrationQueue() {
           </table>
         </div>
       )}
+
+      {/* DEBUG: remove in production */}
+      {process.env.NODE_ENV === "development" && (
+        <pre className="mt-4 text-[10px] text-gray-500 bg-gray-50 p-2 rounded">
+          {JSON.stringify(members, null, 2)}
+        </pre>
+      )}
     </div>
   );
 }

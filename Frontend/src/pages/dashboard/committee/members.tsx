@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "~/config/api";
 import Button from "~/components/controls/button";
 import Skeleton from "~/components/loader/skeleton";
+import list from "antd/es/transfer/list";
 
 type MemberRow = {
   id: string;
@@ -173,9 +174,15 @@ export default function CommitteeMembersPage() {
       >
         ← Back
       </button>
+       {/* DEBUG: remove in production */}
+      {process.env.NODE_ENV === "development" && (
+        <pre className="mt-4 text-[10px] text-gray-500 bg-gray-50 p-2 rounded">
+          {JSON.stringify(list, null, 2)}
+        </pre>
+      )}
     </div>
   );
-}
+} 
 
 function StatusBadge({ status }: { status: string }) {
   const s = status.toLowerCase();

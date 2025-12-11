@@ -344,7 +344,13 @@ class ClaimViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_create(self, serializer):
-        claim = serializer.save()
+        from medical.services.rules import validate_claim_before_submit
+        
+        validate_claim_before_submit(claim)
+        
+
+        
+
 
         # Notify committee on new submitted claim
         committee_group = Group.objects.filter(name="Committee").first()
@@ -442,6 +448,22 @@ class ClaimItemViewSet(viewsets.ModelViewSet):
         claim.recalc_total()
         claim.compute_payable()
 
+    def enforce_annual_limit(claim):
+        member = claim.member
+        year = timezone.now().year
+        
+        spent = Claim.objects.filter(
+            member=member,
+            status__in=["approved", "paid"],
+            created_at__year=year
+        ).aggregate(Sum("total_payable"))["total_payable__sum"] or 0
+
+        limit = member.membership_type.annual_limit or 250000
+
+        if (spent + claim.total_payable) > limit:
+            raise ValidationError("Annual limit exceeded.")
+
+
 
 # ============================================================
 #                CLAIM REVIEW PROCESS
@@ -455,6 +477,8 @@ class ClaimReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         review = serializer.save(reviewer=self.request.user)
         claim = review.claim
+        from medical.services.rules import enforce_annual_limit
+        enforce_annual_limit(claim)
 
         if review.action == "approved":
             claim.status = "approved"

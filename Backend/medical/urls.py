@@ -40,7 +40,7 @@ urlpatterns = [
     path("claims/committee/", views.committee_claims),
     path("claims/committee/<uuid:pk>/", views.committee_claim_detail),
     path("committee/claims/", views.committee_claims),
-    path("admin/committee-members/", views.committee_members),
+    
         
     # uploads / reports
     path("reports/export/", views.export_claims_csv),

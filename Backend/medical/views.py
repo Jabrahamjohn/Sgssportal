@@ -1,8 +1,7 @@
 # Backend/medical/views.py
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.models import Group
-from django.db import transaction
-from django.db import models
+from django.db import transaction, models, connection
 from django.db.models import Q, Sum, Count
 from django.db.models.functions import TruncMonth
 from django.http import JsonResponse, HttpResponse
@@ -844,6 +843,31 @@ def logout_view(request):
 @ensure_csrf_cookie
 def csrf_cookie(request):
     return JsonResponse({"detail": "CSRF cookie set"})
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def health_check(request):
+    """
+    Health check endpoint for monitoring and load balancers.
+    Returns 200 OK if the service is running and can connect to the database.
+    """
+    try:
+        # Test database connectivity
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return JsonResponse({
+            "status": "healthy",
+            "timestamp": timezone.now().isoformat(),
+            "database": "connected"
+        })
+    except Exception as e:
+        return JsonResponse({
+            "status": "unhealthy",
+            "timestamp": timezone.now().isoformat(),
+            "database": "disconnected",
+            "error": str(e)
+        }, status=503)
 
 
 # ============================================================

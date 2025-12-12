@@ -1,6 +1,18 @@
 // Frontend/src/pages/dashboard/member/dependants.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
+import PageTransition from "~/components/animations/PageTransition";
+import Button from "~/components/controls/button";
+import Input from "~/components/controls/input";
+import Modal from "~/components/controls/modal";
+import { 
+  UsersIcon, 
+  PencilSquareIcon, 
+  TrashIcon, 
+  PlusIcon,
+  UserIcon,
+  IdentificationIcon
+} from "@heroicons/react/24/outline";
 
 interface Dependant {
   id: string;
@@ -16,6 +28,7 @@ export default function MemberDependantsPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Dependant | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const emptyDep: Dependant = {
     id: "",
@@ -59,6 +72,7 @@ export default function MemberDependantsPage() {
 
   const save = async () => {
     if (!editing) return;
+    setSaving(true);
     try {
       if (editing.id) {
         const res = await api.patch(`dependants/${editing.id}/`, editing);
@@ -74,11 +88,13 @@ export default function MemberDependantsPage() {
       closeModal();
     } catch (e) {
       console.error(e);
+    } finally {
+        setSaving(false);
     }
   };
 
   const remove = async (id: string) => {
-    if (!window.confirm("Remove this dependant?")) return;
+    if (!window.confirm("Are you sure you want to remove this dependant? This cannot be undone.")) return;
     try {
       await api.delete(`dependants/${id}/`);
       setDeps((prev) => prev.filter((d) => d.id !== id));
@@ -87,153 +103,157 @@ export default function MemberDependantsPage() {
     }
   };
 
+  const updateField = (key: keyof Dependant, val: string) => {
+      setEditing(prev => prev ? ({ ...prev, [key]: val }) : null);
+  }
+
+  if (loading) {
+      return (
+          <div className="p-8 space-y-4">
+              <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
+              <div className="grid md:grid-cols-2 gap-4">
+                  {[1,2,3].map(i => <div key={i} className="h-32 bg-gray-100 rounded-xl animate-pulse" />)}
+              </div>
+          </div>
+      )
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dependants</h1>
-        <button
+    <PageTransition className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+           <h1 className="text-2xl font-bold text-[var(--sgss-navy)] tracking-tight">Family & Dependants</h1>
+           <p className="text-sm text-gray-500 mt-1">Manage family members covered under your medical fund.</p>
+        </div>
+        <Button
           onClick={openNew}
-          className="px-4 py-2 bg-[#03045f] text-white rounded-lg text-sm font-medium hover:bg-[#021f4a]"
+          className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white shadow-lg shadow-blue-900/10 flex items-center gap-2"
         >
+          <PlusIcon className="w-5 h-5" />
           Add Dependant
-        </button>
+        </Button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border">
-        {loading ? (
-          <div className="p-4 text-sm text-gray-500">Loading…</div>
-        ) : deps.length === 0 ? (
-          <div className="p-4 text-sm text-gray-500">
-            No dependants added yet.
-          </div>
-        ) : (
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left text-xs uppercase text-gray-500">
-                <th className="px-4 py-2">Name</th>
-                <th className="px-4 py-2">Relationship</th>
-                <th className="px-4 py-2">DOB</th>
-                <th className="px-4 py-2">Blood Group</th>
-                <th className="px-4 py-2">ID No.</th>
-                <th className="px-4 py-2 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deps.map((d) => (
-                <tr key={d.id} className="border-t">
-                  <td className="px-4 py-2">{d.full_name}</td>
-                  <td className="px-4 py-2">{d.relationship || "—"}</td>
-                  <td className="px-4 py-2">{d.date_of_birth || "—"}</td>
-                  <td className="px-4 py-2">{d.blood_group || "—"}</td>
-                  <td className="px-4 py-2">{d.id_number || "—"}</td>
-                  <td className="px-4 py-2 text-right space-x-2">
-                    <button
-                      onClick={() => openEdit(d)}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => remove(d.id)}
-                      className="text-xs text-red-600 hover:underline"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {deps.map((d) => (
+            <div key={d.id} className="sgss-card p-6 flex flex-col justify-between group hover:border-[var(--sgss-gold)]/50 transition-colors bg-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--sgss-gold)]/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                
+                <div className="relative z-10">
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-[var(--sgss-navy)]">
+                            <UserIcon className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-[var(--sgss-navy)] text-lg leading-tight">{d.full_name}</h3>
+                            <span className="inline-block bg-[var(--sgss-navy)]/5 text-[var(--sgss-navy)] text-xs px-2 py-0.5 rounded-full font-medium mt-1">
+                                {d.relationship || 'Dependant'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm text-gray-600 mb-6">
+                        <div className="flex justify-between border-b border-gray-50 pb-1">
+                            <span className="text-gray-400 text-xs uppercase tracking-wider">Date of Birth</span>
+                            <span className="font-medium">{d.date_of_birth || "—"}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-gray-50 pb-1">
+                            <span className="text-gray-400 text-xs uppercase tracking-wider">Blood Group</span>
+                            <span className="font-medium">{d.blood_group || "—"}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-gray-50 pb-1">
+                            <span className="text-gray-400 text-xs uppercase tracking-wider">ID Number</span>
+                            <span className="font-medium">{d.id_number || "—"}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex gap-2 pt-2 border-t border-gray-100 relative z-10">
+                    <Button variant="outline" size="small" onClick={() => openEdit(d)} className="flex-1 flex items-center justify-center gap-1">
+                        <PencilSquareIcon className="w-4 h-4" /> Edit
+                    </Button>
+                    <Button variant="outline" size="small" onClick={() => remove(d.id)} className="flex-1 border-red-200 text-red-600 hover:bg-red-50 flex items-center justify-center gap-1">
+                        <TrashIcon className="w-4 h-4" /> Remove
+                    </Button>
+                </div>
+            </div>
+        ))}
+
+        {deps.length === 0 && (
+            <div className="col-span-full py-16 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <UsersIcon className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-gray-900 font-medium">No dependants added</h3>
+                <p className="text-gray-500 text-sm mt-1 mb-4">Add your family members to manage their claims.</p>
+                <Button onClick={openNew} variant="outline" className="bg-white">
+                    Add Dependant
+                </Button>
+            </div>
         )}
       </div>
 
+      {/* Modal using standard component */}
       {modalOpen && editing && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5 space-y-4">
-            <h2 className="text-lg font-semibold">
-              {editing.id ? "Edit Dependant" : "Add Dependant"}
-            </h2>
-
-            <div className="space-y-3 text-sm">
+        <Modal
+          open={modalOpen}
+          onClose={closeModal}
+          title={editing.id ? "Edit Dependant" : "Add New Dependant"}
+        >
+          <div className="space-y-4 p-1">
               <Input
                 label="Full Name"
+                placeholder="e.g. John Doe Singh"
                 value={editing.full_name}
-                onChange={(v) =>
-                  setEditing((e) => e && { ...e, full_name: v })
-                }
+                onChange={(e) => updateField('full_name', e.target.value)}
               />
-              <Input
-                label="Relationship"
-                value={editing.relationship || ""}
-                onChange={(v) =>
-                  setEditing((e) => e && { ...e, relationship: v })
-                }
-              />
-              <Input
-                label="Date of Birth"
-                value={editing.date_of_birth || ""}
-                type="date"
-                onChange={(v) =>
-                  setEditing((e) => e && { ...e, date_of_birth: v })
-                }
-              />
-              <Input
-                label="Blood Group"
-                value={editing.blood_group || ""}
-                onChange={(v) =>
-                  setEditing((e) => e && { ...e, blood_group: v })
-                }
-              />
-              <Input
-                label="ID Number"
-                value={editing.id_number || ""}
-                onChange={(v) =>
-                  setEditing((e) => e && { ...e, id_number: v })
-                }
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Relationship" // Could be a select, but text for now to match original
+                    placeholder="e.g. Spouse / Child"
+                    value={editing.relationship || ""}
+                    onChange={(e) => updateField('relationship', e.target.value)}
+                  />
+                  <Input
+                    label="Date of Birth"
+                    type="date"
+                    value={editing.date_of_birth || ""}
+                    onChange={(e) => updateField('date_of_birth', e.target.value)}
+                  />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Blood Group"
+                    placeholder="e.g. O+"
+                    value={editing.blood_group || ""}
+                    onChange={(e) => updateField('blood_group', e.target.value)}
+                  />
+                  <Input
+                    label="ID Number / Birth Cert"
+                    placeholder="ID or Certificate No."
+                    value={editing.id_number || ""}
+                    onChange={(e) => updateField('id_number', e.target.value)}
+                  />
+              </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-4">
+              <Button
+                variant="outline"
                 onClick={closeModal}
-                className="px-4 py-2 text-sm rounded-lg border border-gray-200"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={save}
-                className="px-4 py-2 text-sm rounded-lg bg-[#03045f] text-white"
+                disabled={saving || !editing.full_name}
+                className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
               >
-                Save
-              </button>
+                {saving ? "Saving..." : "Save Dependant"}
+              </Button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
-    </div>
-  );
-}
-
-function Input({
-  label,
-  value,
-  onChange,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-}) {
-  return (
-    <label className="block text-xs">
-      <span className="block text-[11px] text-gray-500 mb-1">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-100"
-      />
-    </label>
+    </PageTransition>
   );
 }

@@ -4,6 +4,20 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "~/config/api";
 import Skeleton from "~/components/loader/skeleton";
 import Button from "~/components/controls/button";
+import PageTransition from "~/components/animations/PageTransition";
+import Badge from "~/components/controls/badge";
+import { 
+    PaperClipIcon, 
+    ChatBubbleLeftRightIcon,
+    CurrencyDollarIcon,
+    CalendarDaysIcon,
+    UserIcon,
+    ArrowLeftIcon,
+    CheckCircleIcon,
+    XCircleIcon,
+    DocumentMagnifyingGlassIcon,
+    BanknotesIcon
+} from "@heroicons/react/24/outline";
 
 type CommitteeClaimResponse = {
   id: string;
@@ -51,6 +65,7 @@ type AuditEntry = {
   role?: string | null;
   created_at?: string;
   actor?: any;
+  actor_name?: string;
   [key: string]: any;
 };
 
@@ -94,6 +109,14 @@ export default function CommitteeClaimDetail() {
     const n = Number(v || 0);
     return `Ksh ${n.toLocaleString()}`;
   };
+  
+  const statusColor = (status: string) => {
+    const s = (status || "").toLowerCase();
+    if (s === "approved" || s === "paid") return "success";
+    if (s === "rejected") return "danger";
+    if (s === "reviewed") return "warning";
+    return "info";
+  };
 
   const handleStatusChange = async (status: string, askNote = false) => {
     if (!id || !data) return;
@@ -101,8 +124,10 @@ export default function CommitteeClaimDetail() {
 
     if (askNote) {
       const input = window.prompt("Enter note / reason (optional):", "");
-      if (input && input.trim().length > 0) {
-        note = input.trim();
+      if (input !== null) { // only proceed if not cancelled
+         note = input.trim();
+      } else {
+         return; // cancelled
       }
     }
 
@@ -112,10 +137,10 @@ export default function CommitteeClaimDetail() {
         status,
         ...(note ? { note } : {}),
       });
-      await load(); // refresh claim + audit
+      await load(); 
     } catch (e) {
       console.error(e);
-      alert("Failed to update status. Check console / backend logs.");
+      alert("Failed to update status. Please try again.");
     } finally {
       setActing(false);
     }
@@ -123,24 +148,32 @@ export default function CommitteeClaimDetail() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-40 w-full" />
+      <div className="space-y-6 p-6">
+        <div className="flex justify-between">
+           <Skeleton className="h-8 w-64" />
+           <div className="flex gap-2">
+             <Skeleton className="h-10 w-24 rounded-lg" />
+             <Skeleton className="h-10 w-24 rounded-lg" />
+           </div>
+        </div>
+        <div className="grid md:grid-cols-3 gap-6">
+           <Skeleton className="h-40 w-full rounded-2xl md:col-span-2" />
+           <Skeleton className="h-40 w-full rounded-2xl" />
+        </div>
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="p-6">
-        <p className="text-sm text-red-600">Claim not found.</p>
-        <button
-          className="mt-3 text-sm text-[var(--sgss-navy)] underline"
-          onClick={() => nav(-1)}
-        >
-          ← Back
-        </button>
+      <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200 m-6">
+        <DocumentMagnifyingGlassIcon className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+        <p className="text-gray-500 mb-4">Claim not found or you do not have permission.</p>
+        <Button variant="outline" onClick={() => nav(-1)}>
+            <ArrowLeftIcon className="w-4 h-4 mr-2" />
+             Back to Claims
+        </Button>
       </div>
     );
   }
@@ -149,33 +182,37 @@ export default function CommitteeClaimDetail() {
   const currentStatus = (claim.status || "").toLowerCase();
 
   return (
-    <div className="space-y-6">
+    <PageTransition className="space-y-6">
       {/* Header + actions */}
-      <div className="sgss-card">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold text-[var(--sgss-navy)]">
-              Claim #{shortId}
-            </h2>
-            <p className="text-xs text-gray-500">
-              Submitted: {formatDateTime(claim.submitted_at)} • Created:{" "}
-              {formatDateTime(claim.created_at)}
-            </p>
-            <p className="mt-1 text-xs">
-              <span className="font-medium">Member:</span> {member.name} •{" "}
-              <span className="font-medium">Type:</span>{" "}
-              {claim.type || "N/A"}
-            </p>
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+               <button onClick={() => nav(-1)} className="mt-1 p-2 hover:bg-white rounded-full transition-colors text-gray-500">
+                   <ArrowLeftIcon className="w-5 h-5" />
+               </button>
+               <div>
+                   <div className="flex items-center gap-3">
+                       <h2 className="text-2xl font-bold text-[var(--sgss-navy)]">Claim #{shortId}</h2>
+                       <Badge variant={statusColor(claim.status)}>{claim.status}</Badge>
+                   </div>
+                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
+                       <span className="flex items-center gap-1">
+                           <CalendarDaysIcon className="w-4 h-4" />
+                           Submitted: {formatDateTime(claim.submitted_at)}
+                       </span>
+                       <span>|</span>
+                       <span className="capitalize">Type: {claim.type || "N/A"}</span>
+                   </div>
+               </div>
           </div>
-
-          <div className="flex flex-wrap gap-3 justify-end">
-            <StatusBadge status={claim.status} />
-
+          
+          <div className="flex flex-wrap gap-2 sticky top-4 z-20 bg-white/50 backdrop-blur-sm p-2 rounded-xl border border-white/20 shadow-sm">
             <Button
               variant="outline"
               disabled={acting}
               onClick={() => handleStatusChange("reviewed", true)}
+              className="border-gray-300 bg-white"
             >
+              <DocumentMagnifyingGlassIcon className="w-4 h-4 mr-1.5" />
               Mark Reviewed
             </Button>
             <Button
@@ -183,6 +220,7 @@ export default function CommitteeClaimDetail() {
               disabled={acting || currentStatus === "approved"}
               onClick={() => handleStatusChange("approved", true)}
             >
+              <CheckCircleIcon className="w-4 h-4 mr-1.5" />
               Approve
             </Button>
             <Button
@@ -190,6 +228,7 @@ export default function CommitteeClaimDetail() {
               disabled={acting || currentStatus === "rejected"}
               onClick={() => handleStatusChange("rejected", true)}
             >
+               <XCircleIcon className="w-4 h-4 mr-1.5" />
               Reject
             </Button>
             <Button
@@ -197,217 +236,199 @@ export default function CommitteeClaimDetail() {
               disabled={acting || currentStatus === "paid"}
               onClick={() => handleStatusChange("paid", true)}
             >
+               <BanknotesIcon className="w-4 h-4 mr-1.5" />
               Mark Paid
             </Button>
           </div>
-        </div>
       </div>
 
-      {/* Member + claim summary */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="sgss-card text-sm space-y-1">
-          <p className="small-label mb-1">Member</p>
-          <p className="font-semibold text-[var(--sgss-navy)]">
-            {member.name}
-          </p>
-          <p className="text-xs text-gray-500">{member.email}</p>
-          <p>
-            <span className="font-medium">Membership Type:</span>{" "}
-            {member.membership_type || "Not set"}
-          </p>
-          <p>
-            <span className="font-medium">NHIF No:</span>{" "}
-            {member.nhif_number || "Not provided"}
-          </p>
-        </div>
-
-        <div className="sgss-card text-sm space-y-1">
-          <p className="small-label mb-1">Claim Summary</p>
-          <p>
-            <span className="font-medium">Status:</span>{" "}
-            <StatusBadge status={claim.status} />
-          </p>
-          <p>
-            <span className="font-medium">Total Claimed:</span>{" "}
-            {formatMoney(claim.total_claimed)}
-          </p>
-          <p>
-            <span className="font-medium">Fund Payable:</span>{" "}
-            {formatMoney(claim.total_payable)}
-          </p>
-          <p>
-            <span className="font-medium">Member Share:</span>{" "}
-            {formatMoney(claim.member_payable)}
-          </p>
-          {claim.override_amount && (
-            <p className="text-xs text-amber-700 mt-1">
-              Override amount set: {formatMoney(claim.override_amount)}
-            </p>
-          )}
-          {claim.notes && (
-            <p className="text-xs text-gray-700 mt-2">
-              <span className="font-medium">Notes:</span> {claim.notes}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Items */}
-      <div className="sgss-card">
-        <p className="font-semibold text-[var(--sgss-navy)] mb-2">
-          Items Breakdown
-        </p>
-        {items.length === 0 ? (
-          <p className="text-sm text-gray-600">No line items recorded.</p>
-        ) : (
-          <div className="overflow-x-auto text-sm">
-            <table className="min-w-full">
-              <thead>
-                <tr className="text-left text-xs uppercase text-gray-500 border-b">
-                  <th className="py-2 pr-4">Category</th>
-                  <th className="py-2 pr-4">Description</th>
-                  <th className="py-2 pr-4">Amount</th>
-                  <th className="py-2 pr-4">Qty</th>
-                  <th className="py-2 pr-4">Line Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((i) => (
-                  <tr key={i.id} className="border-b last:border-b-0">
-                    <td className="py-2 pr-4">{i.category || "—"}</td>
-                    <td className="py-2 pr-4">
-                      {i.description || (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {formatMoney(i.amount)}
-                    </td>
-                    <td className="py-2 pr-4">{i.quantity}</td>
-                    <td className="py-2 pr-4 font-medium">
-                      {formatMoney(i.line_total)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Attachments */}
-      <div className="sgss-card">
-        <p className="font-semibold text-[var(--sgss-navy)] mb-2">
-          Attachments
-        </p>
-        {attachments.length === 0 ? (
-          <p className="text-sm text-gray-600">No attachments uploaded.</p>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {attachments.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-center justify-between border-b last:border-b-0 pb-2"
-              >
-                <div>
-                  <p className="font-medium text-[var(--sgss-navy)]">
-                    {a.content_type?.includes("pdf")
-                      ? "Supporting Document (PDF)"
-                      : a.content_type?.includes("image")
-                      ? "Supporting Image"
-                      : "Attachment"}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Type: {a.content_type || "N/A"} • Uploaded by{" "}
-                    {a.uploaded_by || "—"} on {formatDateTime(a.uploaded_at)}
-                  </p>
-                </div>
-                {a.file && (
-                  <a
-                    href={a.file}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-semibold text-[var(--sgss-navy)] hover:text-[var(--sgss-gold)]"
-                  >
-                    View
-                  </a>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* 🔍 Audit Trail */}
-      <div className="sgss-card">
-        <p className="font-semibold text-[var(--sgss-navy)] mb-2">
-          Audit Trail
-        </p>
-
-        {audit.length === 0 ? (
-          <p className="text-sm text-gray-600">
-            No audit entries recorded for this claim yet.
-          </p>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {audit.map((entry, idx) => {
-              const when = entry.created_at
-                ? new Date(entry.created_at).toLocaleString()
-                : "Unknown time";
-              const who =
-                entry.actor_name ||
-                entry.actor?.full_name ||
-                entry.actor?.username ||
-                "System";
-              const role = entry.role || entry.actor?.role || "";
-
-              return (
-                <li
-                  key={entry.id || idx}
-                  className="flex items-start gap-3 border-b last:border-b-0 pb-2"
-                >
-                  <div className="mt-1 w-2 h-2 rounded-full bg-[var(--sgss-gold)]" />
-                  <div className="flex-1">
-                    <p className="font-medium text-[var(--sgss-navy)]">
-                      {entry.action || "event"}{" "}
-                      {role && (
-                        <span className="text-xs text-gray-500">
-                          ({role})
-                        </span>
-                      )}
-                    </p>
-                    {entry.note && (
-                      <p className="text-xs text-gray-700">{entry.note}</p>
-                    )}
-                    <p className="text-[11px] text-gray-500 mt-0.5">
-                      {who} • {when}
-                    </p>
+      <div className="grid lg:grid-cols-3 gap-6">
+          {/* LEFT COL */}
+          <div className="lg:col-span-2 space-y-6">
+             {/* Financials & Summary */}
+              <div className="sgss-card bg-white p-6 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-4 opacity-5">
+                       <CurrencyDollarIcon className="w-32 h-32 text-[var(--sgss-navy)]" />
+                   </div>
+                  <h3 className="font-bold text-[var(--sgss-navy)] mb-4 flex items-center gap-2">
+                       <CurrencyDollarIcon className="w-5 h-5 text-[var(--sgss-gold)]" />
+                       Claim Financials
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                      <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                          <p className="text-xs text-gray-500 uppercase font-bold">Total Claimed</p>
+                          <p className="text-xl font-bold text-[var(--sgss-navy)]">{formatMoney(claim.total_claimed)}</p>
+                      </div>
+                      <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                          <p className="text-xs text-emerald-600 uppercase font-bold">Fund Payable</p>
+                          <p className="text-xl font-bold text-emerald-800">{formatMoney(claim.total_payable)}</p>
+                      </div>
+                       <div className="p-3 bg-orange-50 rounded-xl border border-orange-100">
+                          <p className="text-xs text-orange-600 uppercase font-bold">Member Share</p>
+                          <p className="text-xl font-bold text-orange-800">{formatMoney(claim.member_payable)}</p>
+                      </div>
                   </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                  {claim.override_amount && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-2 rounded-lg text-sm mb-2">
+                        <strong>Override Active:</strong> The payable amount was manually set to {formatMoney(claim.override_amount)}.
+                    </div>
+                  )}
+                   {claim.notes && (
+                    <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg text-sm mt-4">
+                        <strong className="block mb-1 text-xs uppercase tracking-wider opacity-70">Claim Notes</strong> 
+                        {claim.notes}
+                    </div>
+                  )}
+              </div>
+
+               {/* Items */}
+                <div className="sgss-card p-0 overflow-hidden bg-white">
+                    <div className="bg-gray-50 px-6 py-3 border-b border-gray-100">
+                         <h3 className="font-bold text-[var(--sgss-navy)] text-sm">Line Items Breakdown</h3>
+                    </div>
+                    {items.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500 text-sm">No line items recorded.</div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-white text-xs uppercase text-gray-500 font-semibold border-b border-gray-100">
+                                    <tr>
+                                        <th className="px-6 py-3">Description</th>
+                                        <th className="px-6 py-3 text-right">Amount</th>
+                                        <th className="px-6 py-3 text-right">Qty</th>
+                                        <th className="px-6 py-3 text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {items.map((i) => (
+                                        <tr key={i.id} className="hover:bg-gray-50/50">
+                                            <td className="px-6 py-3">
+                                                <p className="font-medium text-gray-800">{i.description || "—"}</p>
+                                                <span className="text-xs text-gray-500">{i.category || "Uncategorized"}</span>
+                                            </td>
+                                            <td className="px-6 py-3 text-right text-gray-600">{formatMoney(i.amount)}</td>
+                                            <td className="px-6 py-3 text-right text-gray-600">{i.quantity}</td>
+                                            <td className="px-6 py-3 text-right font-bold text-[var(--sgss-navy)]">{formatMoney(i.line_total)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+
+                {/* Attachments */}
+                <div className="sgss-card bg-white p-6">
+                    <h3 className="font-bold text-[var(--sgss-navy)] mb-4 flex items-center gap-2">
+                       <PaperClipIcon className="w-5 h-5 text-[var(--sgss-gold)]" />
+                       Attachments ({attachments.length})
+                    </h3>
+                     {attachments.length === 0 ? (
+                        <p className="text-sm text-gray-500 italic">No attachments uploaded for this claim.</p>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {attachments.map((a) => (
+                                <div key={a.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors group">
+                                     <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-500 group-hover:bg-white group-hover:shadow-sm transition-all">
+                                         <br />
+                                         <span className="text-[10px] font-bold uppercase truncate max-w-[30px]">{a.content_type?.split('/')[1] || 'FILE'}</span>
+                                     </div>
+                                     <div className="overflow-hidden flex-1">
+                                         <p className="text-sm font-medium text-[var(--sgss-navy)] truncate pr-2">Attachment</p>
+                                         <p className="text-[10px] text-gray-500">By {a.uploaded_by || "User"} • {new Date(a.uploaded_at).toLocaleDateString()}</p>
+                                     </div>
+                                     {a.file && (
+                                         <a 
+                                            href={a.file} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                                            title="View File"
+                                         >
+                                             <ArrowLeftIcon className="w-4 h-4 rotate-135" />
+                                         </a>
+                                     )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+          </div>
+
+          {/* RIGHT COL */}
+          <div className="space-y-6">
+               {/* Member Info Card */}
+               <div className="sgss-card bg-[var(--sgss-navy)] text-white p-6 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-4 opacity-10">
+                       <UserIcon className="w-32 h-32 text-white" />
+                   </div>
+                   <h3 className="font-bold mb-4 flex items-center gap-2 relative z-10 text-white/90">
+                       <UserIcon className="w-5 h-5" />
+                       Member Details
+                   </h3>
+                   <div className="space-y-3 relative z-10 text-sm">
+                       <div>
+                           <label className="text-[10px] uppercase tracking-wider text-white/50 block mb-0.5">Full Name</label>
+                           <p className="font-semibold text-lg">{member.name}</p>
+                       </div>
+                       <div>
+                           <label className="text-[10px] uppercase tracking-wider text-white/50 block mb-0.5">Email</label>
+                           <p className="text-white/80">{member.email}</p>
+                       </div>
+                       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 mt-2">
+                           <div>
+                                <label className="text-[10px] uppercase tracking-wider text-white/50 block mb-0.5">Membership</label>
+                                <p className="text-white/90">{member.membership_type || "—"}</p>
+                           </div>
+                           <div>
+                                <label className="text-[10px] uppercase tracking-wider text-white/50 block mb-0.5">NHIF No.</label>
+                                <p className="text-white/90">{member.nhif_number || "—"}</p>
+                           </div>
+                       </div>
+                   </div>
+               </div>
+
+                {/* Audit Trail - Timeline Style */}
+               <div className="sgss-card bg-white p-6">
+                   <h3 className="font-bold text-[var(--sgss-navy)] mb-6 flex items-center gap-2">
+                       <ChatBubbleLeftRightIcon className="w-5 h-5 text-[var(--sgss-gold)]" />
+                       Audit Trail
+                   </h3>
+                   <div className="space-y-0 relative border-l-2 border-gray-100 ml-3">
+                       {audit.map((entry, idx) => {
+                           const when = entry.created_at ? new Date(entry.created_at) : null;
+                          const who = entry.actor_name || entry.actor?.full_name || entry.actor?.username || "System";
+                          const role = entry.role || entry.actor?.role || "";
+
+                           return (
+                               <div key={idx} className="relative pl-6 pb-6 last:pb-0">
+                                   <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-2 border-white box-content bg-[var(--sgss-gold)] shadow-sm"></div>
+                                   <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 text-sm">
+                                       <div className="flex justify-between items-start mb-1">
+                                           <span className="font-semibold text-[var(--sgss-navy)] capitalize">{entry.action?.replace(/_/g, " ") || "Event"}</span>
+                                           <span className="text-[10px] text-gray-400">{when ? when.toLocaleDateString() : ""}</span>
+                                       </div>
+                                       {entry.note && (
+                                           <p className="text-gray-600 italic bg-white p-2 rounded border border-gray-100 border-dashed text-xs mb-2">"{entry.note}"</p>
+                                       )}
+                                       <div className="text-[11px] text-gray-400 flex items-center gap-1.5">
+                                           <span className="font-medium text-gray-600">{who}</span>
+                                           <span>•</span>
+                                           <span className="capitalize">{role.toLowerCase()}</span>
+                                            <span>•</span>
+                                           <span>{when ? when.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ""}</span>
+                                       </div>
+                                   </div>
+                               </div>
+                           )
+                       })}
+                       {audit.length === 0 && (
+                           <div className="pl-6 text-sm text-gray-500 italic">No audit history recorded.</div>
+                       )}
+                   </div>
+               </div>
+          </div>
       </div>
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const s = (status || "").toLowerCase();
-  let cls = "bg-gray-100 text-gray-700";
-
-  if (s === "submitted") cls = "bg-yellow-100 text-yellow-800";
-  else if (s === "approved") cls = "bg-emerald-100 text-emerald-800";
-  else if (s === "paid") cls = "bg-blue-100 text-blue-800";
-  else if (s === "rejected") cls = "bg-red-100 text-red-800";
-  else if (s === "reviewed") cls = "bg-purple-100 text-purple-800";
-
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}
-    >
-      {status}
-    </span>
+    </PageTransition>
   );
 }

@@ -3,7 +3,19 @@ import React, { useEffect, useState } from "react";
 import api from "~/config/api";
 import { Link } from "react-router-dom";
 import Skeleton from "~/components/loader/skeleton";
+import PageTransition from "~/components/animations/PageTransition";
+import StatCard from "~/components/sgss/StatCard";
+import Badge from "~/components/controls/badge";
 import { useAuth } from "~/store/contexts/AuthContext";
+import { 
+  ClipboardDocumentCheckIcon, 
+  CheckCircleIcon, 
+  XCircleIcon, 
+  BanknotesIcon,
+  ClockIcon,
+  UserCircleIcon,
+  ArrowRightIcon
+} from "@heroicons/react/24/outline";
 
 export default function CommitteeDashboard() {
   const [claims, setClaims] = useState<any[]>([]);
@@ -47,248 +59,231 @@ export default function CommitteeDashboard() {
   const rejected = claims.filter((c) => c.status === "rejected").length;
   const paid = claims.filter((c) => c.status === "paid").length;
 
-  const formatDate = (d?: string | null) =>
-    d ? new Date(d).toLocaleDateString() : "N/A";
+  const statusColor = (status: string) => {
+      const s = status.toLowerCase();
+      if (s === "approved" || s === "paid") return "success";
+      if (s === "rejected") return "danger";
+      if (s === "reviewed") return "warning";
+      return "info";
+  };
 
   return (
-    <div className="space-y-6">
+    <PageTransition className="space-y-6">
       {/* Header + committee profile */}
-      <div className="sgss-card p-0">
-        <div className="sgss-header">Committee Dashboard</div>
-        <div className="p-6 text-sm text-gray-700 space-y-4">
-          <p>
-            Review member claims, track daily workload and monitor approvals in
-            line with the SGSS Medical Fund Byelaws.
-          </p>
-
-          {/* Quick links for multi-role users */}
-          <div className="flex flex-wrap gap-2 text-[11px] mt-2">
-            <Link
-              to="/dashboard/member"
-              className="inline-flex items-center px-3 py-1 rounded-full bg-white border border-[var(--sgss-navy)]/20 text-[var(--sgss-navy)] hover:bg-[var(--sgss-navy)] hover:text-white"
-            >
-              ← Member view
-            </Link>
-            {role === "admin" && (
-              <Link
-                to="/dashboard/admin"
-                className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--sgss-gold)] text-[var(--sgss-navy)] hover:bg-[#dfc76d]"
-              >
-                Admin dashboard →
-              </Link>
-            )}
+      <div className="sgss-card p-0 overflow-hidden relative">
+        <div className="sgss-header flex flex-col md:flex-row justify-between md:items-center gap-4">
+            <div>
+                <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+                    <ClipboardDocumentCheckIcon className="w-6 h-6 text-[var(--sgss-gold)]" />
+                    Committee Dashboard
+                </h1>
+                <p className="text-white/80 text-sm mt-1">
+                    Manage claims, track approvals, and ensure bylaw compliance.
+                </p>
+            </div>
+             {/* Quick links for multi-role users */}
+            <div className="flex flex-wrap gap-2 text-xs">
+                <Link
+                to="/dashboard/member"
+                className="inline-flex items-center px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-all backdrop-blur-md"
+                >
+                <UserCircleIcon className="w-4 h-4 mr-2" />
+                Member View
+                </Link>
+                {role === "admin" && (
+                <Link
+                    to="/dashboard/admin"
+                    className="inline-flex items-center px-4 py-2 rounded-xl bg-[var(--sgss-gold)] text-[var(--sgss-navy)] font-bold shadow-lg shadow-yellow-900/20 hover:scale-105 transition-transform"
+                >
+                    Admin Dashboard →
+                </Link>
+                )}
+            </div>
+        </div>
+        
+        <div className="p-6 bg-white grid lg:grid-cols-2 gap-6 relative z-10">
+          <div className="space-y-4">
+             <div className="flex items-center gap-3">
+                 <div className="h-10 w-1 rounded-full bg-[var(--sgss-gold)]"></div>
+                 <div>
+                     <h3 className="text-lg font-bold text-[var(--sgss-navy)]">Welcome back, {info?.full_name?.split(" ")[0] || "Committee Member"}</h3>
+                     <p className="text-sm text-gray-500">Here's your overview for today.</p>
+                 </div>
+             </div>
+             
+             <div className="grid grid-cols-2 gap-4">
+                 <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                     <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Pending Total</p>
+                     <p className="text-xl font-bold text-[var(--sgss-navy)]">{loading ? "..." : info?.pending_total ?? 0}</p>
+                 </div>
+                 <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
+                     <p className="text-xs text-blue-600 uppercase tracking-wider mb-1">New Today</p>
+                     <p className="text-xl font-bold text-blue-800">{loading ? "..." : info?.today_new ?? 0}</p>
+                 </div>
+             </div>
           </div>
 
-
-          {/* Committee profile block */}
-          <div className="border rounded-lg bg-[var(--sgss-bg)] p-4 text-xs text-gray-700 grid md:grid-cols-2 gap-4">
-            {loading ? (
-              <>
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-48" />
-              </>
-            ) : info ? (
-              <>
-                <div>
-                  <p className="font-semibold text-[var(--sgss-navy)] text-sm">
-                    {info.full_name || "Committee Member"}
-                  </p>
-                  <p className="text-[11px] text-gray-500">{info.email}</p>
-                  <p className="mt-1">
-                    <span className="font-medium">Role:</span>{" "}
-                    {info.role || "Committee"}
-                  </p>
-                </div>
-                <div>
-                  <p>
-                    <span className="font-medium">Membership No:</span>{" "}
-                    {info.membership_no || "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Membership Type:</span>{" "}
-                    {info.membership_type || "Not set"}
-                  </p>
-                </div>
-                <div>
-                  <p>
-                    <span className="font-medium">NHIF No:</span>{" "}
-                    {info.nhif_number || "Not provided"}
-                  </p>
-                  <p className="mt-1">
-                    <span className="font-medium">Pending Total:</span>{" "}
-                    {typeof info.pending_total === "number"
-                      ? `${info.pending_total} claims`
-                      : "—"}
-                  </p>
-                  <p>
-                    <span className="font-medium">New Today:</span>{" "}
-                    {typeof info.today_new === "number"
-                      ? `${info.today_new} claim(s)`
-                      : "—"}
-                  </p>
-                </div>
-              </>
-            ) : (
-              <p className="text-xs text-red-600">
-                Committee profile not available.
-              </p>
-            )}
+          <div className="border-l border-gray-100 pl-0 lg:pl-6">
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Your Profile Details</h4>
+              <div className="grid grid-cols-2 gap-y-3 text-sm">
+                  <div>
+                      <span className="block text-gray-500 text-xs">Full Name</span>
+                      <span className="font-medium text-gray-800">{info?.full_name || "—"}</span>
+                  </div>
+                  <div>
+                      <span className="block text-gray-500 text-xs">Role</span>
+                      <span className="font-medium text-gray-800">{info?.role || "Committee"}</span>
+                  </div>
+                   <div>
+                      <span className="block text-gray-500 text-xs">Membership No</span>
+                      <span className="font-medium text-gray-800">{info?.membership_no || "—"}</span>
+                  </div>
+                   <div>
+                      <span className="block text-gray-500 text-xs">NHIF No</span>
+                      <span className="font-medium text-gray-800">{info?.nhif_number || "—"}</span>
+                  </div>
+              </div>
           </div>
         </div>
       </div>
 
       {/* Stats row */}
-      <div className="grid md:grid-cols-4 gap-4">
-        <div className="sgss-card">
-          <p className="small-label">Pending Review</p>
-          {loading ? (
-            <Skeleton className="h-7 w-16 mt-2" />
-          ) : (
-            <p className="text-2xl font-bold text-[var(--sgss-navy)] mt-1">
-              {pending.length}
-            </p>
-          )}
-        </div>
-        <div className="sgss-card">
-          <p className="small-label">Approved</p>
-          {loading ? (
-            <Skeleton className="h-7 w-16 mt-2" />
-          ) : (
-            <p className="text-2xl font-bold text-[var(--sgss-navy)] mt-1">
-              {approved}
-            </p>
-          )}
-        </div>
-        <div className="sgss-card">
-          <p className="small-label">Rejected</p>
-          {loading ? (
-            <Skeleton className="h-7 w-16 mt-2" />
-          ) : (
-            <p className="text-2xl font-bold text-[var(--sgss-navy)] mt-1">
-              {rejected}
-            </p>
-          )}
-        </div>
-        <div className="sgss-card">
-          <p className="small-label">Paid</p>
-          {loading ? (
-            <Skeleton className="h-7 w-16 mt-2" />
-          ) : (
-            <p className="text-2xl font-bold text-[var(--sgss-navy)] mt-1">
-              {paid}
-            </p>
-          )}
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard 
+            label="Pending Review" 
+            value={loading ? "..." : pending.length} 
+            icon={<ClockIcon className="w-6 h-6" />}
+            className="bg-white border-l-4 border-l-yellow-400"
+            variant="default"
+        />
+        <StatCard 
+            label="Approved" 
+            value={loading ? "..." : approved} 
+            icon={<CheckCircleIcon className="w-6 h-6" />}
+            className="bg-white border-l-4 border-l-emerald-500"
+            variant="default"
+        />
+        <StatCard 
+            label="Rejected" 
+            value={loading ? "..." : rejected} 
+            icon={<XCircleIcon className="w-6 h-6" />}
+             className="bg-white border-l-4 border-l-red-500"
+            variant="default"
+        />
+        <StatCard 
+            label="Paid" 
+            value={loading ? "..." : paid} 
+            icon={<BanknotesIcon className="w-6 h-6" />} 
+            className="bg-white border-l-4 border-l-blue-500"
+            variant="default"
+        />
       </div>
 
-      {/* Pending list */}
-      <div className="sgss-card">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-[var(--sgss-navy)]">
-            Pending / In Progress
-          </h3>
-        </div>
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Pending list */}
+        <div className="lg:col-span-2 sgss-card bg-white h-fit">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="font-bold text-[var(--sgss-navy)] flex items-center gap-2">
+                    <ClockIcon className="w-5 h-5 text-gray-400" />
+                    Pending / In Progress
+                </h3>
+                <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded-full text-gray-600">{pending.length} claims</span>
+            </div>
 
-        {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-4/5" />
-            <Skeleton className="h-5 w-3/4" />
-          </div>
-        ) : pending.length === 0 ? (
-          <p className="text-sm text-gray-600">No claims waiting for review.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase text-gray-500 border-b">
-                  <th className="py-2 pr-4">Ref</th>
-                  <th className="py-2 pr-4">Member</th>
-                  <th className="py-2 pr-4">Type</th>
-                  <th className="py-2 pr-4">Status</th>
-                  <th className="py-2 pr-4">Total</th>
-                  <th className="py-2 pr-4">Submitted</th>
-                  <th className="py-2 pr-4"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {pending.map((c) => (
-                  <tr key={c.id} className="border-b last:border-b-0">
-                    <td className="py-2 pr-4 font-mono text-xs">
-                      {String(c.id).slice(0, 8)}
-                    </td>
-                    <td className="py-2 pr-4 text-xs">
-                      {c.member_user_email || "Member"}
-                    </td>
-                    <td className="py-2 pr-4 capitalize">{c.claim_type}</td>
-                    <td className="py-2 pr-4">
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-800">
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className="py-2 pr-4">
-                      Ksh {Number(c.total_claimed || 0).toLocaleString()}
-                    </td>
-                    <td className="py-2 pr-4 text-xs text-gray-600">
-                      {c.submitted_at
-                        ? new Date(c.submitted_at).toLocaleString()
-                        : "—"}
-                    </td>
-                    <td className="py-2 pr-4 text-right">
-                      <Link
-                        to={`/dashboard/committee/claims/${c.id}`}
-                        className="text-[var(--sgss-navy)] hover:text-[var(--sgss-gold)] text-xs font-medium"
-                      >
-                        Open
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Today's submissions */}
-      <div className="sgss-card">
-        <h3 className="font-semibold text-[var(--sgss-navy)] mb-3">
-          Today’s Submissions
-        </h3>
-        {loading ? (
-          <Skeleton className="h-5 w-3/4" />
-        ) : todays.length === 0 ? (
-          <p className="text-sm text-gray-600">
-            No claims submitted today ({todayStr}).
-          </p>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {todays.map((c) => (
-              <li
-                key={c.id}
-                className="flex justify-between items-center border-b last:border-b-0 pb-2"
-              >
-                <div>
-                  <p className="font-medium text-[var(--sgss-navy)]">
-                    {c.claim_type} – Ksh{" "}
-                    {Number(c.total_claimed || 0).toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    Member: {c.member_user_email || "Member"}
-                  </p>
+            {loading ? (
+                <div className="p-4 space-y-3">
+                    {[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
                 </div>
-                <Link
-                  to={`/dashboard/committee/claims/${c.id}`}
-                  className="text-[var(--sgss-navy)] hover:text-[var(--sgss-gold)] text-xs font-medium"
-                >
-                  Review
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+            ) : pending.length === 0 ? (
+                <div className="p-12 text-center text-gray-500">
+                    <CheckCircleIcon className="w-12 h-12 mx-auto text-gray-200 mb-2" />
+                    <p>All caught up! No claims pending review.</p>
+                </div>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                            <tr>
+                                <th className="px-4 py-3 font-semibold">Ref</th>
+                                <th className="px-4 py-3 font-semibold">Member</th>
+                                <th className="px-4 py-3 font-semibold">Type</th>
+                                <th className="px-4 py-3 font-semibold">Status</th>
+                                <th className="px-4 py-3 font-semibold text-right">Total</th>
+                                <th className="px-4 py-3 font-semibold text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {pending.slice(0, 5).map((c) => (
+                                <tr key={c.id} className="hover:bg-blue-50/50 transition-colors cursor-pointer group">
+                                    <td className="px-4 py-3 font-mono text-xs text-gray-500">#{String(c.id).slice(0, 8)}</td>
+                                    <td className="px-4 py-3 font-medium text-[var(--sgss-navy)]">
+                                        {c.member_user_email || "Member"}
+                                    </td>
+                                    <td className="px-4 py-3 capitalize">{c.claim_type}</td>
+                                    <td className="px-4 py-3">
+                                        <Badge variant={statusColor(c.status)}>{c.status}</Badge>
+                                    </td>
+                                    <td className="px-4 py-3 text-right font-medium">Ksh {Number(c.total_claimed || 0).toLocaleString()}</td>
+                                    <td className="px-4 py-3 text-center">
+                                        <Link 
+                                            to={`/dashboard/committee/claims/${c.id}`}
+                                            className="p-1.5 rounded-lg hover:bg-[var(--sgss-bg)] text-gray-400 hover:text-[var(--sgss-navy)] inline-flex transition-colors"
+                                        >
+                                            <ArrowRightIcon className="w-4 h-4" />
+                                        </Link>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {pending.length > 5 && (
+                        <div className="p-3 border-t border-gray-100 text-center">
+                            <span className="text-xs text-gray-500">showing 5 of {pending.length} pending claims</span>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+
+        {/* Today's submissions */}
+        <div className="sgss-card bg-white h-fit">
+            <div className="p-4 border-b border-gray-100">
+                <h3 className="font-bold text-[var(--sgss-navy)] text-sm uppercase tracking-wider">Today's Activity</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{todayStr}</p>
+            </div>
+            
+            <div className="p-0">
+                {loading ? (
+                    <div className="p-4 space-y-2">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                ) : todays.length === 0 ? (
+                    <div className="p-8 text-center text-gray-400 text-sm italic">
+                        No new submissions today.
+                    </div>
+                ) : (
+                    <ul className="divide-y divide-gray-50">
+                        {todays.map((c) => (
+                            <li key={c.id} className="p-4 hover:bg-gray-50 transition-colors">
+                                <Link to={`/dashboard/committee/claims/${c.id}`} className="flex justify-between items-start group">
+                                    <div>
+                                        <p className="text-sm font-bold text-[var(--sgss-navy)] group-hover:text-blue-700 transition-colors">#{String(c.id).slice(0,6)}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5 capitalize">{c.claim_type} Claim</p>
+                                        <p className="text-[10px] text-gray-400 mt-1">{c.member_user_email}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-bold text-gray-800">Ksh {Number(c.total_claimed || 0).toLocaleString()}</p>
+                                        <span className="text-[10px] uppercase tracking-wider font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded mt-1 inline-block">New</span>
+                                    </div>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

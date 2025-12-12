@@ -1,18 +1,26 @@
 // Frontend/src/pages/dashboard/member/profile.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
+import PageTransition from "~/components/animations/PageTransition";
+import Button from "~/components/controls/button";
+import Input from "~/components/controls/input";
+import { UserCircleIcon, IdentificationIcon, PhoneIcon, BuildingOffice2Icon, HeartIcon } from "@heroicons/react/24/outline";
 
 export default function MemberProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
   const fetchProfile = async () => {
-    const res = await api.get("members/me/profile/");
-    setProfile(res.data);
+    try {
+        const res = await api.get("members/me/profile/");
+        setProfile(res.data);
+    } catch (e) {
+        console.error(e);
+    }
   };
 
   useEffect(() => {
-    fetchProfile().catch(() => {});
+    fetchProfile();
   }, []);
 
   const handleChange = (field: string, value: any) => {
@@ -46,189 +54,183 @@ export default function MemberProfilePage() {
   };
 
   if (!profile) {
-    return <div className="text-sm text-gray-500">Loading profile…</div>;
+    return (
+        <div className="p-8 space-y-4">
+            <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
+            <div className="h-64 bg-gray-100 rounded-xl animate-pulse" />
+        </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold mb-2">My Profile</h1>
-
-      {/* Basic details */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-4 border">
-          <h2 className="font-semibold mb-3 text-sm text-gray-600">
-            Personal Details
-          </h2>
-          <div className="space-y-3 text-sm">
-            <Field label="Name" value={profile.user_full_name} readOnly />
-            <Field label="Email" value={profile.email} readOnly />
-            <Field
-              label="Mailing Address"
-              value={profile.mailing_address || ""}
-              onChange={(v) => handleChange("mailing_address", v)}
-            />
-            <Field
-              label="NHIF Number"
-              value={profile.nhif_number || ""}
-              onChange={(v) => handleChange("nhif_number", v)}
-            />
-          </div>
+    <PageTransition className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 className="text-2xl font-bold text-[var(--sgss-navy)] tracking-tight">My Profile</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage your personal information and contact details.</p>
         </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-4 border">
-          <h2 className="font-semibold mb-3 text-sm text-gray-600">
-            Membership
-          </h2>
-          <div className="space-y-2 text-sm">
-            <p>
-              <span className="font-medium">Membership Type: </span>
-              {profile.membership_type ?? "—"}
-            </p>
-            <p>
-              <span className="font-medium">Status: </span>
-              {profile.status}
-            </p>
-            <p>
-              <span className="font-medium">Valid From: </span>
-              {profile.valid_from || "—"}
-            </p>
-            <p>
-              <span className="font-medium">Valid To: </span>
-              {profile.valid_to || "—"}
-            </p>
-            <p>
-              <span className="font-medium">Benefits From: </span>
-              {profile.benefits_from || "—"}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Contact + doctor */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-4 border">
-          <h2 className="font-semibold mb-3 text-sm text-gray-600">
-            Contact Numbers
-          </h2>
-          <div className="space-y-3 text-sm">
-            <Field
-              label="Phone (Office)"
-              value={profile.phone_office || ""}
-              onChange={(v) => handleChange("phone_office", v)}
-            />
-            <Field
-              label="Phone (Home)"
-              value={profile.phone_home || ""}
-              onChange={(v) => handleChange("phone_home", v)}
-            />
-            <Field
-              label="Phone (Mobile)"
-              value={profile.phone_mobile || ""}
-              onChange={(v) => handleChange("phone_mobile", v)}
-            />
-            <Field
-              label="Fax"
-              value={profile.phone_fax || ""}
-              onChange={(v) => handleChange("phone_fax", v)}
-            />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-4 border">
-          <h2 className="font-semibold mb-3 text-sm text-gray-600">
-            Family Doctor
-          </h2>
-          <div className="space-y-3 text-sm">
-            <Field
-              label="Doctor Name"
-              value={profile.family_doctor_name || ""}
-              onChange={(v) => handleChange("family_doctor_name", v)}
-            />
-            <Field
-              label="Doctor Phone (Office)"
-              value={profile.family_doctor_phone_office || ""}
-              onChange={(v) =>
-                handleChange("family_doctor_phone_office", v)
-              }
-            />
-            <Field
-              label="Doctor Phone (Home)"
-              value={profile.family_doctor_phone_home || ""}
-              onChange={(v) =>
-                handleChange("family_doctor_phone_home", v)
-              }
-            />
-            <Field
-              label="Doctor Phone (Mobile)"
-              value={profile.family_doctor_phone_mobile || ""}
-              onChange={(v) =>
-                handleChange("family_doctor_phone_mobile", v)
-              }
-            />
-            <Field
-              label="Doctor Fax"
-              value={profile.family_doctor_phone_fax || ""}
-              onChange={(v) =>
-                handleChange("family_doctor_phone_fax", v)
-              }
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Other scheme */}
-      <div className="bg-white rounded-xl shadow-sm p-4 border">
-        <h2 className="font-semibold mb-3 text-sm text-gray-600">
-          Other Medical Scheme
-        </h2>
-        <textarea
-          className="w-full text-sm border rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-100"
-          rows={3}
-          value={profile.other_medical_scheme || ""}
-          onChange={(e) =>
-            handleChange("other_medical_scheme", e.target.value)
-          }
-        />
-      </div>
-
-      <div className="flex justify-end">
-        <button
-          onClick={save}
-          disabled={saving}
-          className="px-5 py-2 rounded-lg bg-[#03045f] text-white text-sm font-medium hover:bg-[#021f4a] disabled:opacity-50"
+        <Button
+            onClick={save}
+            disabled={saving}
+            className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white shadow-lg shadow-blue-900/10 px-6"
         >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
+            {saving ? "Saving..." : "Save Changes"}
+        </Button>
       </div>
-    </div>
-  );
-}
 
-function Field({
-  label,
-  value,
-  onChange,
-  readOnly,
-}: {
-  label: string;
-  value: string;
-  onChange?: (v: string) => void;
-  readOnly?: boolean;
-}) {
-  return (
-    <label className="block text-xs">
-      <span className="block text-[11px] text-gray-500 mb-1">{label}</span>
-      {readOnly ? (
-        <div className="px-3 py-2 rounded-lg bg-gray-50 border text-gray-700">
-          {value || "—"}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Left Column: Avatar & Membership Info */}
+        <div className="lg:col-span-1 space-y-6">
+            <div className="sgss-card p-6 flex flex-col items-center text-center bg-white relative overflow-hidden">
+                <div className="absolute top-0 inset-x-0 h-24 bg-gradient-to-br from-[var(--sgss-navy)] to-[#0b2f7c]"></div>
+                <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-white flex items-center justify-center text-[var(--sgss-navy)] relative z-10 mb-4">
+                    <span className="text-4xl font-bold">{profile.user_full_name?.charAt(0) || "U"}</span>
+                </div>
+                <h2 className="font-bold text-lg text-[var(--sgss-navy)] relative z-10">{profile.user_full_name}</h2>
+                <p className="text-sm text-gray-500 relative z-10">{profile.email}</p>
+                <div className="mt-4 inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium border border-green-100 relative z-10">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2"></span>
+                    {profile.status}
+                </div>
+            </div>
+
+            <div className="sgss-card p-0 overflow-hidden bg-white">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 font-semibold text-sm text-[var(--sgss-navy)] flex items-center gap-2">
+                    <IdentificationIcon className="w-4 h-4" />
+                    Membership Details
+                </div>
+                <div className="p-4 space-y-3 text-sm">
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Type</span>
+                        <span className="font-medium text-[var(--sgss-navy)]">{profile.membership_type ?? "—"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Valid From</span>
+                        <span className="font-medium">{profile.valid_from || "—"}</span>
+                    </div>
+                     <div className="flex justify-between">
+                        <span className="text-gray-500">Valid To</span>
+                        <span className="font-medium">{profile.valid_to || "—"}</span>
+                    </div>
+                     <div className="flex justify-between border-t border-gray-50 pt-2">
+                        <span className="text-gray-500">Benefits Start</span>
+                        <span className="font-medium text-[var(--sgss-navy)]">{profile.benefits_from || "—"}</span>
+                    </div>
+                </div>
+            </div>
         </div>
-      ) : (
-        <input
-          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-100"
-          value={value}
-          onChange={(e) => onChange && onChange(e.target.value)}
-        />
-      )}
-    </label>
+
+        {/* Right Column: Editable Forms */}
+        <div className="lg:col-span-2 space-y-6">
+            {/* Personal Details */}
+            <div className="sgss-card bg-white p-6">
+                <h3 className="font-bold text-[var(--sgss-navy)] mb-4 flex items-center gap-2 text-base pb-2 border-b border-gray-100">
+                    <UserCircleIcon className="w-5 h-5 text-[var(--sgss-gold)]" />
+                    Personal Information
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                    <Input label="Full Name" value={profile.user_full_name} disabled className="bg-gray-50 text-gray-500 cursor-not-allowed" />
+                    <Input label="Email Address" value={profile.email} disabled className="bg-gray-50 text-gray-500 cursor-not-allowed" />
+                    <Input
+                        label="Mailing Address"
+                        value={profile.mailing_address || ""}
+                        onChange={(e) => handleChange("mailing_address", e.target.value)}
+                    />
+                    <Input
+                        label="NHIF Number"
+                        value={profile.nhif_number || ""}
+                        onChange={(e) => handleChange("nhif_number", e.target.value)}
+                    />
+                </div>
+                <div className="mt-4">
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">Other Medical Scheme</label>
+                    <textarea
+                        className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--sgss-gold)]/20 focus:border-[var(--sgss-gold)] transition-all resize-none bg-gray-50/30"
+                        rows={2}
+                        placeholder="Details of other medical covers..."
+                        value={profile.other_medical_scheme || ""}
+                        onChange={(e) => handleChange("other_medical_scheme", e.target.value)}
+                    />
+                </div>
+            </div>
+
+            {/* Contact Numbers */}
+            <div className="sgss-card bg-white p-6">
+                <h3 className="font-bold text-[var(--sgss-navy)] mb-4 flex items-center gap-2 text-base pb-2 border-b border-gray-100">
+                    <PhoneIcon className="w-5 h-5 text-[var(--sgss-gold)]" />
+                    Contact Numbers
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                    <Input
+                        label="Mobile Phone"
+                        value={profile.phone_mobile || ""}
+                        onChange={(e) => handleChange("phone_mobile", e.target.value)}
+                        type="tel"
+                    />
+                     <Input
+                        label="Home Phone"
+                        value={profile.phone_home || ""}
+                        onChange={(e) => handleChange("phone_home", e.target.value)}
+                        type="tel"
+                    />
+                    <Input
+                        label="Office Phone"
+                        value={profile.phone_office || ""}
+                        onChange={(e) => handleChange("phone_office", e.target.value)}
+                         type="tel"
+                    />
+                    <Input
+                        label="Fax Number"
+                        value={profile.phone_fax || ""}
+                        onChange={(e) => handleChange("phone_fax", e.target.value)}
+                         type="tel"
+                    />
+                </div>
+            </div>
+
+            {/* Family Doctor */}
+             <div className="sgss-card bg-white p-6">
+                <h3 className="font-bold text-[var(--sgss-navy)] mb-4 flex items-center gap-2 text-base pb-2 border-b border-gray-100">
+                    <HeartIcon className="w-5 h-5 text-[var(--sgss-gold)]" />
+                    Family Doctor
+                </h3>
+                <div className="space-y-4">
+                     <Input
+                        label="Doctor Name"
+                        value={profile.family_doctor_name || ""}
+                        onChange={(e) => handleChange("family_doctor_name", e.target.value)}
+                        placeholder="Dr. Name"
+                    />
+                    <div className="grid md:grid-cols-2 gap-4">
+                         <Input
+                            label="Doctor Mobile"
+                            value={profile.family_doctor_phone_mobile || ""}
+                            onChange={(e) => handleChange("family_doctor_phone_mobile", e.target.value)}
+                            type="tel"
+                        />
+                         <Input
+                            label="Doctor Office"
+                            value={profile.family_doctor_phone_office || ""}
+                            onChange={(e) => handleChange("family_doctor_phone_office", e.target.value)}
+                            type="tel"
+                        />
+                         <Input
+                            label="Doctor Home"
+                            value={profile.family_doctor_phone_home || ""}
+                            onChange={(e) => handleChange("family_doctor_phone_home", e.target.value)}
+                            type="tel"
+                        />
+                         <Input
+                            label="Doctor Fax"
+                            value={profile.family_doctor_phone_fax || ""}
+                            onChange={(e) => handleChange("family_doctor_phone_fax", e.target.value)}
+                            type="tel"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+    </PageTransition>
   );
 }

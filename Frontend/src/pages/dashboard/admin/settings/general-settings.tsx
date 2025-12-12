@@ -44,11 +44,14 @@ export default function GeneralFundSettings() {
     setLoading(true);
     try {
       const res = await api.get("settings/");
-      const all: SettingRecord[] = res.data;
+      // Handle both array and paginated response
+      const all: SettingRecord[] = Array.isArray(res.data) ? res.data : (res.data.results || []);
       const gen = all.find((s) => s.key === "general_limits") as SettingRecord | undefined;
 
       if (!gen) {
-        setError("Configuration key 'general_limits' not found. Please contact support.");
+        // If not found, log what WAS found to help debug
+        console.warn("general_limits not found in settings:", all);
+        setError("Settings not initialized. Please run the backend seed script or contact support.");
       } else {
         setRecord(gen);
         setDraft({
@@ -58,9 +61,13 @@ export default function GeneralFundSettings() {
           clinic_outpatient_percent: Number(gen.value.clinic_outpatient_percent ?? 100),
         });
       }
-    } catch (e) {
-      console.error(e);
-      setError("Failed to load settings. Please try refreshing.");
+    } catch (e: any) {
+      console.error("Settings load error:", e);
+      setError(
+          e.response?.data?.detail || 
+          e.message || 
+          "Failed to load settings. Ensure backend is running."
+      );
     } finally {
       setLoading(false);
     }
@@ -139,7 +146,7 @@ export default function GeneralFundSettings() {
                       type="number"
                       value={draft.annual_limit}
                       onChange={(e) => handleChange("annual_limit", Number(e.target.value))}
-                      icon={<span className="text-gray-400 text-xs">Ksh</span>}
+                      suffix="Ksh"
                   />
                   <p className="text-xs text-gray-400 mt-1">Maximum payable benefit per member per year.</p>
               </div>
@@ -150,7 +157,7 @@ export default function GeneralFundSettings() {
                       type="number"
                       value={draft.critical_addon}
                       onChange={(e) => handleChange("critical_addon", Number(e.target.value))}
-                      icon={<span className="text-gray-400 text-xs">Ksh</span>}
+                      suffix="Ksh"
                   />
                   <p className="text-xs text-gray-400 mt-1">Additional coverage for approved critical illnesses.</p>
               </div>

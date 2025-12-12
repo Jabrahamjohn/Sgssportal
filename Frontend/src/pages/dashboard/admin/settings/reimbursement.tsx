@@ -210,7 +210,7 @@ export default function ReimbursementSettings() {
                                           value={draft.ceiling ?? ""}
                                           onChange={e => handleChange("ceiling", e.target.value)}
                                           className="bg-white"
-                                          icon={<CurrencyDollarIcon className="w-4 h-4" />}
+                                          icon={CurrencyDollarIcon}
                                       />
                                   ) : (
                                       <span className="font-mono text-gray-600">Ksh {Number(s.ceiling).toLocaleString()}</span>

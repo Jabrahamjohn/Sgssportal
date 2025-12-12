@@ -38,7 +38,7 @@ export default function AdminAuditPage() {
             </h1>
             <p className="text-sm text-gray-500 mt-1">Complete chronological trail of all system activities.</p>
         </div>
-        <Button variant="outline" onClick={load} disabled={loading} className="text-xs">
+        <Button onClick={load} disabled={loading} className="text-xs bg-white border border-gray-200 text-gray-700 hover:bg-gray-50">
             <ArrowPathIcon className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
         </Button>

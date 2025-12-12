@@ -208,7 +208,7 @@ export default function AdminMembershipTypes() {
                             <label className="block text-xs font-bold text-gray-700 mb-1">Annual Limit (Ksh)</label>
                             <Input 
                                 type="number"
-                                icon={<BanknotesIcon className="w-4 h-4" />}
+                                icon={BanknotesIcon}
                                 value={editing.annual_limit} 
                                 onChange={(e) => setEditing({...editing, annual_limit: e.target.value})} 
                             />

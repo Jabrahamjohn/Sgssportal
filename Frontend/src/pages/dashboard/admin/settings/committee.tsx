@@ -121,9 +121,9 @@ export default function CommitteeSettings() {
                                  </td>
                                  <td className="px-6 py-4">
                                      {m.is_superuser ? (
-                                         <Badge variant="danger">Super Admin</Badge>
+                                         <Badge color="red">Super Admin</Badge>
                                      ) : (
-                                         <Badge variant="warning">Committee Member</Badge>
+                                         <Badge color="yellow">Committee Member</Badge>
                                      )}
                                  </td>
                              </tr>

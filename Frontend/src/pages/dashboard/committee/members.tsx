@@ -206,11 +206,9 @@ export default function CommitteeMembersPage() {
                                     <td className="px-6 py-4 text-center">
                                         {m.status === "pending" ? (
                                             <Button 
-                                                size="sm"
-                                                variant="primary"
                                                 disabled={actingId === m.id}
                                                 onClick={() => approve(m.id)}
-                                                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200"
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200 py-1.5 px-3 text-xs"
                                             >
                                                 {actingId === m.id ? "..." : "Approve"}
                                                 <CheckCircleIcon className="w-4 h-4 ml-1.5" />

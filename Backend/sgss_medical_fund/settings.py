@@ -131,12 +131,12 @@ WSGI_APPLICATION = 'sgss_medical_fund.wsgi.application'
 DATABASES = {
     'default': env.db(
         'DATABASE_URL',
-        default='postgres://postgres:km@3108j@localhost:5432/Sgss_medical_fund'
+        default='postgres://postgres:postgres@localhost:5432/sgss_medical_fund'
     )
 }
 
 # AUTH_USER_MODEL
-AUTH_USER_MODEL = 'auth.user'
+# Removed incorrect AUTH_USER_MODEL setting - using Django's default User model
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -147,6 +147,17 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',  # Anonymous users
+        'user': '1000/hour',  # Authenticated users
+        'login': '5/minute',  # Login attempts
+    },
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
 }
 
 

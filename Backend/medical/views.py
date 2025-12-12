@@ -846,6 +846,32 @@ def csrf_cookie(request):
     return JsonResponse({"detail": "CSRF cookie set"})
 
 
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def health_check(request):
+    """
+    Health check endpoint for monitoring and load balancers.
+    Returns 200 OK if the service is running and can connect to the database.
+    """
+    from django.db import connection
+    try:
+        # Test database connectivity
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return JsonResponse({
+            "status": "healthy",
+            "timestamp": timezone.now().isoformat(),
+            "database": "connected"
+        })
+    except Exception as e:
+        return JsonResponse({
+            "status": "unhealthy",
+            "timestamp": timezone.now().isoformat(),
+            "database": "disconnected",
+            "error": str(e)
+        }, status=503)
+
+
 # ============================================================
 #                PUBLIC REGISTRATION
 # ============================================================

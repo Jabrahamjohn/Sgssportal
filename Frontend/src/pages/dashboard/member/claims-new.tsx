@@ -649,7 +649,7 @@ function InpatientForm({ data, onChange }: any) {
             }
           />
         </div>
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 gap-4">
           <Input
             label="Bed Charge / Day (Ksh)"
             type="number"
@@ -764,25 +764,30 @@ function ChronicForm({ data, onChange }: any) {
       {medicines.map((m: any, i: number) => (
         <div
           key={i}
-          className="grid md:grid-cols-5 gap-3 bg-white border border-gray-200 p-4 rounded-xl shadow-sm relative group"
+          className="grid md:grid-cols-9 gap-3 bg-white border border-gray-200 p-4 rounded-xl shadow-sm relative group"
         >
-          <div className="md:col-span-1">
+          <div className="md:col-span-2">
              <Input
                 label="Name of Medicine"
                 value={m.name}
                 onChange={(e) => setMed(i, "name", e.target.value)}
               />
           </div>
+          <div className="md:col-span-2">
           <Input
             label="Strength"
             value={m.strength || ""}
             onChange={(e) => setMed(i, "strength", e.target.value)}
           />
+          </div>
+          <div className="md:col-span-2">
           <Input
             label="Dosage"
             value={m.dosage || ""}
             onChange={(e) => setMed(i, "dosage", e.target.value)}
           />
+          </div>
+          <div className="md:col-span-2">
           <Input
             label="Duration"
             value={m.duration || ""}
@@ -805,6 +810,7 @@ function ChronicForm({ data, onChange }: any) {
           >
              <XMarkIcon className="w-4 h-4" />
           </button>
+          </div>
         </div>
       ))}
       <Button variant="outline" onClick={addMed} className="w-full border-dashed">

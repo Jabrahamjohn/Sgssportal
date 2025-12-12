@@ -315,8 +315,6 @@ def member_rules(request):
 
 # ============================================================
 #                CLAIMS MANAGEMENT
-# ============================================================
-
 class ClaimViewSet(viewsets.ModelViewSet):
     queryset = Claim.objects.select_related(
         "member__user", "member__membership_type"
@@ -343,35 +341,23 @@ class ClaimViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_create(self, serializer):
+        # 1. Save claim first (signals will handle 'created' notifications if status=submitted)
+        claim = serializer.save()
+        
+        # 2. Validation (if fails, atomic transaction rolls back)
         from medical.services.rules import validate_claim_before_submit
-        
         validate_claim_before_submit(claim)
-        
 
-        
-
-
-        # Notify committee on new submitted claim
-        committee_group = Group.objects.filter(name="Committee").first()
-        if committee_group:
-            for user in committee_group.user_set.all():
-                notify(
-                    user,
-                    "New Claim Submitted",
-                    f"A new {claim.claim_type} claim has been submitted by {claim.member.user.get_full_name() or claim.member.user.username}",
-                    link=f"/dashboard/committee/claims/{claim.id}/",
-                )
-
-        # ENFORCE: submitted claims must have a submission timestamp
+        # 3. Enforce submission timestamp if submitted
         if claim.status == "submitted" and claim.submitted_at is None:
             claim.submitted_at = timezone.now()
             claim.save(update_fields=["submitted_at"])
 
-        # Compute totals properly
+        # 4. Compute totals
         claim.recalc_total()
         claim.compute_payable()
 
-        # Audit trail
+        # 5. Audit trail
         action = "submitted" if claim.status == "submitted" else "created"
         log_claim_event(
             claim=claim,
@@ -983,16 +969,7 @@ def register_view(request):
             id_number=d.get("id_number", ""),
         )
 
-    # 5️⃣ Notify Committee
-    committee_group = Group.objects.filter(name="Committee").first()
-    if committee_group:
-        for c_user in committee_group.user_set.all():
-            notify(
-                c_user,
-                "New Membership Application",
-                f"New {mt.name} application from {user.get_full_name() or user.username}.",
-                link=f"/dashboard/committee/members/{member.id}/",
-            )
+    # Notification handled by post_save signal on Member
 
     return Response(
         {

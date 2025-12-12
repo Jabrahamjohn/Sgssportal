@@ -150,7 +150,14 @@ export default function CommitteeClaimDetailPage() {
             </div>
 
             <a
-              href={a.file}
+              href={
+                (a.file || "").startsWith("http")
+                  ? a.file
+                  : `${
+                      import.meta.env.VITE_BACKEND_URL ||
+                      "http://localhost:8000"
+                    }${a.file}`
+              }
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#03045f] font-semibold hover:text-[#caa631]"

@@ -14,7 +14,7 @@ export default function AdminAuditPage() {
   const load = () => {
     setLoading(true);
     // Ensure this endpoint exists or mock it if needed
-    api.get("audit/")
+    api.get("dashboard/admin/audit/")
       .then(res => setLogs(res.data.results || []))
       .catch(err => {
           console.error(err);

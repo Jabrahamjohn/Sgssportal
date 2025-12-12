@@ -43,26 +43,70 @@ def claim_saved(sender, instance: Claim, created, **kwargs):
             instance.compute_payable()
 
             member_user = getattr(getattr(instance.member, "user", None), "pk", None)
-            if created and instance.status == "submitted" and member_user:
-                _notify(
-                    instance.member.user,
-                    "Claim Submitted",
-                    f"Your claim {instance.id} has been submitted.",
-                    f"/claims/{instance.id}",
-                    "claim"
-                )
-            elif not created and member_user:
-                _notify(
-                    instance.member.user,
-                    "Claim Update",
-                    f"Your claim {instance.id} is now {instance.status}.",
-                    f"/claims/{instance.id}",
-                    "claim"
-                )
+            
+            # 1. Notify Member used to be here.
+            # 2. Notify Committee
+            committee_group = Group.objects.filter(name="Committee").first()
+            committee_users = list(committee_group.user_set.all()) if committee_group else []
+
+            if created and instance.status == "submitted":
+                # Notify Applier
+                if member_user:
+                    _notify(
+                        instance.member.user,
+                        "Claim Submitted",
+                        f"Your claim {instance.id} has been submitted.",
+                        f"/claims/{instance.id}",
+                        "claim"
+                    )
+                # Notify Committee
+                for c_user in committee_users:
+                    _notify(
+                        c_user,
+                        "New Claim Submitted",
+                        f"New {instance.claim_type} claim from {instance.member.user.get_full_name() or instance.member.user.username}.",
+                        f"/dashboard/committee/claims/{instance.id}/",
+                        "claim"
+                    )
+            elif not created:
+                # Notify Member on status change
+                if member_user:
+                    _notify(
+                        instance.member.user,
+                        "Claim Update",
+                        f"Your claim {instance.id} is now {instance.status}.",
+                        f"/claims/{instance.id}",
+                        "claim"
+                    )
+            
             _audit(None, "claims:UPSERT", {"id": str(instance.id), "status": instance.status})
     finally:
         post_save.connect(claim_saved, sender=Claim)
 
+
+# --- Member save: notify Committee on newly registered, Member on active ---
+from .models import Member
+
+@receiver(post_save, sender=Member)
+def member_saved(sender, instance: Member, created, **kwargs):
+    if created:
+        # Notify Committee of new registration (if not already handled by view)
+        # It's safer to have it here to catch all creations
+        committee_group = Group.objects.filter(name="Committee").first()
+        if committee_group:
+            for c_user in committee_group.user_set.all():
+                _notify(
+                    c_user,
+                    "New Membership Application",
+                    f"New application from {instance.user.get_full_name() or instance.user.username}.",
+                    f"/dashboard/committee/members/{instance.id}/",
+                    "member"
+                )
+    else:
+        # Status changes handled here or in services? 
+        # Services `approve_member` handles it manually with custom message.
+        # We can leave it there to avoid duplicate "Active" messages if service is used.
+        pass
 
 # --- ClaimItem save: recompute claim totals ---
 @receiver(post_save, sender=ClaimItem)

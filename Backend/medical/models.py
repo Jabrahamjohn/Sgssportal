@@ -284,12 +284,20 @@ class Claim(models.Model):
 
     @transaction.atomic
     def recalc_total(self):
-        """Safely recompute claim total from items."""
-        total = (
+        """Safely recompute claim total from items OR details (fallback)."""
+        items_total = (
             self.items.aggregate(sum=models.Sum(models.F('amount') * models.F('quantity')))['sum']
             or 0
         )
-        self.total_claimed = total
+        
+        # If items exist, they are authoritative.
+        # If no items, we check if there's data in 'details' (legacy or simplified forms)
+        if items_total == 0:
+            details_total = self.calculate_total_claimed()
+            self.total_claimed = details_total
+        else:
+            self.total_claimed = items_total
+
         super().save(update_fields=['total_claimed'])
 
     @transaction.atomic

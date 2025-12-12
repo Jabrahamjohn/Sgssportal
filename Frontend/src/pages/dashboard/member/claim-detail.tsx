@@ -180,7 +180,14 @@ export default function MemberClaimDetail() {
                                     <p className="text-[10px] text-gray-400 uppercase mt-0.5">{a.content_type?.split('/')[1] || 'FILE'}</p>
                                 </div>
                                 <a 
-                                    href={a.file}
+                                    href={
+                                        (a.file || "").startsWith("http")
+                                        ? a.file
+                                        : `${
+                                            import.meta.env.VITE_BACKEND_URL ||
+                                            "http://localhost:8000"
+                                            }${a.file}`
+                                    }
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="p-2 text-gray-400 hover:text-[var(--sgss-navy)] transition-colors"

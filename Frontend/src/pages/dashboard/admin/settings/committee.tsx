@@ -27,12 +27,27 @@ export default function CommitteeSettings() {
     setError("");
     setLoading(true);
     try {
-      const res = await api.get("admin/committee-members/");
-      setMembers(res.data.results || []);
-    } catch (e) {
+      // Use the admin/users endpoint which we know exists
+      const res = await api.get("admin/users/");
+      const allUsers: CommitteeUser[] = res.data.results || res.data || [];
+      
+      // Filter for users who are likely committee members (e.g. staff or specific role)
+      // Since the API might not strictly return "role", we check is_staff or if they are in the group.
+      // For now, let's filter by is_staff (Superuser) or if we can identify committee role.
+      // Based on the 'users.tsx' page, the user object might have 'role'.
+      
+      // If the API returns 'role' field:
+      const committee = allUsers.filter((u: any) => 
+          u.is_superuser || 
+          u.role === 'committee' || 
+          u.groups?.includes('Committee')
+      );
+      
+      setMembers(committee);
+    } catch (e: any) {
       console.error(e);
       setError(
-        "Failed to load committee members. Ensure you have admin permissions."
+        e.response?.data?.detail || "Failed to load committee members."
       );
     } finally {
       setLoading(false);

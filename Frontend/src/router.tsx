@@ -119,12 +119,14 @@ export default function AppRouter() {
         <Route path="admin" element={<AdminDashboard />} />
         <Route path="admin/audit" element={<AdminAuditPage />} />
         <Route path="admin/users" element={<AdminUsersPage />} />
-        <Route path="admin/settings" element={<AdminSettingsIndex />} />
-        <Route path="admin/settings/memberships" element={<AdminMembershipTypes />} />
-        <Route path="admin/settings/reimbursement" element={<AdminReimbursementScales />} />
-        <Route path="admin/settings/general" element={<AdminGeneralSettings />} />
-        <Route path="admin/settings/committee" element={<AdminCommitteeSettings />} />
-        <Route path="admin/settings/registrations" element={<AdminRegistrations />} />
+        <Route path="admin/settings" element={<AdminSettingsIndex />}>
+          <Route index element={<Navigate to="memberships" replace />} />
+          <Route path="memberships" element={<AdminMembershipTypes />} />
+          <Route path="reimbursement" element={<AdminReimbursementScales />} />
+          <Route path="general" element={<AdminGeneralSettings />} />
+          <Route path="committee" element={<AdminCommitteeSettings />} />
+          <Route path="registrations" element={<AdminRegistrations />} />
+        </Route>
       </Route>
 
       {/* 404 */}

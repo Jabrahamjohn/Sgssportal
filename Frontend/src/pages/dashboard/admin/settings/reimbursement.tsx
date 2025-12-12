@@ -4,13 +4,22 @@ import api from "~/config/api";
 import Button from "~/components/controls/button";
 import Input from "~/components/controls/input";
 import Alert from "~/components/controls/alert";
+import PageTransition from "~/components/animations/PageTransition";
+import { 
+    ScaleIcon, 
+    PencilSquareIcon, 
+    CheckIcon, 
+    XMarkIcon,
+    PlusIcon,
+    CurrencyDollarIcon
+} from "@heroicons/react/24/outline";
 
 type Scale = {
   id: string;
-  category: string; // Outpatient / Inpatient / Chronic
-  fund_share: number; // %
-  member_share: number; // %
-  ceiling: number; // Ksh
+  category: string;
+  fund_share: number;
+  member_share: number;
+  ceiling: number;
 };
 
 export default function ReimbursementSettings() {
@@ -32,7 +41,7 @@ export default function ReimbursementSettings() {
     setLoading(true);
     try {
       const res = await api.get("reimbursement-scales/");
-      setItems(res.data);
+      setItems(Array.isArray(res.data) ? res.data : (res.data?.results || []));
     } catch (e) {
       console.error(e);
       setError("Failed to load reimbursement scales.");
@@ -109,209 +118,177 @@ export default function ReimbursementSettings() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <PageTransition className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold">Reimbursement Scales</h2>
-          <p className="text-xs text-gray-500">
-            Define fund vs member share and ceilings for Outpatient, Inpatient and
-            Chronic claims, as per Byelaws.
-          </p>
+           <h2 className="text-xl font-bold text-[var(--sgss-navy)] flex items-center gap-2">
+               <ScaleIcon className="w-6 h-6 text-[var(--sgss-gold)]" />
+               Reimbursement Rules
+           </h2>
+           <p className="text-sm text-gray-500 mt-1">Define fund coverage percentages and ceilings for claim types.</p>
         </div>
-        <Button
-          onClick={startNew}
-          className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
+        <Button 
+            onClick={startNew} 
+            disabled={editingId === "new"}
+            className="bg-[var(--sgss-navy)] hover:bg-blue-900 text-white shadow-lg shadow-blue-900/20"
         >
-          + New Scale
+            <PlusIcon className="w-4 h-4 mr-2" />
+            Add Rule
         </Button>
       </div>
 
       {error && <Alert type="error" message={error} />}
       {success && <Alert type="success" message={success} />}
 
-      {loading ? (
-        <p className="text-sm text-gray-500">Loading…</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm border border-gray-100 rounded-lg overflow-hidden">
-            <thead className="bg-gray-50">
-              <tr className="text-left">
-                <th className="px-3 py-2 border-b">Category</th>
-                <th className="px-3 py-2 border-b">Fund Share (%)</th>
-                <th className="px-3 py-2 border-b">Member Share (%)</th>
-                <th className="px-3 py-2 border-b">Ceiling (Ksh)</th>
-                <th className="px-3 py-2 border-b w-32">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((s) => {
-                const isEditing = editingId === s.id;
-                return (
-                  <tr key={s.id} className="border-b last:border-b-0">
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          value={draft.category || ""}
-                          onChange={(e) =>
-                            handleChange("category", e.target.value)
-                          }
-                        />
-                      ) : (
-                        s.category
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={draft.fund_share ?? ""}
-                          onChange={(e) =>
-                            handleChange(
-                              "fund_share",
-                              e.target.value ? Number(e.target.value) : 0
-                            )
-                          }
-                        />
-                      ) : (
-                        `${s.fund_share}%`
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={draft.member_share ?? ""}
-                          onChange={(e) =>
-                            handleChange(
-                              "member_share",
-                              e.target.value ? Number(e.target.value) : 0
-                            )
-                          }
-                        />
-                      ) : (
-                        `${s.member_share}%`
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={draft.ceiling ?? ""}
-                          onChange={(e) =>
-                            handleChange(
-                              "ceiling",
-                              e.target.value ? Number(e.target.value) : 0
-                            )
-                          }
-                        />
-                      ) : (
-                        Number(s.ceiling).toLocaleString()
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {isEditing ? (
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            onClick={save}
-                            disabled={saving}
-                            className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
-                          >
-                            {saving ? "Saving…" : "Save"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={cancelEdit}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => startEdit(s)}
-                        >
-                          Edit
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {editingId === "new" && (
-                <tr className="border-t bg-gray-50/60">
-                  <td className="px-3 py-2">
-                    <Input
-                      value={draft.category || ""}
-                      onChange={(e) =>
-                        handleChange("category", e.target.value)
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      value={draft.fund_share ?? ""}
-                      onChange={(e) =>
-                        handleChange(
-                          "fund_share",
-                          e.target.value ? Number(e.target.value) : 0
+      <div className="sgss-card p-0 overflow-hidden bg-white">
+        {loading ? (
+           <div className="p-8 text-center text-gray-400">Loading scales...</div>
+        ) : (
+           <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                 <thead className="bg-gray-50 text-xs uppercase text-gray-500 font-semibold border-b border-gray-100">
+                    <tr>
+                       <th className="px-6 py-4">Category</th>
+                       <th className="px-6 py-4">Fund Share</th>
+                       <th className="px-6 py-4">Member Share</th>
+                       <th className="px-6 py-4">Annual Ceiling</th>
+                       <th className="px-6 py-4 w-32 text-center">Actions</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-gray-50">
+                    {/* Items */}
+                    {items.map((s) => {
+                        const isEditing = editingId === s.id;
+                        return (
+                           <tr key={s.id} className={`transition-colors ${isEditing ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}>
+                              <td className="px-6 py-4">
+                                  {isEditing ? (
+                                      <Input 
+                                          value={draft.category || ""}
+                                          onChange={e => handleChange("category", e.target.value)}
+                                          placeholder="e.g. Outpatient"
+                                          className="bg-white"
+                                      />
+                                  ) : (
+                                      <span className="font-medium text-gray-900">{s.category}</span>
+                                  )}
+                              </td>
+                              <td className="px-6 py-4">
+                                  {isEditing ? (
+                                      <div className="relative">
+                                          <Input 
+                                              type="number"
+                                              value={draft.fund_share ?? ""}
+                                              onChange={e => handleChange("fund_share", e.target.value)}
+                                              className="bg-white pr-8"
+                                          />
+                                          <span className="absolute right-3 top-2.5 text-gray-400">%</span>
+                                      </div>
+                                  ) : (
+                                      <span className="text-emerald-600 font-medium">{s.fund_share}%</span>
+                                  )}
+                              </td>
+                              <td className="px-6 py-4">
+                                  {isEditing ? (
+                                      <div className="relative">
+                                          <Input 
+                                              type="number"
+                                              value={draft.member_share ?? ""}
+                                              onChange={e => handleChange("member_share", e.target.value)}
+                                              className="bg-white pr-8"
+                                          />
+                                          <span className="absolute right-3 top-2.5 text-gray-400">%</span>
+                                      </div>
+                                  ) : (
+                                      <span className="text-orange-600 font-medium">{s.member_share}%</span>
+                                  )}
+                              </td>
+                              <td className="px-6 py-4">
+                                  {isEditing ? (
+                                      <Input 
+                                          type="number"
+                                          value={draft.ceiling ?? ""}
+                                          onChange={e => handleChange("ceiling", e.target.value)}
+                                          className="bg-white"
+                                          icon={<CurrencyDollarIcon className="w-4 h-4" />}
+                                      />
+                                  ) : (
+                                      <span className="font-mono text-gray-600">Ksh {Number(s.ceiling).toLocaleString()}</span>
+                                  )}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                  {isEditing ? (
+                                      <div className="flex justify-center gap-2">
+                                          <button onClick={save} disabled={saving} className="p-2 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200">
+                                              <CheckIcon className="w-5 h-5" />
+                                          </button>
+                                          <button onClick={cancelEdit} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200">
+                                              <XMarkIcon className="w-5 h-5" />
+                                          </button>
+                                      </div>
+                                  ) : (
+                                      <button onClick={() => startEdit(s)} className="p-2 text-gray-400 hover:text-[var(--sgss-navy)] hover:bg-gray-100 rounded-lg transition-colors">
+                                          <PencilSquareIcon className="w-5 h-5" />
+                                      </button>
+                                  )}
+                              </td>
+                           </tr>
                         )
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      value={draft.member_share ?? ""}
-                      onChange={(e) =>
-                        handleChange(
-                          "member_share",
-                          e.target.value ? Number(e.target.value) : 0
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      value={draft.ceiling ?? ""}
-                      onChange={(e) =>
-                        handleChange(
-                          "ceiling",
-                          e.target.value ? Number(e.target.value) : 0
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        onClick={save}
-                        disabled={saving}
-                        className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
-                      >
-                        {saving ? "Saving…" : "Create"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={cancelEdit}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+                    })}
+                    
+                    {/* New Item Row */}
+                    {editingId === "new" && (
+                        <tr className="bg-blue-50/50 border-t border-blue-100 animate-in fade-in slide-in-from-top-2">
+                            <td className="px-6 py-4">
+                                <Input 
+                                    value={draft.category || ""}
+                                    onChange={e => handleChange("category", e.target.value)}
+                                    placeholder="Category Name"
+                                    className="bg-white border-blue-200 focus:border-blue-400 focus:ring-blue-100"
+                                    autoFocus
+                                />
+                            </td>
+                            <td className="px-6 py-4">
+                                <Input 
+                                    type="number"
+                                    value={draft.fund_share ?? ""}
+                                    onChange={e => handleChange("fund_share", e.target.value)}
+                                    className="bg-white border-blue-200"
+                                />
+                            </td>
+                            <td className="px-6 py-4">
+                                <Input 
+                                    type="number"
+                                    value={draft.member_share ?? ""}
+                                    onChange={e => handleChange("member_share", e.target.value)}
+                                    className="bg-white border-blue-200"
+                                />
+                            </td>
+                            <td className="px-6 py-4">
+                                <Input 
+                                    type="number"
+                                    value={draft.ceiling ?? ""}
+                                    onChange={e => handleChange("ceiling", e.target.value)}
+                                    className="bg-white border-blue-200"
+                                />
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                                <div className="flex justify-center gap-2">
+                                    <button onClick={save} disabled={saving} className="p-2 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200">
+                                       <CheckIcon className="w-5 h-5" />
+                                    </button>
+                                    <button onClick={cancelEdit} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200">
+                                       <XMarkIcon className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    )}
+                 </tbody>
+              </table>
+           </div>
+        )}
+      </div>
+    </PageTransition>
   );
 }

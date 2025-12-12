@@ -1,5 +1,18 @@
+// Frontend/src/pages/dashboard/admin/settings/membership-types.tsx
 import React, { useEffect, useState } from "react";
 import api from "~/config/api";
+import Button from "~/components/controls/button";
+import Input from "~/components/controls/input";
+import PageTransition from "~/components/animations/PageTransition";
+import Badge from "~/components/controls/badge";
+import { 
+    CreditCardIcon, 
+    PencilSquareIcon, 
+    PlusIcon, 
+    BanknotesIcon,
+    UsersIcon,
+    XMarkIcon
+} from "@heroicons/react/24/outline";
 
 interface MembershipType {
   id: string;
@@ -31,7 +44,7 @@ export default function AdminMembershipTypes() {
     setLoading(true);
     try {
       const res = await api.get("memberships/");
-      setItems(res.data);
+      setItems(Array.isArray(res.data) ? res.data : (res.data?.results || []));
     } catch (e) {
       console.error(e);
     } finally {
@@ -85,173 +98,169 @@ export default function AdminMembershipTypes() {
       closeModal();
     } catch (e) {
       console.error(e);
+      alert("Failed to save. Please check your inputs.");
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Membership Types</h1>
-        <button
-          onClick={openNew}
-          className="px-4 py-2 bg-[#03045f] text-white rounded-lg text-sm font-medium hover:bg-[#021f4a]"
-        >
-          New Membership Type
-        </button>
+    <PageTransition className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+           <h2 className="text-xl font-bold text-[var(--sgss-navy)] flex items-center gap-2">
+               <CreditCardIcon className="w-6 h-6 text-[var(--sgss-gold)]" />
+               Membership Schemes/Types
+           </h2>
+           <p className="text-sm text-gray-500 mt-1">Configure limits and share percentages for different member categories.</p>
+        </div>
+        <Button onClick={openNew} className="bg-[var(--sgss-navy)] hover:bg-blue-900 text-white shadow-lg shadow-blue-900/20">
+            <PlusIcon className="w-4 h-4 mr-2" />
+            New Scheme
+        </Button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border overflow-auto">
+      <div className="sgss-card p-0 overflow-hidden bg-white">
         {loading ? (
-          <div className="p-4 text-sm text-gray-500">Loading…</div>
+          <div className="p-8 text-center text-gray-400">Loading...</div>
         ) : items.length === 0 ? (
-          <div className="p-4 text-sm text-gray-500">No membership types yet.</div>
+          <div className="p-12 text-center text-gray-400">
+             <CreditCardIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+             <p>No membership types defined.</p>
+          </div>
         ) : (
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left text-xs uppercase text-gray-500">
-                <th className="px-4 py-2">Name</th>
-                <th className="px-4 py-2">Annual Limit</th>
-                <th className="px-4 py-2">Fund Share %</th>
-                <th className="px-4 py-2">Entry Fee</th>
-                <th className="px-4 py-2">Term (Years)</th>
-                <th className="px-4 py-2">Notes</th>
-                <th className="px-4 py-2 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((m) => (
-                <tr key={m.id} className="border-t">
-                  <td className="px-4 py-2 font-medium">{m.name}</td>
-                  <td className="px-4 py-2">{m.annual_limit}</td>
-                  <td className="px-4 py-2">{m.fund_share_percent}%</td>
-                  <td className="px-4 py-2">{m.entry_fee || "—"}</td>
-                  <td className="px-4 py-2">
-                    {m.term_years != null ? m.term_years : "—"}
-                  </td>
-                  <td className="px-4 py-2 text-xs text-gray-600">
-                    {m.notes || "—"}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      onClick={() => openEdit(m)}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+             <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 text-xs uppercase text-gray-500 font-semibold border-b border-gray-100">
+                    <tr>
+                        <th className="px-6 py-4">Scheme Name</th>
+                        <th className="px-6 py-4">Annual Limit</th>
+                        <th className="px-6 py-4">Fund Share</th>
+                        <th className="px-6 py-4">Entry Fee</th>
+                        <th className="px-6 py-4">Term</th>
+                        <th className="px-6 py-4 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                    {items.map((m) => (
+                        <tr key={m.id} className="hover:bg-blue-50/30 transition-colors group">
+                           <td className="px-6 py-4">
+                               <span className="font-bold text-[var(--sgss-navy)]">{m.name}</span>
+                               {m.notes && <p className="text-xs text-gray-400 mt-0.5">{m.notes}</p>}
+                           </td>
+                           <td className="px-6 py-4 font-mono">
+                               Ksh {Number(m.annual_limit).toLocaleString()}
+                           </td>
+                           <td className="px-6 py-4">
+                               <Badge variant={Number(m.fund_share_percent) >= 80 ? 'success' : 'warning'}>
+                                   {m.fund_share_percent}%
+                               </Badge>
+                           </td>
+                           <td className="px-6 py-4 font-mono text-gray-600">
+                               {m.entry_fee ? `Ksh ${Number(m.entry_fee).toLocaleString()}` : "Free"}
+                           </td>
+                           <td className="px-6 py-4 text-gray-600">
+                               {m.term_years ? `${m.term_years} Year(s)` : "Indefinite"}
+                           </td>
+                           <td className="px-6 py-4 text-center">
+                               <button 
+                                   onClick={() => openEdit(m)}
+                                   className="p-2 rounded-lg text-gray-400 hover:text-[var(--sgss-navy)] hover:bg-gray-100 transition-colors"
+                               >
+                                   <PencilSquareIcon className="w-5 h-5" />
+                               </button>
+                           </td>
+                        </tr>
+                    ))}
+                </tbody>
+             </table>
+          </div>
         )}
       </div>
 
+      {/* Modal */}
       {modalOpen && editing && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4">
-            <h2 className="text-lg font-semibold">
-              {editing.id ? "Edit Membership Type" : "New Membership Type"}
-            </h2>
-            <div className="space-y-3 text-sm">
-              <Field
-                label="Name"
-                value={editing.name}
-                onChange={(v) =>
-                  setEditing((e) => e && { ...e, name: v })
-                }
-              />
-              <Field
-                label="Annual Limit (Ksh)"
-                value={editing.annual_limit || ""}
-                onChange={(v) =>
-                  setEditing((e) => e && { ...e, annual_limit: v })
-                }
-              />
-              <Field
-                label="Fund Share Percent (Fund → Member pays rest)"
-                value={editing.fund_share_percent || ""}
-                onChange={(v) =>
-                  setEditing((e) => e && { ...e, fund_share_percent: v })
-                }
-              />
-              <Field
-                label="Entry Fee (Ksh)"
-                value={editing.entry_fee || ""}
-                onChange={(v) =>
-                  setEditing((e) => e && { ...e, entry_fee: v })
-                }
-              />
-              <Field
-                label="Term (Years)"
-                value={
-                  editing.term_years != null
-                    ? String(editing.term_years)
-                    : ""
-                }
-                onChange={(v) =>
-                  setEditing((e) =>
-                    e && {
-                      ...e,
-                      term_years: v ? Number(v) : null,
-                    }
-                  )
-                }
-              />
-              <label className="block text-xs">
-                <span className="block text-[11px] text-gray-500 mb-1">
-                  Notes
-                </span>
-                <textarea
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-100"
-                  rows={3}
-                  value={editing.notes || ""}
-                  onChange={(e) =>
-                    setEditing((s) =>
-                      s && { ...s, notes: e.target.value }
-                    )
-                  }
-                />
-              </label>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeModal} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+             
+             {/* Modal Header */}
+             <div className="bg-[var(--sgss-navy)] px-6 py-4 flex justify-between items-center text-white">
+                 <h3 className="font-bold text-lg flex items-center gap-2">
+                     {editing.id ? <PencilSquareIcon className="w-5 h-5" /> : <PlusIcon className="w-5 h-5" />}
+                     {editing.id ? "Edit Scheme" : "New Scheme"}
+                 </h3>
+                 <button onClick={closeModal} className="text-white/70 hover:text-white transition-colors">
+                     <XMarkIcon className="w-6 h-6" />
+                 </button>
+             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={closeModal}
-                className="px-4 py-2 text-sm rounded-lg border border-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={save}
-                className="px-4 py-2 text-sm rounded-lg bg-[#03045f] text-white"
-              >
-                Save
-              </button>
-            </div>
+             <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                 <div className="space-y-4">
+                     <div>
+                         <label className="block text-xs font-bold text-gray-700 mb-1">Scheme Name</label>
+                         <Input 
+                             value={editing.name} 
+                             onChange={(e) => setEditing({...editing, name: e.target.value})} 
+                             placeholder="e.g. Standard Member"
+                         />
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Annual Limit (Ksh)</label>
+                            <Input 
+                                type="number"
+                                icon={<BanknotesIcon className="w-4 h-4" />}
+                                value={editing.annual_limit} 
+                                onChange={(e) => setEditing({...editing, annual_limit: e.target.value})} 
+                            />
+                         </div>
+                         <div>
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Fund Share (%)</label>
+                            <Input 
+                                type="number"
+                                value={editing.fund_share_percent} 
+                                onChange={(e) => setEditing({...editing, fund_share_percent: e.target.value})} 
+                            />
+                         </div>
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Entry Fee (Ksh)</label>
+                            <Input 
+                                type="number"
+                                value={editing.entry_fee || ""} 
+                                onChange={(e) => setEditing({...editing, entry_fee: e.target.value})} 
+                                placeholder="0"
+                            />
+                         </div>
+                         <div>
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Term (Years)</label>
+                            <Input 
+                                type="number"
+                                value={editing.term_years ?? ""} 
+                                onChange={(e) => setEditing({...editing, term_years: e.target.value ? Number(e.target.value) : null})} 
+                                placeholder="Indefinite"
+                            />
+                         </div>
+                     </div>
+                     <div>
+                         <label className="block text-xs font-bold text-gray-700 mb-1">Notes</label>
+                         <textarea 
+                             className="w-full rounded-xl border-gray-200 focus:border-[var(--sgss-gold)] focus:ring-[var(--sgss-gold)]/20 text-sm"
+                             rows={3}
+                             value={editing.notes || ""}
+                             onChange={(e) => setEditing({...editing, notes: e.target.value})}
+                         />
+                     </div>
+                 </div>
+             </div>
+
+             <div className="p-6 pt-2 bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
+                 <Button variant="ghost" onClick={closeModal}>Cancel</Button>
+                 <Button onClick={save} className="bg-[var(--sgss-navy)] text-white">Save Changes</Button>
+             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <label className="block text-xs">
-      <span className="block text-[11px] text-gray-500 mb-1">{label}</span>
-      <input
-        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-100"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </label>
+    </PageTransition>
   );
 }

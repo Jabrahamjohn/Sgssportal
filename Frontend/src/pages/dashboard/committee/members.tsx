@@ -4,6 +4,17 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "~/config/api";
 import Button from "~/components/controls/button";
 import Skeleton from "~/components/loader/skeleton";
+import PageTransition from "~/components/animations/PageTransition";
+import Badge from "~/components/controls/badge";
+import { 
+    UsersIcon, 
+    MagnifyingGlassIcon, 
+    FunnelIcon, 
+    CheckCircleIcon,
+    ExclamationCircleIcon,
+    CalendarIcon,
+    UserCircleIcon
+} from "@heroicons/react/24/outline";
 
 type MemberRow = {
   id: string;
@@ -28,19 +39,18 @@ export default function CommitteeMembersPage() {
   const { id: highlightId } = useParams();
   const nav = useNavigate();
 
-  const [statusFilter, setStatusFilter] = useState<"pending" | "active" | "all">(
-    "pending"
-  );
+  const [statusFilter, setStatusFilter] = useState<"pending" | "active" | "all">("all");
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [q, setQ] = useState("");
 
   const load = async () => {
     setLoading(true);
     try {
       const params: any = {};
       if (statusFilter !== "all") params.status = statusFilter;
-
+      
       const res = await api.get("members/", { params });
       setMembers(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
@@ -53,6 +63,7 @@ export default function CommitteeMembersPage() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   const approve = async (memberId: string) => {
@@ -69,6 +80,14 @@ export default function CommitteeMembersPage() {
     }
   };
 
+  const statusColor = (status: string) => {
+      const s = String(status).toLowerCase();
+      if (s === 'active') return 'success';
+      if (s === 'rejected') return 'danger';
+      if (s === 'pending') return 'warning';
+      return 'neutral';
+  }
+
   const getFullName = (u: MemberRow["user"]) => {
     return (
       u?.full_name ||
@@ -78,133 +97,145 @@ export default function CommitteeMembersPage() {
     );
   };
 
+  const filteredMembers = members.filter(m => {
+      if(!q) return true;
+      const term = q.toLowerCase();
+      const name = getFullName(m.user).toLowerCase();
+      const email = (m.user.email || "").toLowerCase();
+      const nhif = (m.nhif_number || "").toLowerCase();
+      return name.includes(term) || email.includes(term) || nhif.includes(term);
+  });
+
   return (
-    <div className="space-y-6">
+    <PageTransition className="space-y-6">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-[var(--sgss-navy)]">
-            Committee – Membership Review
-          </h2>
-          <p className="text-xs text-gray-500">
-            Review & approve Medical Fund members.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-600">Status:</label>
-          <select
-            className="border rounded px-2 py-1 text-sm"
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value as "pending" | "active" | "all")
-            }
-          >
-            <option value="pending">Pending</option>
-            <option value="active">Active</option>
-            <option value="all">All</option>
-          </select>
-        </div>
-      </header>
-
-      {/* Table */}
-      <div className="sgss-card overflow-x-auto">
-        {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-6 w-40" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+          <div>
+              <h1 className="text-2xl font-bold text-[var(--sgss-navy)] flex items-center gap-2">
+                  <UsersIcon className="w-6 h-6 text-[var(--sgss-gold)]" />
+                  Membership Management
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">Review registrations and manage member statuses.</p>
           </div>
-        ) : members.length === 0 ? (
-          <p className="text-sm text-gray-600">No members found.</p>
-        ) : (
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left uppercase text-xs text-gray-500 border-b">
-                <th className="py-2 pr-4">Name</th>
-                <th className="py-2 pr-4">Email</th>
-                <th className="py-2 pr-4">Membership</th>
-                <th className="py-2 pr-4">NHIF</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Validity</th>
-                <th className="py-2 pr-4 text-right">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {members.map((m) => {
-                const highlight = highlightId === m.id;
-
-                return (
-                  <tr
-                    key={m.id}
-                    className={`border-b ${highlight ? "bg-amber-50" : ""}`}
-                  >
-                    <td className="py-2">{getFullName(m.user)}</td>
-                    <td className="py-2">{m.user?.email || "—"}</td>
-                    <td className="py-2">{m.membership_type?.name || "—"}</td>
-                    <td className="py-2">{m.nhif_number || "—"}</td>
-
-                    <td className="py-2">
-                      <StatusBadge status={m.status} />
-                    </td>
-
-                    <td className="py-2 text-xs">
-                      {m.valid_from
-                        ? `${new Date(m.valid_from).toLocaleDateString()} → ${
-                            m.valid_to
-                              ? new Date(m.valid_to).toLocaleDateString()
-                              : "—"
-                          }`
-                        : "Pending"}
-                    </td>
-
-                    <td className="py-2 text-right">
-                      {m.status === "pending" && (
-                        <Button
-                          size="sm"
-                          disabled={actingId === m.id}
-                          onClick={() => approve(m.id)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        >
-                          {actingId === m.id ? "Approving…" : "Approve"}
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+          <div className="flex gap-2">
+               {/* Quick Stats or Actions could go here */}
+          </div>
       </div>
 
-      {/* Back Button */}
-      <button
-        className="text-xs text-[var(--sgss-navy)] underline"
-        onClick={() => nav(-1)}
-      >
-        ← Back
-      </button>
-    </div>
+      {/* Filters & Search */}
+      <div className="sgss-card p-0 overflow-hidden bg-white">
+          <div className="bg-gray-50/80 p-4 border-b border-gray-100 flex flex-col md:flex-row gap-4">
+               <div className="flex-1 relative">
+                    <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                        className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sgss-gold)]/20 focus:border-[var(--sgss-gold)] transition-all bg-white"
+                        placeholder="Search members by name, email, or NHIF..."
+                        value={q}
+                        onChange={e => setQ(e.target.value)}
+                    />
+               </div>
+               <div className="flex items-center gap-2 min-w-[200px]">
+                    <FunnelIcon className="w-5 h-5 text-gray-400" />
+                    <select
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--sgss-navy)] bg-white"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                    >
+                        <option value="all">All Statuses</option>
+                        <option value="pending">Pending Approval</option>
+                        <option value="active">Active Members</option>
+                    </select>
+               </div>
+          </div>
+
+          {loading ? (
+             <div className="p-6 space-y-4">
+                 {[1,2,3,4].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
+             </div>
+          ) : filteredMembers.length === 0 ? (
+             <div className="p-16 text-center text-gray-500 flex flex-col items-center">
+                 <UserCircleIcon className="w-16 h-16 text-gray-200 mb-3" />
+                 <h3 className="text-lg font-medium text-gray-700">No members found</h3>
+                 <p className="text-sm">Try adjusting your filters or search terms.</p>
+             </div>
+          ) : (
+             <div className="overflow-x-auto">
+                 <table className="w-full text-sm text-left">
+                     <thead className="bg-white text-xs uppercase text-gray-500 font-semibold border-b border-gray-100">
+                         <tr>
+                             <th className="px-6 py-4">Member Details</th>
+                             <th className="px-6 py-4">Membership Type</th>
+                             <th className="px-6 py-4">Status</th>
+                             <th className="px-6 py-4">Validity Period</th>
+                             <th className="px-6 py-4 text-center">Action</th>
+                         </tr>
+                     </thead>
+                     <tbody className="divide-y divide-gray-50">
+                         {filteredMembers.map((m) => {
+                             const highlight = highlightId === m.id;
+                             return (
+                                 <tr key={m.id} className={`hover:bg-blue-50/30 transition-colors group ${highlight ? 'bg-yellow-50/50' : ''}`}>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500">
+                                                {formatInitials(getFullName(m.user))}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-[var(--sgss-navy)]">{getFullName(m.user)}</p>
+                                                <p className="text-xs text-gray-400">{m.user?.email || "No Email"}</p>
+                                                {m.nhif_number && <p className="text-[10px] text-gray-400 mt-0.5 font-mono">NHIF: {m.nhif_number}</p>}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="font-medium text-gray-700">{m.membership_type?.name || "Standard Membership"}</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <Badge variant={statusColor(m.status)}>{m.status}</Badge>
+                                    </td>
+                                    <td className="px-6 py-4 text-xs text-gray-500">
+                                        {m.valid_from ? (
+                                            <div className="flex flex-col gap-1">
+                                                <span className="flex items-center gap-1.5"><CalendarIcon className="w-3.5 h-3.5" /> {new Date(m.valid_from).toLocaleDateString()}</span>
+                                                <span className="text-gray-400 pl-5">to {m.valid_to ? new Date(m.valid_to).toLocaleDateString() : "Indefinite"}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400 italic">Not valid yet</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        {m.status === "pending" ? (
+                                            <Button 
+                                                size="sm"
+                                                variant="primary"
+                                                disabled={actingId === m.id}
+                                                onClick={() => approve(m.id)}
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200"
+                                            >
+                                                {actingId === m.id ? "..." : "Approve"}
+                                                <CheckCircleIcon className="w-4 h-4 ml-1.5" />
+                                            </Button>
+                                        ) : m.status === 'active' ? (
+                                            <span className="text-xs text-emerald-600 font-medium flex items-center justify-center gap-1">
+                                                <CheckCircleIcon className="w-4 h-4" /> Active
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-gray-400">—</span>
+                                        )}
+                                    </td>
+                                 </tr>
+                             )
+                         })}
+                     </tbody>
+                 </table>
+             </div>
+          )}
+      </div>
+    </PageTransition>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const s = status?.toLowerCase();
-  const map: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-800",
-    active: "bg-emerald-100 text-emerald-800",
-    rejected: "bg-red-100 text-red-800",
-  };
-
-  return (
-    <span
-      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-        map[s] || "bg-gray-100 text-gray-700"
-      }`}
-    >
-      {status}
-    </span>
-  );
+function formatInitials(name: string) {
+    if(!name) return "?";
+    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 }

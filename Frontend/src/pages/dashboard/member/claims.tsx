@@ -36,7 +36,7 @@ export default function MemberClaimsList() {
     api
       .get("claims/")
       .then((res) => {
-        const data = res.data || [];
+        const data = Array.isArray(res.data) ? res.data : (res.data?.results || []);
         setClaims(data);
         setFilteredClaims(data);
       })

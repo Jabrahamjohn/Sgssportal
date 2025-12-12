@@ -4,6 +4,14 @@ import api from "~/config/api";
 import Button from "~/components/controls/button";
 import Input from "~/components/controls/input";
 import Alert from "~/components/controls/alert";
+import PageTransition from "~/components/animations/PageTransition";
+import { 
+    Cog6ToothIcon, 
+    CurrencyDollarIcon,
+    ShieldCheckIcon,
+    BuildingOfficeIcon,
+    ArrowPathIcon
+} from "@heroicons/react/24/outline";
 
 type GeneralValue = {
   annual_limit: number;
@@ -37,28 +45,22 @@ export default function GeneralFundSettings() {
     try {
       const res = await api.get("settings/");
       const all: SettingRecord[] = res.data;
-      const gen = all.find((s) => s.key === "general_limits") as
-        | SettingRecord
-        | undefined;
+      const gen = all.find((s) => s.key === "general_limits") as SettingRecord | undefined;
 
       if (!gen) {
-        setError(
-          "general_limits setting not found. Ensure seed_sgss has been run."
-        );
+        setError("Configuration key 'general_limits' not found. Please contact support.");
       } else {
         setRecord(gen);
         setDraft({
           annual_limit: Number(gen.value.annual_limit ?? 250000),
           critical_addon: Number(gen.value.critical_addon ?? 200000),
           fund_share_percent: Number(gen.value.fund_share_percent ?? 80),
-          clinic_outpatient_percent: Number(
-            gen.value.clinic_outpatient_percent ?? 100
-          ),
+          clinic_outpatient_percent: Number(gen.value.clinic_outpatient_percent ?? 100),
         });
       }
     } catch (e) {
       console.error(e);
-      setError("Failed to load general fund settings.");
+      setError("Failed to load settings. Please try refreshing.");
     } finally {
       setLoading(false);
     }
@@ -80,129 +82,127 @@ export default function GeneralFundSettings() {
     setSaving(true);
     try {
       await api.patch(`settings/${record.id}/`, { value: draft });
-      setSuccess("General limits updated.");
+      setSuccess("Configuration updated successfully.");
       await load();
     } catch (e: any) {
       console.error(e);
-      setError(
-        e.response?.data?.detail ||
-          "Failed to save general limits. Please check values."
-      );
+      setError("Failed to save changes. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <p className="text-sm text-gray-500">Loading…</p>;
+     return <div className="p-12 text-center text-gray-400">Loading settings...</div>;
   }
 
   if (!record || !draft) {
     return (
-      <div className="space-y-3">
-        {error && <Alert type="error" message={error} />}
-        <p className="text-sm text-gray-500">
-          No general_limits setting found. You may need to run the seed command
-          or create it in the backend.
-        </p>
+      <div className="space-y-4 max-w-lg mb-4">
+         {error && <Alert type="error" message={error} />}
+         <Button onClick={load} variant="outline" className="w-full">
+             <ArrowPathIcon className="w-4 h-4 mr-2" />
+             Retry
+         </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 max-w-xl">
-      <div>
-        <h2 className="text-lg font-semibold">General Fund Limits</h2>
-        <p className="text-xs text-gray-500">
-          Controls the overall annual limits and special rules, as defined in
-          Byelaws Section 6.
-        </p>
+    <PageTransition className="space-y-6 max-w-3xl">
+      <div className="flex items-start gap-4">
+          <div className="p-3 bg-blue-50 text-[var(--sgss-navy)] rounded-xl hidden md:block">
+              <Cog6ToothIcon className="w-8 h-8" />
+          </div>
+          <div>
+              <h2 className="text-xl font-bold text-[var(--sgss-navy)]">General Fund Limits</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                  Global configuration for fund limits and default coverage rules as per Byelaws Section 6.
+              </p>
+          </div>
       </div>
 
       {error && <Alert type="error" message={error} />}
       {success && <Alert type="success" message={success} />}
 
-      <div className="grid gap-4">
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-medium text-gray-600">
-              Annual Limit per Member (Ksh)
-            </label>
-            <Input
-              type="number"
-              value={draft.annual_limit}
-              onChange={(e) =>
-                handleChange("annual_limit", Number(e.target.value || 0))
-              }
-            />
-            <p className="text-[11px] text-gray-400 mt-1">
-              Default: 250,000 – maximum annual benefit for ordinary cases.
-            </p>
+      <div className="grid md:grid-cols-2 gap-6">
+          {/* Card 1: Limits */}
+          <div className="sgss-card bg-white p-6 space-y-6">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+                  <CurrencyDollarIcon className="w-5 h-5 text-[var(--sgss-gold)]" />
+                  <h3 className="font-bold text-[var(--sgss-navy)]">Financial Limits</h3>
+              </div>
+              
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Standard Annual Limit</label>
+                  <Input
+                      type="number"
+                      value={draft.annual_limit}
+                      onChange={(e) => handleChange("annual_limit", Number(e.target.value))}
+                      icon={<span className="text-gray-400 text-xs">Ksh</span>}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Maximum payable benefit per member per year.</p>
+              </div>
+
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Critical Illness Add-on</label>
+                  <Input
+                      type="number"
+                      value={draft.critical_addon}
+                      onChange={(e) => handleChange("critical_addon", Number(e.target.value))}
+                      icon={<span className="text-gray-400 text-xs">Ksh</span>}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Additional coverage for approved critical illnesses.</p>
+              </div>
           </div>
 
-          <div>
-            <label className="text-xs font-medium text-gray-600">
-              Critical Illness Add-on (Ksh)
-            </label>
-            <Input
-              type="number"
-              value={draft.critical_addon}
-              onChange={(e) =>
-                handleChange("critical_addon", Number(e.target.value || 0))
-              }
-            />
-            <p className="text-[11px] text-gray-400 mt-1">
-              Additional cover for critical illness claims (e.g. +200,000).
-            </p>
-          </div>
-        </div>
+          {/* Card 2: Percentages */}
+          <div className="sgss-card bg-white p-6 space-y-6">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+                  <ShieldCheckIcon className="w-5 h-5 text-[var(--sgss-gold)]" />
+                  <h3 className="font-bold text-[var(--sgss-navy)]">Coverage Rates</h3>
+              </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-medium text-gray-600">
-              Default Fund Share (%)
-            </label>
-            <Input
-              type="number"
-              value={draft.fund_share_percent}
-              onChange={(e) =>
-                handleChange("fund_share_percent", Number(e.target.value || 0))
-              }
-            />
-            <p className="text-[11px] text-gray-400 mt-1">
-              Base reimbursement rate when no specific scale overrides it.
-            </p>
-          </div>
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Default Fund Share</label>
+                  <div className="relative">
+                      <Input
+                          type="number"
+                          value={draft.fund_share_percent}
+                          onChange={(e) => handleChange("fund_share_percent", Number(e.target.value))}
+                          className="pr-8"
+                      />
+                      <span className="absolute right-3 top-2.5 text-gray-400 text-sm">%</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Base rate when no specific scale applies.</p>
+              </div>
 
-          <div>
-            <label className="text-xs font-medium text-gray-600">
-              SGN Clinic Outpatient (%)
-            </label>
-            <Input
-              type="number"
-              value={draft.clinic_outpatient_percent}
-              onChange={(e) =>
-                handleChange(
-                  "clinic_outpatient_percent",
-                  Number(e.target.value || 0)
-                )
-              }
-            />
-            <p className="text-[11px] text-gray-400 mt-1">
-              For Siri Guru Nanak Clinic outpatient claims (often 100% as per
-              committee decision).
-            </p>
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Clinic Outpatient Share</label>
+                  <div className="relative">
+                      <Input
+                          type="number"
+                          value={draft.clinic_outpatient_percent}
+                          onChange={(e) => handleChange("clinic_outpatient_percent", Number(e.target.value))}
+                          className="pr-8"
+                      />
+                      <span className="absolute right-3 top-2.5 text-gray-400 text-sm">%</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Applied to claims from Siri Guru Nanak Clinic.</p>
+              </div>
           </div>
-        </div>
       </div>
 
-      <Button
-        onClick={save}
-        disabled={saving}
-        className="bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white"
-      >
-        {saving ? "Saving…" : "Save Settings"}
-      </Button>
-    </div>
+      <div className="flex justify-end pt-4 border-t border-gray-100">
+          <Button 
+            onClick={save} 
+            disabled={saving} 
+            className="bg-[var(--sgss-navy)] hover:bg-blue-900 text-white min-w-[150px] shadow-lg shadow-blue-900/10"
+          >
+              {saving ? <ArrowPathIcon className="w-4 h-4 animate-spin mr-2" /> : null}
+              {saving ? "Saving Changes..." : "Save Configuration"}
+          </Button>
+      </div>
+    </PageTransition>
   );
 }

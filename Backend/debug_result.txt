@@ -1,0 +1,42 @@
+--- SUMMARY ---
+Total Users: 11
+Total Members: 10
+
+--- USERS ---
+User: admin | ID: 1 | Superuser: True | Groups: ['Admin']
+  -> Member Profile: MISSING
+
+User: robin0 | ID: 4 | Superuser: False | Groups: ['Member']
+  -> Member Profile: Found (Status: active)
+
+User: stephanie1 | ID: 5 | Superuser: False | Groups: ['Member']
+  -> Member Profile: Found (Status: active)
+
+User: brian2 | ID: 6 | Superuser: False | Groups: ['Member']
+  -> Member Profile: Found (Status: active)
+
+User: lisa3 | ID: 7 | Superuser: False | Groups: ['Member']
+  -> Member Profile: Found (Status: active)
+
+User: kevin4 | ID: 8 | Superuser: False | Groups: ['Member']
+  -> Member Profile: Found (Status: active)
+
+User: test@test | ID: 12 | Superuser: False | Groups: ['Member']
+  -> Member Profile: Found (Status: active)
+
+User: AJ | ID: 9 | Superuser: True | Groups: ['Member']
+  -> Member Profile: Found (Status: active)
+
+User: committee | ID: 2 | Superuser: False | Groups: ['Committee', 'Member']
+  -> Member Profile: Found (Status: active)
+
+User: member | ID: 3 | Superuser: False | Groups: ['Member']
+  -> Member Profile: Found (Status: active)
+
+User: jabrahamjohn | ID: 11 | Superuser: False | Groups: ['Member']
+  -> Member Profile: Found (Status: pending)
+
+--- GROUPS ---
+Group: Admin
+Group: Committee
+Group: Member

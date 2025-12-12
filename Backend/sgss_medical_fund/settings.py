@@ -131,12 +131,15 @@ WSGI_APPLICATION = 'sgss_medical_fund.wsgi.application'
 DATABASES = {
     'default': env.db(
         'DATABASE_URL',
-        default='postgres://postgres:km@3108j@localhost:5432/Sgss_medical_fund'
+        default='postgres://postgres:postgres@localhost:5432/sgss_medical_fund'
     )
 }
 
 # AUTH_USER_MODEL
-AUTH_USER_MODEL = 'auth.user'
+# Note: AUTH_USER_MODEL should only be set when implementing a custom user model.
+# The previous setting 'auth.user' was incorrect (should be 'auth.User' if needed, but that's the default).
+# Since we're using Django's default User model, this setting should not be specified.
+# If a custom user model is needed in the future, it must be created BEFORE initial migrations.
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -147,6 +150,17 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',  # Anonymous users
+        'user': '1000/hour',  # Authenticated users
+        'login': '5/minute',  # Login attempts
+    },
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
 }
 
 

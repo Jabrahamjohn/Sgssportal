@@ -18,8 +18,19 @@ export default {
       colors: {
         sgss: {
           navy: '#03045f',
+          'navy-light': '#0a4ca2',
           gold: '#caa631',
+          'gold-light': '#e9d750',
+          bg: '#f7f7f7',
         },
+      },
+      backgroundImage: {
+        'sgss-gradient': 'linear-gradient(90deg, #03045f 0%, #0a4ca2 40%, #caa631 100%)',
+        'sgss-sidebar': 'linear-gradient(180deg, #03045f 0%, #000030 100%)',
+      },
+      boxShadow: {
+        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+        'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
       },
     },
   },

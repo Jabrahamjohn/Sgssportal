@@ -18,9 +18,11 @@ export default function Button({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`px-4 py-2.5 rounded-lg font-medium transition text-sm ${className} ${
-        disabled ? "opacity-60 cursor-not-allowed" : ""
-      }`}
+      className={`px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 text-sm shadow-sm active:scale-95 ${
+        disabled 
+          ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" 
+          : "bg-[var(--sgss-navy)] hover:bg-[var(--sgss-gold)] text-white hover:shadow-lg hover:shadow-yellow-500/20"
+      } ${className}`}
     >
       {children}
     </button>

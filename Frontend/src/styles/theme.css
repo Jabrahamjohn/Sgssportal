@@ -3,7 +3,7 @@
   /* SGSS brand tokens */
   --sgss-navy: #03045f;
   --sgss-gold: #caa631;
-  --sgss-bg: #f7f7f7;
+  --sgss-bg: #f8fafc;
   --sgss-card: #ffffff;
 
   /* Map old design tokens to SGSS colours */
@@ -21,72 +21,95 @@
   --table-data-color: #374151;
   --table-icon-bg: #edf2f7;
 }
+
+/* Glassmorphism Utility */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-sidebar {
+  background: rgba(3, 4, 95, 0.95);
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 /* SGSS cards & headers */
 .sgss-card {
   background-color: var(--sgss-card, #ffffff);
-  border-radius: 0.9rem;
-  padding: 1.25rem;
-  box-shadow: 0 10px 30px rgba(3, 4, 95, 0.06);
-  border: 1px solid rgba(3, 4, 95, 0.03);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(229, 231, 235, 0.5);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sgss-card:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
 }
 
 .sgss-card:not(:last-child) {
-  margin-bottom: 0.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .sgss-header {
-  padding: 0.85rem 1.5rem;
-  font-size: 0.9rem;
+  padding: 1rem 1.75rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #ffffff;
-  border-radius: 0.9rem 0.9rem 0 0;
-  background: linear-gradient(
-    90deg,
-    #03045f 0%,
-    #082e68 40%,
-    #caa631 100%
-  );
+  border-radius: 1rem 1rem 0 0;
+  background: linear-gradient(135deg, #03045f 0%, #0a4ca2 50%, #caa631 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.sgss-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Small label text used in cards */
 .small-label {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.1em;
+  font-weight: 600;
   color: #6b7280;
 }
 
 /* Sidebar links */
 .sgss-sidebar-link {
   position: relative;
-  border-left: 2px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sgss-sidebar-link:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(4px);
 }
 
 .sgss-sidebar-link::before {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: 0.75rem;
-  background: radial-gradient(
-    circle at 0 0,
-    rgba(202, 166, 49, 0.32),
-    transparent 55%
-  );
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--sgss-gold);
   opacity: 0;
-  transition: opacity 0.18s ease;
-  pointer-events: none;
+  transition: opacity 0.2s ease;
 }
 
-.sgss-sidebar-link:hover::before {
+.sgss-sidebar-link.active::before {
   opacity: 1;
-}
-
-.sgss-sidebar-link svg {
-  flex-shrink: 0;
 }
 
 /* Make gradient headers sit flush on sgss-card with p-0 */

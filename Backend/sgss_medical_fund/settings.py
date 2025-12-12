@@ -30,11 +30,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-t1o5o)6bxvu1)!$o4yw7vlweb(p7u@2q-6!b^q*%b6q@w^a@&e'
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG', default=False)
-SECRET_KEY = env('SECRET_KEY', default=SECRET_KEY)
+DEBUG = env.bool('DEBUG', default=False)
+
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
 TIME_ZONE = env('TIME_ZONE', default='UTC')
 
@@ -65,10 +66,12 @@ MIDDLEWARE = [
 ]
 
 # CORS & CSRF Configuration
-CORS_ALLOWED_ORIGINS = [
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-]
+    "http://localhost:5173",  # Vite default
+])
+
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
@@ -86,19 +89,20 @@ CORS_ALLOW_HEADERS = [
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 
 # CSRF SETTINGS
-CSRF_TRUSTED_ORIGINS = [
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-]
+    "http://localhost:5173",
+])
 
 CSRF_COOKIE_NAME = "csrftoken"
 
 CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=False)
 CSRF_COOKIE_SAMESITE = "Lax"
 
 SESSION_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=False)
 
 
 ROOT_URLCONF = 'sgss_medical_fund.urls'

@@ -136,7 +136,10 @@ DATABASES = {
 }
 
 # AUTH_USER_MODEL
-# Removed incorrect AUTH_USER_MODEL setting - using Django's default User model
+# Note: AUTH_USER_MODEL should only be set when implementing a custom user model.
+# The previous setting 'auth.user' was incorrect (should be 'auth.User' if needed, but that's the default).
+# Since we're using Django's default User model, this setting should not be specified.
+# If a custom user model is needed in the future, it must be created BEFORE initial migrations.
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

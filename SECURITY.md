@@ -128,7 +128,11 @@ def scan_file(file_path):
     # Handle result
 ```
 
-**TODO: Implement virus scanning before production**
+**TODO (Priority: High - Before Production):**
+- Timeline: Week 3-4 before production launch
+- Implementation: Install ClamAV (`apt install clamav clamav-daemon`) or use VirusTotal API
+- Estimated effort: 1-2 days for ClamAV setup, 1 day for API integration
+- See FEATURES_ROADMAP.md section 3 for detailed implementation plan
 
 ### SQL Injection Prevention
 
@@ -320,7 +324,15 @@ LOGGING = {
 }
 ```
 
-**TODO: Implement**
+**TODO (Priority: Medium - Recommended for Production):**
+- Timeline: Before production launch or within first month
+- Create GitHub Issue: "Implement comprehensive security logging"
+- Estimated effort: 3-5 days
+- Acceptance criteria:
+  - Security events logged with severity levels
+  - Log rotation configured
+  - Integration with monitoring system
+  - Retention policy implemented (90 days minimum)
 
 ### Error Tracking
 

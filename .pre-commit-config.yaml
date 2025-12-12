@@ -18,12 +18,13 @@ repos:
       - id: mixed-line-ending
 
   # Python formatting with Black
+  # Note: Requires Python 3.12+ as specified in project requirements
   - repo: https://github.com/psf/black
     rev: 24.10.0
     hooks:
       - id: black
         files: ^Backend/
-        language_version: python3.12
+        language_version: python3.12  # Update if project Python version changes
 
   # Python import sorting with isort
   - repo: https://github.com/PyCQA/isort

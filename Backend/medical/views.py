@@ -1,8 +1,7 @@
 # Backend/medical/views.py
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.models import Group
-from django.db import transaction
-from django.db import models
+from django.db import transaction, models, connection
 from django.db.models import Q, Sum, Count
 from django.db.models.functions import TruncMonth
 from django.http import JsonResponse, HttpResponse
@@ -853,7 +852,6 @@ def health_check(request):
     Health check endpoint for monitoring and load balancers.
     Returns 200 OK if the service is running and can connect to the database.
     """
-    from django.db import connection
     try:
         # Test database connectivity
         with connection.cursor() as cursor:

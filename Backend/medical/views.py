@@ -486,6 +486,14 @@ class ClaimReviewViewSet(viewsets.ModelViewSet):
             claim.status = "rejected"
         elif review.action == "paid":
             claim.status = "paid"
+            # Trigger Payout
+            try:
+                from medical.services.payments import PaymentService
+                PaymentService.process_payout(claim)
+            except Exception as e:
+                # Log error but don't fail the review transaction for now
+                print(f"Payment Error: {e}")
+
         elif review.action == "reviewed":
             claim.status = "reviewed"
 

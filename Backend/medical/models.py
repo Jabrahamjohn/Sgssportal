@@ -219,8 +219,9 @@ class Claim(models.Model):
         """Compute the raw total based on claim type + details."""
         total = 0
         d = self.details or {}
+        ctype = (self.claim_type or "").lower()
 
-        if self.claim_type == "outpatient":
+        if ctype == "outpatient":
             total = (
                 (d.get("consultation_fee") or 0)
                 + (d.get("house_visit_cost") or 0)
@@ -229,7 +230,7 @@ class Claim(models.Model):
                 + (d.get("procedure_cost") or 0)
             )
 
-        elif self.claim_type == "inpatient":
+        elif ctype == "inpatient":
             stay_days = d.get("stay_days") or 1
             accommodation = (d.get("bed_charge_per_day") or 0) * stay_days
             nhif = d.get("nhif_total") or 0
@@ -243,7 +244,7 @@ class Claim(models.Model):
                 - (d.get("discounts_total") or 0)
             )
 
-        elif self.claim_type == "chronic":
+        elif ctype == "chronic":
             meds = d.get("medicines", [])
             total = sum(m.get("cost") or 0 for m in meds)
 

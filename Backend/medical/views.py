@@ -406,6 +406,17 @@ class ClaimViewSet(viewsets.ModelViewSet):
         qs = AuditLog.objects.filter(meta__claim_id=str(claim.id)).order_by("created_at")
         data = AuditLogSerializer(qs, many=True).data
         return Response({"results": data})
+    
+    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def reviews(self, request, pk=None):
+        """
+        Get all reviews for a claim (visible to claim owner and committee).
+        Shows committee review messages, actions, and notes.
+        """
+        claim = self.get_object()
+        reviews_qs = ClaimReview.objects.filter(claim=claim).select_related('reviewer').order_by('-created_at')
+        data = ClaimReviewSerializer(reviews_qs, many=True).data
+        return Response({"results": data})
 
 
 # ============================================================

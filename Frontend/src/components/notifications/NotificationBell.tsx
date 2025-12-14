@@ -1,5 +1,5 @@
 // src/components/notifications/NotificationBell.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { BellIcon } from "@heroicons/react/24/outline";
 import api from "~/config/api";
 import { NavLink } from "react-router-dom";
@@ -34,7 +34,7 @@ export default function NotificationBell() {
     setLoading(true);
     try {
       const res = await api.get("notifications/");
-      setItems(res.data);
+      setItems(res.data.results || res.data);
     } catch (_e) {
       // ignore
     } finally {

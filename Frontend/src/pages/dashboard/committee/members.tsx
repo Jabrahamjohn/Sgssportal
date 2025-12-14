@@ -1,6 +1,6 @@
 // Frontend/src/pages/dashboard/committee/members.tsx
-import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import api from "~/config/api";
 import Button from "~/components/controls/button";
 import Skeleton from "~/components/loader/skeleton";
@@ -11,7 +11,6 @@ import {
     MagnifyingGlassIcon, 
     FunnelIcon, 
     CheckCircleIcon,
-    ExclamationCircleIcon,
     CalendarIcon,
     UserCircleIcon
 } from "@heroicons/react/24/outline";
@@ -37,7 +36,6 @@ type MemberRow = {
 
 export default function CommitteeMembersPage() {
   const { id: highlightId } = useParams();
-  const nav = useNavigate();
 
   const [statusFilter, setStatusFilter] = useState<"pending" | "active" | "all">("all");
   const [loading, setLoading] = useState(true);
@@ -52,7 +50,7 @@ export default function CommitteeMembersPage() {
       if (statusFilter !== "all") params.status = statusFilter;
       
       const res = await api.get("members/", { params });
-      setMembers(Array.isArray(res.data) ? res.data : []);
+      setMembers(Array.isArray(res.data) ? res.data : (res.data.results || []));
     } catch (err) {
       console.error("Error loading members:", err);
       setMembers([]);
@@ -80,12 +78,12 @@ export default function CommitteeMembersPage() {
     }
   };
 
-  const statusColor = (status: string) => {
+  const statusColor = (status: string): "gray" | "blue" | "green" | "red" | "yellow" => {
       const s = String(status).toLowerCase();
-      if (s === 'active') return 'success';
-      if (s === 'rejected') return 'danger';
-      if (s === 'pending') return 'warning';
-      return 'neutral';
+      if (s === 'active') return 'green';
+      if (s === 'rejected') return 'red';
+      if (s === 'pending') return 'yellow';
+      return 'gray';
   }
 
   const getFullName = (u: MemberRow["user"]) => {
@@ -191,7 +189,7 @@ export default function CommitteeMembersPage() {
                                         <span className="font-medium text-gray-700">{m.membership_type?.name || "Standard Membership"}</span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <Badge variant={statusColor(m.status)}>{m.status}</Badge>
+                                        <Badge color={statusColor(m.status)}>{m.status}</Badge>
                                     </td>
                                     <td className="px-6 py-4 text-xs text-gray-500">
                                         {m.valid_from ? (

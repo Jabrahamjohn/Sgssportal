@@ -34,15 +34,10 @@ class Migration(migrations.Migration):
             model_name='member',
             index=models.Index(fields=['nhif_number'], name='member_nhif_idx'),
         ),
-        # Index on AuditLog.claim for claim history
+        # Index on AuditLog.created_at for chronological queries
         migrations.AddIndex(
             model_name='auditlog',
-            index=models.Index(fields=['claim'], name='audit_claim_idx'),
-        ),
-        # Index on AuditLog.timestamp for chronological queries
-        migrations.AddIndex(
-            model_name='auditlog',
-            index=models.Index(fields=['-timestamp'], name='audit_timestamp_idx'),
+            index=models.Index(fields=['-created_at'], name='audit_created_idx'),
         ),
         # Index on Notification.recipient for user notifications
         migrations.AddIndex(

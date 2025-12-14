@@ -59,6 +59,13 @@ def claim_saved(sender, instance: Claim, created, **kwargs):
                         f"/claims/{instance.id}",
                         "claim"
                     )
+                    # Send email notification
+                    try:
+                        from .email_notifications import send_claim_submitted_email
+                        send_claim_submitted_email(instance)
+                    except Exception as e:
+                        print(f"Failed to send claim submission email: {e}")
+                
                 # Notify Committee
                 for c_user in committee_users:
                     _notify(
@@ -68,6 +75,14 @@ def claim_saved(sender, instance: Claim, created, **kwargs):
                         f"/dashboard/committee/claims/{instance.id}/",
                         "claim"
                     )
+                
+                # Send committee email
+                try:
+                    from .email_notifications import send_committee_notification_email
+                    send_committee_notification_email(instance, 'new_claim')
+                except Exception as e:
+                    print(f"Failed to send committee notification email: {e}")
+                    
             elif not created:
                 # Notify Member on status change
                 if member_user:
@@ -78,6 +93,13 @@ def claim_saved(sender, instance: Claim, created, **kwargs):
                         f"/claims/{instance.id}",
                         "claim"
                     )
+                    # Send email for status changes
+                    if instance.status in ['approved', 'rejected', 'paid']:
+                        try:
+                            from .email_notifications import send_claim_status_email
+                            send_claim_status_email(instance)
+                        except Exception as e:
+                            print(f"Failed to send claim status email: {e}")
             
             _audit(None, "claims:UPSERT", {"id": str(instance.id), "status": instance.status})
     finally:
@@ -90,6 +112,13 @@ from .models import Member
 @receiver(post_save, sender=Member)
 def member_saved(sender, instance: Member, created, **kwargs):
     if created:
+        # Send welcome email to new member
+        try:
+            from .email_notifications import send_member_registration_email
+            send_member_registration_email(instance)
+        except Exception as e:
+            print(f"Failed to send registration email: {e}")
+        
         # Notify Committee of new registration (if not already handled by view)
         # It's safer to have it here to catch all creations
         committee_group = Group.objects.filter(name="Committee").first()

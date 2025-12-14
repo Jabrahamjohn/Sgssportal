@@ -16,6 +16,9 @@ import os
 import dj_database_url
 import environ
 from datetime import timedelta
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+
 #initializing Environmet variables
 env = environ.Env(
     DEBUG=(bool, False),
@@ -38,6 +41,7 @@ DEBUG = env.bool('DEBUG', default=False)
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
 TIME_ZONE = env('TIME_ZONE', default='UTC')
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
 
 # Application definition
 
@@ -227,3 +231,103 @@ else:
     EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
     EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
     DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@sgssmedicalfund.org')
+
+# settings.py
+if not DEBUG:
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = 'sgss-medical-fund'
+    AWS_S3_REGION_NAME = 'us-east-1'
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None
+
+
+
+# --- Logging Configuration ---
+if DEBUG:
+    # Development: Log to console only
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '{levelname} {asctime} {module} {message}',
+                'style': '{',
+            },
+        },
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'verbose',
+            },
+        },
+        'loggers': {
+            'django': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+            'django.security': {
+                'handlers': ['console'],
+                'level': 'WARNING',
+                'propagate': False,
+            },
+        },
+    }
+else:
+    # Production: Log to files (Linux/Unix paths)
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '{levelname} {asctime} {module} {message}',
+                'style': '{',
+            },
+        },
+        'handlers': {
+            'file': {
+                'level': 'WARNING',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': '/var/log/sgss/django.log',
+                'maxBytes': 10485760,  # 10MB
+                'backupCount': 5,
+                'formatter': 'verbose',
+            },
+            'security_file': {
+                'level': 'WARNING',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': '/var/log/sgss/security.log',
+                'maxBytes': 10485760,
+                'backupCount': 5,
+                'formatter': 'verbose',
+            },
+        },
+        'loggers': {
+            'django': {
+                'handlers': ['file'],
+                'level': 'WARNING',
+                'propagate': False,
+            },
+            'django.security': {
+                'handlers': ['security_file'],
+                'level': 'WARNING',
+                'propagate': False,
+            },
+        },
+    }
+
+
+# --- Sentry Configuration (Production Only) ---
+if not DEBUG:
+    sentry_sdk.init(
+        dsn=env('SENTRY_DSN', default=''),  # Only initialize if DSN is provided
+        environment="production",
+        traces_sample_rate=0.1,
+        profiles_sample_rate=0.1,
+    )
+
+
+# --- Static Files ---
+STATIC_ROOT = BASE_DIR / 'staticfiles'

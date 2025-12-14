@@ -29,6 +29,13 @@ def approve_member(member: Member):
         f"Your {member.membership_type.name} membership has been approved.",
         link="/dashboard/member",
     )
+    
+    # Send approval email
+    try:
+        from medical.email_notifications import send_member_approved_email
+        send_member_approved_email(member)
+    except Exception as e:
+        print(f"Failed to send approval email: {e}")
 
     return member
 

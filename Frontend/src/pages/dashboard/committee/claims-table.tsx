@@ -1,7 +1,10 @@
 // Frontend/src/pages/dashboard/committee/claims-table.tsx
 import React, { useEffect, useState } from "react";
 import Badge from "~/components/controls/badge";
-import { listCommitteeClaims, type CommitteeClaimRow } from "~/server/services/claim.service";
+import {
+  listCommitteeClaims,
+  type CommitteeClaimRow,
+} from "~/server/services/claim.service";
 
 export default function ClaimsTable() {
   const [data, setData] = useState<CommitteeClaimRow[]>([]);
@@ -25,7 +28,7 @@ export default function ClaimsTable() {
       case "rejected":
         return "danger";
       case "paid":
-        return "primary";
+        return "success";
       case "reviewed":
         return "info";
       default:
@@ -76,8 +79,12 @@ export default function ClaimsTable() {
       {/* Stats row */}
       <div className="flex flex-wrap gap-4 p-3 bg-gray-100 rounded text-sm">
         <div>Total Claims: {data.length}</div>
-        <div>Approved: {data.filter((x) => x.status === "approved").length}</div>
-        <div>Submitted: {data.filter((x) => x.status === "submitted").length}</div>
+        <div>
+          Approved: {data.filter((x) => x.status === "approved").length}
+        </div>
+        <div>
+          Submitted: {data.filter((x) => x.status === "submitted").length}
+        </div>
         <div>Paid: {data.filter((x) => x.status === "paid").length}</div>
       </div>
 
@@ -111,9 +118,15 @@ export default function ClaimsTable() {
                   )}
                 </td>
                 <td className="p-2 capitalize">{c.claim_type}</td>
-                <td className="p-2">Ksh {Number(c.total_claimed).toLocaleString()}</td>
-                <td className="p-2">Ksh {Number(c.total_payable).toLocaleString()}</td>
-                <td className="p-2">Ksh {Number(c.member_payable).toLocaleString()}</td>
+                <td className="p-2">
+                  Ksh {Number(c.total_claimed).toLocaleString()}
+                </td>
+                <td className="p-2">
+                  Ksh {Number(c.total_payable).toLocaleString()}
+                </td>
+                <td className="p-2">
+                  Ksh {Number(c.member_payable).toLocaleString()}
+                </td>
                 <td className="p-2">
                   <Badge variant={statusColor(c.status)}>{c.status}</Badge>
                 </td>
@@ -132,7 +145,6 @@ export default function ClaimsTable() {
           </tbody>
         </table>
       </div>
-
     </div>
   );
 }

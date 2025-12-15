@@ -21,8 +21,14 @@ export default function CommitteeReports() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card title="Total Claims (YTD)" value={stats.total_claims} />
-        <Card title="Total Fund Paid" value={`Ksh ${Number(stats.fund_paid).toLocaleString()}`} />
-        <Card title="Total Member Share" value={`Ksh ${Number(stats.member_paid).toLocaleString()}`} />
+        <Card
+          title="Total Fund Paid"
+          value={`Ksh ${Number(stats.fund_paid).toLocaleString()}`}
+        />
+        <Card
+          title="Total Member Share"
+          value={`Ksh ${Number(stats.member_paid).toLocaleString()}`}
+        />
       </div>
 
       <h3 className="text-xl font-semibold pt-6">Claims Breakdown</h3>
@@ -34,7 +40,11 @@ export default function CommitteeReports() {
       </div>
 
       <div className="pt-6">
-        <Button onClick={() => window.open("/api/reports/claims/export/", "_blank")}>
+        <Button
+          onClick={() => {
+            window.open("/api/reports/claims/export/", "_blank");
+          }}
+        >
           Export CSV
         </Button>
       </div>

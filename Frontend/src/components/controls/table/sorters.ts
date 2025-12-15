@@ -1,6 +1,6 @@
 import type { SortingFn } from '@tanstack/react-table';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 const studentColumnSorter: SortingFn<any> = (rowA, rowB, _) => {
 	const rowAValue =
 		(rowA.original.firstname || '').trim() +

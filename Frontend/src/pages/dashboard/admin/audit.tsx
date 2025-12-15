@@ -1,5 +1,5 @@
 // Frontend/src/pages/dashboard/admin/audit.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import api from "~/config/api";
 import AuditTimeline from "~/components/sgss/AuditTimeline";
 import Skeleton from "~/components/loader/skeleton";

@@ -41,7 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const logout = async () => {
     try {
       await api.post("auth/logout/");
-    } catch (_e) {}
+    } catch (_e) {console.error(_e);}
 
     clearAuth();
     document.cookie = "csrftoken=; expires=Thu, 01 Jan 1970; path=/;";

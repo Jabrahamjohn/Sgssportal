@@ -1,7 +1,6 @@
 // Frontend/src/components/layout/Sidebar.tsx
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import { NavLink as RouterLink } from "react-router-dom";
-import { useAuth } from "~/store/contexts/AuthContext";
 import api from "~/config/api";
 
 import {
@@ -16,7 +15,6 @@ import {
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const { auth } = useAuth();
   const [me, setMe] = useState<any>(null);
 
   const toggleSidebar = () => setCollapsed((p) => !p);

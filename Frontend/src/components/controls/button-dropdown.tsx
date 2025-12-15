@@ -9,7 +9,9 @@ type ButtonDropdownType = {
 function ButtonDropdown({ button, dropdown }: ButtonDropdownType) {
   return (
     <Dropdown placement="bottomLeft" trigger={['click']} {...dropdown}>
-      <Button iconClass="" type="default" {...button} />
+      <Button type="button" {...button}>
+        {button?.children || 'Default Text'}
+      </Button>
     </Dropdown>
   );
 }

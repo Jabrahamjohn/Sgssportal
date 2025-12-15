@@ -4,13 +4,13 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   useReactTable,
-} from '@tanstack/react-table';
-import React from 'react';
+} from "@tanstack/react-table";
+import React from "react";
 
-import { contains } from './filters';
-import Pagination from './pagination';
-import { DEFAULT_PAGINATION_SIZE } from '../../../config/app';
-import useDebounce from '../../../hooks/use-debounce';
+import { contains } from "./filters";
+import Pagination from "./pagination";
+import { DEFAULT_PAGINATION_SIZE } from "../../../config/app";
+import useDebounce from "../../../hooks/use-debounce";
 
 import type {
   ColumnDef,
@@ -21,8 +21,8 @@ import type {
   TableOptions,
   TableState,
   VisibilityState,
-} from '@tanstack/react-table';
-import Skeleton from '../skeleton';
+} from "@tanstack/react-table";
+import Skeleton from "../skeleton";
 
 type PaginationState = {
   pageIndex: number;
@@ -69,7 +69,7 @@ interface TableProps<T extends object> {
 }
 
 export type TableRef<T extends object = object> = {
-  getRowsOnPage: (pageNo?: number) => Row<T>['original'][];
+  getRowsOnPage: (pageNo?: number) => Row<T>["original"][];
   getNoOfPages: () => number;
 };
 
@@ -80,7 +80,7 @@ function Table<T extends object>(
     columns = [],
     columnVisibility,
     data,
-    disabledRowClickColumns = ['actions'],
+    disabledRowClickColumns = ["actions"],
     enableHiding,
     filterFn = contains,
     filterValue,
@@ -99,7 +99,7 @@ function Table<T extends object>(
   TableProps<T>,
   ref: React.ForwardedRef<TableRef<T>>
 ) {
-  const [globalFilter, setGlobalFilter] = React.useState('');
+  const [globalFilter, setGlobalFilter] = React.useState("");
 
   const {
     component: LoaderComponent,
@@ -189,7 +189,7 @@ function Table<T extends object>(
 
       if (
         !table.getFilteredRowModel ||
-        typeof table.getFilteredRowModel !== 'function'
+        typeof table.getFilteredRowModel !== "function"
       ) {
         return [];
       }
@@ -230,7 +230,7 @@ function Table<T extends object>(
     <React.Fragment>
       {/* Table Start */}
       <div className="flex flex-col">
-        <div className={`table-container ${containerClassName || ''}`.trim()}>
+        <div className={`table-container ${containerClassName || ""}`.trim()}>
           <table>
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -276,8 +276,8 @@ function Table<T extends object>(
                               <Skeleton.Input
                                 active
                                 style={{
-                                  display: 'inline-block',
-                                  width: 'auto',
+                                  display: "inline-block",
+                                  width: "auto",
                                 }}
                                 size="small"
                               />
@@ -294,7 +294,7 @@ function Table<T extends object>(
                     return (
                       <tr
                         className={`table-row-horizontal ${
-                          onRowClick ? 'hover cursor-pointer' : ''
+                          onRowClick ? "hover cursor-pointer" : ""
                         }`}
                         key={row.id}
                       >
@@ -303,7 +303,7 @@ function Table<T extends object>(
                             <td
                               onClick={
                                 !disabledRowClickColumns.includes(
-                                  cell.column.columnDef.id || ''
+                                  cell.column.columnDef.id || ""
                                 ) && onRowClick
                                   ? (e) => {
                                       onRowClick(e, row.original);
@@ -359,7 +359,7 @@ function Table<T extends object>(
                           {Array.from({ length: footerRowCount - 1 }).map(
                             (_, i) => {
                               const key =
-                                footerGroup.id + `-${i + 1}-` + 'footer';
+                                footerGroup.id + `-${i + 1}-` + "footer";
                               return (
                                 <tr
                                   className="table-footer-row-horizontal"
@@ -371,7 +371,7 @@ function Table<T extends object>(
                                     const key =
                                       header.id +
                                       `-${index + 1}-` +
-                                      'footer-item';
+                                      "footer-item";
                                     return (
                                       <td
                                         key={key}
@@ -384,7 +384,7 @@ function Table<T extends object>(
                                         {header.isPlaceholder
                                           ? null
                                           : flexRender(
-                                              columnDef['footer' + (i + 2)],
+                                              columnDef["footer" + (i + 2)],
                                               header.getContext()
                                             )}
                                       </td>

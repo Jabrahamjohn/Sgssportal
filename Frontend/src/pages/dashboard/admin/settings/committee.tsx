@@ -1,13 +1,12 @@
 // Frontend/src/pages/dashboard/admin/settings/committee.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import api from "~/config/api";
 import Alert from "~/components/controls/alert";
 import PageTransition from "~/components/animations/PageTransition";
 import Badge from "~/components/controls/badge";
 import { 
     UserGroupIcon, 
-    InformationCircleIcon, 
-    AdjustmentsHorizontalIcon 
+    InformationCircleIcon,  
 } from "@heroicons/react/24/outline";
 
 type CommitteeUser = {

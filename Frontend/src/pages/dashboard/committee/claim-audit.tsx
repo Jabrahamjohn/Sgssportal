@@ -1,8 +1,17 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import api from "~/config/api";
 
+interface AuditLogEntry {
+  action: string;
+  created_at: string;
+  reviewer?: {
+    name: string;
+  };
+  role?: string;
+}
+
 export default function ClaimAudit({ id }: { id: string }) {
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
 
   useEffect(() => {
     api.get(`claims/${id}/audit/`).then((res) => {
@@ -18,7 +27,10 @@ export default function ClaimAudit({ id }: { id: string }) {
 
       {logs.map((l, idx) => (
         <div key={idx} className="border-b py-2">
-          <p><strong>{l.action}</strong> — {new Date(l.created_at).toLocaleString()}</p>
+          <p>
+            <strong>{l.action}</strong> —{" "}
+            {new Date(l.created_at).toLocaleString()}
+          </p>
           {l.reviewer && (
             <p className="text-xs text-gray-600">
               By: {l.reviewer.name} ({l.role})

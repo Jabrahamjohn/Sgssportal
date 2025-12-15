@@ -1,5 +1,5 @@
 // Frontend/src/pages/dashboard/committee/audit-log.tsx
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import api from "~/config/api";
 
 export default function AuditLogPage() {

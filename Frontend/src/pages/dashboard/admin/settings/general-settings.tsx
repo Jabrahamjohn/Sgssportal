@@ -1,5 +1,5 @@
 // Frontend/src/pages/dashboard/admin/settings/general-settings.tsx
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import api from "~/config/api";
 import Button from "~/components/controls/button";
 import Input from "~/components/controls/input";
@@ -9,7 +9,6 @@ import {
     Cog6ToothIcon, 
     CurrencyDollarIcon,
     ShieldCheckIcon,
-    BuildingOfficeIcon,
     ArrowPathIcon
 } from "@heroicons/react/24/outline";
 

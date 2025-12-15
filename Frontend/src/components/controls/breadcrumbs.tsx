@@ -1,4 +1,4 @@
-import { Breadcrumb as AntdBreadcrumb, type BreadcrumbProps } from 'antd';
+import { Breadcrumb as AntdBreadcrumb, type BreadcrumbProps } from "antd";
 
 import { Link } from "react-router-dom";
 
@@ -18,8 +18,8 @@ function Breadcrumbs(props: BreadcrumbType) {
   );
 }
 
-const itemRender: BreadcrumbType['itemRender'] = (currentRoute, _, __, ___) => {
-  return <Link to={currentRoute.href}>{currentRoute.title}</Link>;
+const itemRender: BreadcrumbType["itemRender"] = (currentRoute, _, __, ___) => {
+  return <Link to={currentRoute.href || ""}>{currentRoute.title}</Link>;
   // const isLast = currentRoute?.path === items[items.length - 1]?.path;
 
   // return isLast ? (

@@ -12,6 +12,7 @@ export default function ClaimView() {
   const [claim, setClaim] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [audit, setAudit] = useState<any[]>([]);
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
     api
@@ -27,7 +28,7 @@ export default function ClaimView() {
       case "rejected":
         return "danger";
       case "paid":
-        return "primary";
+        return "success";
       case "reviewed":
         return "info";
       default:
@@ -39,23 +40,22 @@ export default function ClaimView() {
   if (!claim) return <div className="p-6 text-red-600">Claim not found.</div>;
 
   const load = async () => {
-  if (!id) return;
+    if (!id) return;
 
-  try {
-    const [detailRes, auditRes] = await Promise.all([
-      api.get(`claims/committee/${id}/`),
-      api.get(`claims/${id}/audit/`)
-    ]);
+    try {
+      const [detailRes, auditRes] = await Promise.all([
+        api.get(`claims/committee/${id}/`),
+        api.get(`claims/${id}/audit/`),
+      ]);
 
-    setData(detailRes.data);
-    setAudit(auditRes.data.results || []);
-  } catch (e) {
-    console.error(e);
-  } finally {
-    setLoading(false);
-  }
+      setData(detailRes.data);
+      setAudit(auditRes.data.results || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   };
-
 
   return (
     <div className="p-6 space-y-4">
@@ -67,10 +67,26 @@ export default function ClaimView() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-3 text-sm">
-        <Info label="Total Claimed" value={`Ksh ${Number(claim.total_claimed).toLocaleString()}`} />
-        <Info label="Fund Payable" value={`Ksh ${Number(claim.total_payable).toLocaleString()}`} />
-        <Info label="Member Share" value={`Ksh ${Number(claim.member_payable).toLocaleString()}`} />
-        <Info label="Submitted" value={claim.submitted_at ? new Date(claim.submitted_at).toLocaleString() : "—"} />
+        <Info
+          label="Total Claimed"
+          value={`Ksh ${Number(claim.total_claimed).toLocaleString()}`}
+        />
+        <Info
+          label="Fund Payable"
+          value={`Ksh ${Number(claim.total_payable).toLocaleString()}`}
+        />
+        <Info
+          label="Member Share"
+          value={`Ksh ${Number(claim.member_payable).toLocaleString()}`}
+        />
+        <Info
+          label="Submitted"
+          value={
+            claim.submitted_at
+              ? new Date(claim.submitted_at).toLocaleString()
+              : "—"
+          }
+        />
         {claim.date_of_first_visit && (
           <Info label="Date of First Visit" value={claim.date_of_first_visit} />
         )}
@@ -86,7 +102,10 @@ export default function ClaimView() {
           <p className="text-xs text-gray-500">No attachments uploaded.</p>
         )}
         {claim.attachments?.map((att: any) => (
-          <div key={att.id} className="border p-2 rounded mb-1 flex justify-between items-center">
+          <div
+            key={att.id}
+            className="border p-2 rounded mb-1 flex justify-between items-center"
+          >
             <div>
               <p className="font-medium">{att.file.split("/").pop()}</p>
               <p className="text-xs text-gray-500">

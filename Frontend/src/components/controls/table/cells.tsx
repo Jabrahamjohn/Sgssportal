@@ -1,13 +1,11 @@
-import { Tooltip } from 'antd';
-import React from 'react';
+import { Tooltip } from "antd";
+import React from "react";
 
-import Button from '../button';
+import Button, { type ButtonType } from "../button";
 import { Link } from "react-router-dom";
-import { DisplayImage } from '../image';
+import { DisplayImage } from "../image";
 
-import type { ButtonProps } from 'antd';
-
-export type TableActionType = Omit<ButtonProps, 'icon'> & {
+export type TableActionType = Omit<ButtonType, "icon"> & {
   container?: React.ComponentType<any>;
   keepButtonContainer?: boolean;
   title?: string;
@@ -21,36 +19,44 @@ export type TableActionComponentType = {
   title?: string;
 };
 
-type ColorType = 'success' | 'error' | 'warning' | 'info' | 'primary';
+type ColorType = "success" | "error" | "warning" | "info" | "primary";
 
 function getColor(color: ColorType | undefined) {
   switch (color) {
-    case 'success':
-      return 'text-green-600';
-    case 'error':
-      return 'text-red-600';
-    case 'info':
-      return 'text-gray-600';
-    case 'warning':
-      return 'text-yellow-600';
-    case 'primary':
-      return 'text-primary-500';
+    case "success":
+      return "text-green-600";
+    case "error":
+      return "text-red-600";
+    case "info":
+      return "text-gray-600";
+    case "warning":
+      return "text-yellow-600";
+    case "primary":
+      return "text-primary-500";
     default:
-      return 'text-primary-500';
+      return "text-primary-500";
   }
 }
 
-export function TableActionsCell({ actions }: { actions: (TableActionType | TableActionComponentType | null)[] }) {
-  const ctas = React.useMemo(() => actions.filter((item) => item !== null), [actions]);
+export function TableActionsCell({
+  actions,
+}: {
+  actions: (TableActionType | TableActionComponentType | null)[];
+}) {
+  const ctas = React.useMemo(
+    () => actions.filter((item) => item !== null),
+    [actions]
+  );
 
   return (
     <div className="flex items-center whitespace-nowrap">
       {(ctas as TableActionType[]).map((action, index: number) => {
-        if ('component' in action) {
-          const { component: Action, title = 'Button' } = action as TableActionComponentType;
+        if ("component" in action) {
+          const { component: Action, title = "Button" } =
+            action as TableActionComponentType;
           return (
             <span className="px-2" key={index}>
-              <Tooltip title={title || 'Button'}>
+              <Tooltip title={title || "Button"}>
                 <div>
                   <Action />
                 </div>
@@ -58,10 +64,18 @@ export function TableActionsCell({ actions }: { actions: (TableActionType | Tabl
             </span>
           );
         }
-        const { container: Container, keepButtonContainer = true, title, href, icon: Icon, color, ...props } = action;
+        const {
+          container: Container,
+          keepButtonContainer = true,
+          title,
+          href,
+          icon: Icon,
+          color,
+          ...props
+        } = action;
         return (
           <span className="px-2" key={index}>
-            <Tooltip title={title || 'Button'}>
+            <Tooltip title={title || "Button"}>
               <div>
                 {Container ? (
                   keepButtonContainer ? (
@@ -69,18 +83,23 @@ export function TableActionsCell({ actions }: { actions: (TableActionType | Tabl
                       <Button
                         className="flex items-center justify-center"
                         icon={() => (
-                          <span className={`${getColor(color)} text-sm md:text-base`}>
+                          <span
+                            className={`${getColor(
+                              color
+                            )} text-sm md:text-base`}
+                          >
                             <Icon />
                           </span>
                         )}
-                        shape="circle"
-                        type="default"
+                        variant="default"
                         {...props}
-                      />{' '}
+                      />{" "}
                     </Container>
                   ) : (
                     <Container>
-                      <span className={`${getColor(color)} text-sm md:text-base`}>
+                      <span
+                        className={`${getColor(color)} text-sm md:text-base`}
+                      >
                         <Icon />
                       </span>
                     </Container>
@@ -90,12 +109,13 @@ export function TableActionsCell({ actions }: { actions: (TableActionType | Tabl
                     <Button
                       className="flex items-center justify-center"
                       icon={() => (
-                        <span className={`${getColor(color)} text-sm md:text-base`}>
+                        <span
+                          className={`${getColor(color)} text-sm md:text-base`}
+                        >
                           <Icon />
                         </span>
                       )}
-                      shape="circle"
-                      type="default"
+                      variant="default"
                       {...props}
                     />
                   </Link>
@@ -103,12 +123,13 @@ export function TableActionsCell({ actions }: { actions: (TableActionType | Tabl
                   <Button
                     className="flex items-center justify-center"
                     icon={() => (
-                      <span className={`${getColor(color)} text-sm md:text-base`}>
+                      <span
+                        className={`${getColor(color)} text-sm md:text-base`}
+                      >
                         <Icon />
                       </span>
                     )}
-                    shape="circle"
-                    type="default"
+                    variant="default"
                     {...props}
                   />
                 )}
@@ -122,7 +143,7 @@ export function TableActionsCell({ actions }: { actions: (TableActionType | Tabl
 }
 
 export function TableAvatarTitleCell({
-  titleClass = '',
+  titleClass = "",
   image,
   title,
 }: {
@@ -144,7 +165,7 @@ export function TableAvatarTitleCell({
         </span>
       )}
       <section className="table-avatar-title-sub-cell-title">
-        <p className={'title ' + titleClass}>{title}</p>
+        <p className={"title " + titleClass}>{title}</p>
       </section>
     </div>
   );
@@ -153,8 +174,8 @@ export function TableAvatarTitleCell({
 export function TableAvatarTitleSubCell({
   className,
   image,
-  subtitle = '----- -----',
-  titleClass = '',
+  subtitle = "----- -----",
+  titleClass = "",
   title,
 }: {
   className?: string;
@@ -164,14 +185,14 @@ export function TableAvatarTitleSubCell({
   subtitle?: React.ReactNode | null;
 }) {
   return (
-    <div className={`table-avatar-title-sub-cell ${className || ''}`}>
-      {typeof image === 'string' ? (
+    <div className={`table-avatar-title-sub-cell ${className || ""}`}>
+      {typeof image === "string" ? (
         <section className="table-avatar-title-sub-cell-image">
           <div>
             <DisplayImage alt={title} src={image} />
           </div>
         </section>
-      ) : image !== null && typeof image !== 'undefined' ? (
+      ) : image !== null && typeof image !== "undefined" ? (
         image
       ) : (
         <span className="table-avatar-title-sub-cell-image-placeholder">
@@ -179,7 +200,7 @@ export function TableAvatarTitleSubCell({
         </span>
       )}
       <section className="table-avatar-title-sub-cell-title">
-        <p className={'title ' + titleClass}>{title}</p>
+        <p className={"title " + titleClass}>{title}</p>
         <p className="subtitle">{subtitle}</p>
       </section>
     </div>
@@ -188,8 +209,8 @@ export function TableAvatarTitleSubCell({
 
 export function TableTitleSubCell({
   className,
-  subtitle = '----- -----',
-  titleClass = '',
+  subtitle = "----- -----",
+  titleClass = "",
   title,
 }: {
   className?: string;
@@ -198,9 +219,9 @@ export function TableTitleSubCell({
   subtitle?: React.ReactNode | null;
 }) {
   return (
-    <div className={`table-avatar-title-sub-cell ${className || ''}`}>
+    <div className={`table-avatar-title-sub-cell ${className || ""}`}>
       <section className="table-avatar-title-sub-cell-title !pl-0">
-        <p className={'title ' + titleClass}>{title}</p>
+        <p className={"title " + titleClass}>{title}</p>
         <p className="subtitle">{subtitle}</p>
       </section>
     </div>
@@ -208,11 +229,11 @@ export function TableTitleSubCell({
 }
 
 export function TableIconTitleSubCell({
-  bg = 'table-icon-bg',
+  bg = "table-icon-bg",
   title,
   subtitle,
   icon: Icon,
-  titleClassName = '',
+  titleClassName = "",
 }: {
   bg?: string;
   title: React.ReactNode;
@@ -230,26 +251,46 @@ export function TableIconTitleSubCell({
         </span>
       </section>
       <section className="ml-2 text-left">
-        <div className={`normal-case text-sm font-medium dark-text-color ${titleClassName}`}>{title}</div>
-        {subtitle && <div className="font-normal text-xs table-data-color">{subtitle}</div>}
+        <div
+          className={`normal-case text-sm font-medium dark-text-color ${titleClassName}`}
+        >
+          {title}
+        </div>
+        {subtitle && (
+          <div className="font-normal text-xs table-data-color">{subtitle}</div>
+        )}
       </section>
     </span>
   );
 }
 
-export function TableAvatarEmailNameCell({ email, image, name }: { name: string; email: string; image?: string }) {
+export function TableAvatarEmailNameCell({
+  email,
+  image,
+  name,
+}: {
+  name: string;
+  email: string;
+  image?: string;
+}) {
   return (
     <div className="flex items-center py-2">
       {image && (
         <section className="flex-shrink-0 h-10 w-10">
           <div className="h-10 relative rounded-full w-10">
-            <DisplayImage alt="" className="rounded-full h-full w-full" src={image} />
+            <DisplayImage
+              alt=""
+              className="rounded-full h-full w-full"
+              src={image}
+            />
           </div>
         </section>
       )}
-      <section className={`${image ? 'ml-4' : ''} text-left`}>
+      <section className={`${image ? "ml-4" : ""} text-left`}>
         <div className="text-sm font-medium text-gray-900">{name}</div>
-        <div className="normal-case font-normal text-sm text-gray-500">{email}</div>
+        <div className="normal-case font-normal text-sm text-gray-500">
+          {email}
+        </div>
       </section>
     </div>
   );

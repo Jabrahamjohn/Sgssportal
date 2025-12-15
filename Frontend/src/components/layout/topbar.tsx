@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { listNotifications, markNotificationsRead } from "~/server/services/notification.service";
+import {
+  listNotifications,
+  markNotificationsRead,
+  type Notification,
+} from "~/server/services/notification.service";
 
 export default function TopBar() {
-  const [notifs, setNotifs] = useState([]);
+  const [notifs, setNotifs] = useState<Notification[]>([]);
 
   useEffect(() => {
     refresh();
@@ -13,7 +17,7 @@ export default function TopBar() {
     listNotifications().then(setNotifs);
   };
 
-  const unread = notifs.filter(n => !n.read).length;
+  const unread = notifs.filter((n) => !n.is_read).length;
 
   return (
     <div className="flex justify-end p-3 bg-white shadow">
@@ -21,7 +25,9 @@ export default function TopBar() {
         <button
           className="relative"
           onClick={() => {
-            markNotificationsRead().then(refresh);
+            const unreadIds = notifs.filter((n) => !n.is_read).map((n) => n.id);
+            if (unreadIds.length)
+              markNotificationsRead(unreadIds).then(refresh);
           }}
         >
           🔔
@@ -37,12 +43,15 @@ export default function TopBar() {
             <div className="p-3 text-gray-500 text-sm">No notifications</div>
           )}
 
-          {notifs.map(n => (
+          {notifs.map((n) => (
             <div key={n.id} className="p-3 border-b">
               <p className="font-medium">{n.title}</p>
               <p className="text-xs text-gray-500">{n.message}</p>
               {n.link && (
-                <NavLink to={n.link} className="text-blue-600 text-sm underline">
+                <NavLink
+                  to={n.link}
+                  className="text-blue-600 text-sm underline"
+                >
                   Open
                 </NavLink>
               )}

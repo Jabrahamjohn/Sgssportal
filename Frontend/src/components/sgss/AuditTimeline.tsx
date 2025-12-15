@@ -1,5 +1,4 @@
 // Frontend/src/components/sgss/AuditTimeline.tsx
-import React from "react";
 
 export default function AuditTimeline({ logs }: { logs: any[] }) {
   if (!logs || logs.length === 0) {

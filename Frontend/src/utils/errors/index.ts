@@ -1,9 +1,9 @@
-import { AxiosError } from 'axios';
+import { AxiosError } from "axios";
 
-import AppError from './app-error';
+import AppError from "./app-error";
 
-import { TEST_MODE } from '~/config';
-import type { ResponseType } from '~/types';
+import { TEST_MODE } from "~/config";
+import type { ResponseType } from "~/types";
 
 export { AppError };
 
@@ -23,7 +23,7 @@ export function handleAllErrors<T = any>(
     status: 500,
     message: (error as any)?.message
       ? String((error as any).message)
-      : options?.defaultMessage || 'An error occurred. Please try again.',
+      : options?.defaultMessage || "An error occurred. Please try again.",
     data: TEST_MODE ? (error as any) : undefined,
   };
   // Handle Unknown Errors
@@ -61,20 +61,18 @@ export function handleHttpErrors<T = any>(
     }
   | undefined {
   const error = err as AxiosError;
-  if (error && error.name === 'AxiosError' && error.response?.data) {
+  if (error && error.name === "AxiosError" && error.response?.data) {
     if (isResponseWithData<T>(error.response.data)) {
       return {
         status: error.response.status,
-        errorCode: error.response.data.errorCode,
         data: error.response.data.data,
-        message: error.response.data.message,
+        message: error.response.data.detail || "An error occurred",
       };
     }
     if (isResponseWithMessage(error.response.data)) {
       return {
         status: error.response.status,
-        errorCode: error.response.data.errorCode,
-        message: error.response.data.message,
+        message: error.response.data.detail || "An error occurred",
       };
     }
   }
@@ -100,10 +98,22 @@ export function handleAppErrors<T = any>(
   return undefined;
 }
 
-export function isResponseWithMessage(response: unknown): response is ResponseType {
-  return response !== null && response !== undefined && (response as any)?.message !== undefined;
+export function isResponseWithMessage(
+  response: unknown
+): response is ResponseType {
+  return (
+    response !== null &&
+    response !== undefined &&
+    (response as any)?.detail !== undefined
+  );
 }
 
-export function isResponseWithData<DataType = unknown>(response: unknown): response is ResponseType<DataType> {
-  return response !== null && response !== undefined && (response as any)?.data !== undefined;
+export function isResponseWithData<DataType = unknown>(
+  response: unknown
+): response is ResponseType<DataType> {
+  return (
+    response !== null &&
+    response !== undefined &&
+    (response as any)?.data !== undefined
+  );
 }

@@ -1,5 +1,5 @@
 // Frontend/src/pages/dashboard/admin/settings/membership-types.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import api from "~/config/api";
 import Button from "~/components/controls/button";
 import Input from "~/components/controls/input";
@@ -10,7 +10,6 @@ import {
     PencilSquareIcon, 
     PlusIcon, 
     BanknotesIcon,
-    UsersIcon,
     XMarkIcon
 } from "@heroicons/react/24/outline";
 

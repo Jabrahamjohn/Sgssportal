@@ -46,21 +46,20 @@ export default function Login() {
     try {
       await login(username, password);
 
-// refresh session and user data
-await new Promise((r) => setTimeout(r, 500)); // small delay to ensure context updates
-const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+      // refresh session and user data
+      await new Promise((r) => setTimeout(r, 500)); // sm delay to ensure context updates
+      const storedUser = JSON.parse(localStorage.getItem("user") || "null");
 
-const role =
-  storedUser?.role ||
-  storedUser?.groups?.[0] ||
-  auth?.role ||
-  auth?.user?.groups?.[0] ||
-  "member";
+      const role =
+        storedUser?.role ||
+        storedUser?.groups?.[0] ||
+        auth?.role ||
+        auth?.user?.groups?.[0] ||
+        "member";
 
-if (role === "admin") navigate("/dashboard/admin");
-else if (role === "committee") navigate("/dashboard/committee");
-else navigate("/dashboard/member");
-
+      if (role === "admin") navigate("/dashboard/admin");
+      else if (role === "committee") navigate("/dashboard/committee");
+      else navigate("/dashboard/member");
     } catch (err: any) {
       const message =
         err.response?.data?.detail ||
@@ -117,7 +116,6 @@ else navigate("/dashboard/member");
           >
             {loading ? <Spin size="small" /> : "Login"}
           </Button>
-
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-500">

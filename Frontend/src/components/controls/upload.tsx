@@ -32,7 +32,7 @@ function Upload({ children, error, placeholder = 'Upload', ...props }: UploadTyp
         {...props}
       >
         {children || (
-          <Button icon={CloudUploadOutlined} htmlType="button" type="default">
+          <Button icon={CloudUploadOutlined} htmlType="button" variant="default">
             {placeholder}
           </Button>
         )}

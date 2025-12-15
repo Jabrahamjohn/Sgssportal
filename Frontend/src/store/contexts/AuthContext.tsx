@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // pull a fresh CSRF token & clear state
       try {
         await api.get("auth/csrf/");
-      } catch {}
+      } catch {console.warn("Failed to refresh CSRF token after logout");}
       setAuth({ isAuthenticated: false, groups: [] });
     }
   };

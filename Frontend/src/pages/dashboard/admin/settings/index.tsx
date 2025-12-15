@@ -1,7 +1,5 @@
 // Frontend/src/pages/dashboard/admin/settings/index.tsx
-import React from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import PageTransition from "~/components/animations/PageTransition";
 
 export default function AdminSettings() {
   const location = useLocation();
@@ -39,7 +37,6 @@ export default function AdminSettings() {
         <div className="border-b border-gray-200">
             <nav className="-mb-px flex gap-6 overflow-x-auto" aria-label="Tabs">
             {tabs.map((tab) => {
-                const isExact = location.pathname === tab.to || location.pathname === `${tab.to}/`;
                 return (
                 <NavLink
                     key={tab.to}

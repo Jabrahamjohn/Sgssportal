@@ -1,4 +1,3 @@
-import React from "react";
 import { Bell, LogOut, User } from "lucide-react";
 import { useAuth } from "~/store/contexts/AuthContext";
 import  Button  from "~/components/controls/button";

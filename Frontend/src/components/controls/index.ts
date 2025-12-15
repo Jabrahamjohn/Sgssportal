@@ -28,7 +28,7 @@ export { default as Skeleton } from './skeleton';
 export { default as Spin } from './spin';
 export { default as Steps, type StepsType } from './steps';
 export { default as Switch } from './switch';
-export { default as Table, type TableRef } from './table';
+export { default as Table } from "./table";
 export { default as Tabs } from './tabs';
 export { default as Tag } from './tag';
 export { default as Upload, UploadDragger, type UploadFileType } from './upload';

@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 
 services:
   db:
@@ -26,6 +26,16 @@ services:
       - DATABASE_URL=postgres://postgres:postgres@db:5432/sgss_medical_fund
     depends_on:
       - db
+
+  frontend:
+    build: ./Frontend
+    ports:
+      - "5000:5000"
+    environment:
+      - BACKEND_URL=http://backend:8000
+      - NODE_ENV=production
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

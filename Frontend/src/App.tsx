@@ -1,5 +1,5 @@
 // Frontend/src/App.tsx
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { AuthProvider } from "./store/contexts/AuthContext";
 import { ErrorBoundary } from "./components/common";
 import AppRouter from "./router";

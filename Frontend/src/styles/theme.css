@@ -41,13 +41,15 @@
   background-color: var(--sgss-card, #ffffff);
   border-radius: 1rem;
   padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(229, 231, 235, 0.5);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .sgss-card:hover {
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08),
+    0 8px 10px -6px rgba(0, 0, 0, 0.01);
 }
 
 .sgss-card:not(:last-child) {
@@ -66,7 +68,7 @@
 }
 
 .sgss-header::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -75,8 +77,8 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Small label text used in cards */
-.small-label {
+/* sm label text used in cards */
+.sm-label {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;

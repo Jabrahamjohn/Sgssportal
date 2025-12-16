@@ -20,6 +20,19 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  children?: React.ReactNode;
+  className?: string;
+};
+
+const Button: React.FC<ButtonProps> = ({ children, className = "", ...props }) => {
+  return (
+    <button {...props} className={`inline-flex items-center justify-center ${className}`}>
+      {children}
+    </button>
+  );
+};
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [me, setMe] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile state
@@ -93,12 +106,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           
           {/* Close Button Mobile */}
-          <button 
+          <Button 
             onClick={() => setIsSidebarOpen(false)}
             className="lg:hidden p-2 text-white/70 hover:text-white rounded-lg hover:bg-white/10"
           >
             <XMarkIcon className="w-6 h-6" />
-          </button>
+          </Button>
         </div>
 
         <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-8 scrollbar-hide">
@@ -199,13 +212,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* LOGOUT */}
         <div className="px-6 py-6 border-t border-white/10 bg-black/10 backdrop-blur-sm">
-          <button
+          <Button
             onClick={logout}
             className="group w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-600 hover:shadow-lg hover:-translate-y-0.5 transition-all text-red-100 py-3 rounded-xl text-sm font-semibold border border-red-500/20"
           >
             <ArrowLeftStartOnRectangleIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
             Sign Out
-          </button>
+          </Button>
         </div>
       </aside>
 
@@ -218,12 +231,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <header className="flex items-center justify-between px-4 lg:px-8 py-5 glass-panel z-10 mx-4 lg:mx-6 mt-4 lg:mt-6 rounded-2xl shadow-sm">
           <div className="flex items-center gap-4">
              {/* Mobile Menu Button */}
-             <button 
+             <Button 
                onClick={() => setIsSidebarOpen(true)}
                className="lg:hidden p-2 text-[var(--sgss-navy)] hover:bg-black/5 rounded-lg transition-colors"
              >
                <Bars3BottomLeftIcon className="w-6 h-6" />
-             </button>
+             </Button>
 
              <div>
                <h2 className="text-lg lg:text-xl font-bold text-[var(--sgss-navy)] tracking-tight line-clamp-1">

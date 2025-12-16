@@ -2,7 +2,9 @@
   "files": [],
   "compilerOptions": {
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true
   },
   "references": [
     { "path": "./tsconfig.app.json" },

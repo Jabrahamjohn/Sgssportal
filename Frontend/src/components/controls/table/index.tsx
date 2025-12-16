@@ -24,6 +24,18 @@ import type {
 } from "@tanstack/react-table";
 import Skeleton from "../skeleton";
 
+/**
+ * Thin wrapper for table header cell used in this file.
+ * Accepts the same attributes as a native <th> element.
+ */
+type ThProps = React.ThHTMLAttributes<HTMLTableHeaderCellElement> & {
+  children?: React.ReactNode;
+};
+
+const Th: React.FC<ThProps> = ({ children, ...rest }) => {
+  return <th {...(rest as any)}>{children}</th>;
+};
+
 type PaginationState = {
   pageIndex: number;
   pageSize: number;
@@ -237,7 +249,7 @@ function Table<T extends object>(
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     return (
-                      <th
+                      <Th
                         key={header.id}
                         className="table-head group"
                         scope="col"
@@ -256,7 +268,7 @@ function Table<T extends object>(
                                 header.getContext()
                               )}
                         </div>
-                      </th>
+                      </Th>
                     );
                   })}
                 </tr>

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import api from "~/config/api";
 import Button from "~/components/controls/button";
-import Input from "~/components/controls/input";
+import Input, { Textarea } from "~/components/controls/input";
 import PageTransition from "~/components/animations/PageTransition";
 import Badge from "~/components/controls/badge";
 import { 
@@ -160,12 +160,12 @@ export default function AdminMembershipTypes() {
                                {m.term_years ? `${m.term_years} Year(s)` : "Indefinite"}
                            </td>
                            <td className="px-6 py-4 text-center">
-                               <button 
+                               <Button 
                                    onClick={() => openEdit(m)}
                                    className="p-2 rounded-lg text-gray-400 hover:text-[var(--sgss-navy)] hover:bg-gray-100 transition-colors"
                                >
                                    <PencilSquareIcon className="w-5 h-5" />
-                               </button>
+                               </Button>
                            </td>
                         </tr>
                     ))}
@@ -187,9 +187,9 @@ export default function AdminMembershipTypes() {
                      {editing.id ? <PencilSquareIcon className="w-5 h-5" /> : <PlusIcon className="w-5 h-5" />}
                      {editing.id ? "Edit Scheme" : "New Scheme"}
                  </h3>
-                 <button onClick={closeModal} className="text-white/70 hover:text-white transition-colors">
+                 <Button onClick={closeModal} className="text-white/70 hover:text-white transition-colors">
                      <XMarkIcon className="w-6 h-6" />
-                 </button>
+                 </Button>
              </div>
 
              <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
@@ -243,7 +243,7 @@ export default function AdminMembershipTypes() {
                      </div>
                      <div>
                          <label className="block text-xs font-bold text-gray-700 mb-1">Notes</label>
-                         <textarea 
+                         <Textarea 
                              className="w-full rounded-xl border-gray-200 focus:border-[var(--sgss-gold)] focus:ring-[var(--sgss-gold)]/20 text-sm"
                              rows={3}
                              value={editing.notes || ""}

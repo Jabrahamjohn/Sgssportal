@@ -17,7 +17,7 @@ export default function ClaimsTable() {
   useEffect(() => {
     setLoading(true);
     listCommitteeClaims({ status, type, q: query })
-      .then((rows) => setData(rows))
+      .then((rows: CommitteeClaimRow[]) => setData(rows))
       .finally(() => setLoading(false));
   }, [status, type, query]);
 
@@ -48,6 +48,7 @@ export default function ClaimsTable() {
           className="border p-2 rounded"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
+          aria-label="Filter by status"
         >
           <option value="">All Status</option>
           <option value="submitted">Submitted</option>
@@ -61,6 +62,7 @@ export default function ClaimsTable() {
           className="border p-2 rounded"
           value={type}
           onChange={(e) => setType(e.target.value)}
+          aria-label="Filter by type"
         >
           <option value="">All Types</option>
           <option value="outpatient">Outpatient</option>

@@ -19,16 +19,15 @@ from datetime import timedelta
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 #initializing Environmet variables
 env = environ.Env(
     DEBUG=(bool, False),
 )
 ENV_FILE = os.getenv("ENV_FILE", ".env")
 environ.Env.read_env(os.path.join(BASE_DIR, ENV_FILE))
-
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production

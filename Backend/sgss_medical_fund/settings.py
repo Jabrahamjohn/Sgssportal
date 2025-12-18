@@ -23,7 +23,9 @@ from sentry_sdk.integrations.django import DjangoIntegration
 env = environ.Env(
     DEBUG=(bool, False),
 )
-environ.Env.read_env(os.path.join(Path(__file__).resolve().parent.parent, '.env'))
+ENV_FILE = os.getenv("ENV_FILE", ".env")
+environ.Env.read_env(os.path.join(BASE_DIR, ENV_FILE))
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,8 +41,7 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=False)
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
-TIME_ZONE = env('TIME_ZONE', default='UTC')
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost','.onrender.com'])
 FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
 
 # Application definition
@@ -60,8 +61,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # For serving static files in production
     'corsheaders.middleware.CorsMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',   # ✅ must exist
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -75,6 +77,7 @@ CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
     "http://127.0.0.1:3000",
     "http://localhost:5173",
     "http://localhost:5000",
+    "http://localhost:4173",
 ])
 
 CORS_ALLOW_CREDENTIALS = True
@@ -98,15 +101,17 @@ CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",
+    "http://localhost:5000",
+    "http://localhost:4173",
 ])
 
 CSRF_COOKIE_NAME = "csrftoken"
 
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=False)
-CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "None"
 
-SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "None"
 SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=False)
 
 
@@ -249,7 +254,7 @@ else:
 
 
 # settings.py
-if not DEBUG:
+if not DEBUG and env('AWS_ACCESS_KEY_ID', default=''):
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
@@ -294,45 +299,19 @@ if DEBUG:
 else:
     # Production: Log to files (Linux/Unix paths)
     LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'verbose': {
-                'format': '{levelname} {asctime} {module} {message}',
-                'style': '{',
-            },
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
         },
-        'handlers': {
-            'file': {
-                'level': 'WARNING',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': '/var/log/sgss/django.log',
-                'maxBytes': 10485760,  # 10MB
-                'backupCount': 5,
-                'formatter': 'verbose',
-            },
-            'security_file': {
-                'level': 'WARNING',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': '/var/log/sgss/security.log',
-                'maxBytes': 10485760,
-                'backupCount': 5,
-                'formatter': 'verbose',
-            },
-        },
-        'loggers': {
-            'django': {
-                'handlers': ['file'],
-                'level': 'WARNING',
-                'propagate': False,
-            },
-            'django.security': {
-                'handlers': ['security_file'],
-                'level': 'WARNING',
-                'propagate': False,
-            },
-        },
-    }
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+}
+
 
 
 # --- Sentry Configuration (Production Only) ---

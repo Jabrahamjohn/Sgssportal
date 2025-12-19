@@ -1,6 +1,6 @@
-export const APP_NAME = 'Bswaid Travel';
+export const APP_NAME = 'SGSS Medical Fund';
 
-export const COMPANY_NAME = 'Bswaid';
+export const COMPANY_NAME = 'SGSS Medical Fund';
 
 export const DEFAULT_PAGINATION_SIZE = 100;
 

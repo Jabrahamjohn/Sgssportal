@@ -12,8 +12,8 @@ class MembershipTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "membership_type", "nhif_number", "valid_from", "valid_to")
-    search_fields = ("user__email", "nhif_number")
+    list_display = ("id", "user", "membership_type", "shif_number", "valid_from", "valid_to")
+    search_fields = ("user__email", "shif_number")
 
 class ClaimItemInline(admin.TabularInline):
     model = ClaimItem

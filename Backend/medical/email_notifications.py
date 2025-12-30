@@ -20,7 +20,7 @@ def send_member_registration_email(member):
             
             <p>Dear {member.user.get_full_name() or member.user.username},</p>
             
-            <p>Thank you for registering with the SGSS Medical Fund. Your application has been received and is currently under review by our committee.</p>
+            <p>Thank you for registering with the SGSS Medical Fund. Your application has been received and is currently under review by our committee. Please ensure your SHIF/SHA details are up to date in your profile.</p>
             
             <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <p style="margin: 0;"><strong>Application Status:</strong> Pending Approval</p>
@@ -57,7 +57,7 @@ def send_member_registration_email(member):
 
 def send_member_approved_email(member):
     """Send email when member is approved"""
-    subject = 'Your SGSS Medical Fund Membership Has Been Approved!'
+    subject = 'Your SGSS Medical Fund Membership (SHIF/SHA) Has Been Approved!'
     
     html_message = f"""
     <html>
@@ -109,7 +109,7 @@ def send_member_approved_email(member):
 
 def send_claim_submitted_email(claim):
     """Send email when claim is submitted"""
-    subject = f'Claim Submitted - {claim.claim_type.title()}'
+    subject = f'SHIF-linked Claim Submitted - {claim.claim_type.title()}'
     member = claim.member
     
     html_message = f"""
@@ -120,7 +120,7 @@ def send_claim_submitted_email(claim):
             
             <p>Dear {member.user.get_full_name() or member.user.username},</p>
             
-            <p>Your {claim.claim_type} claim has been successfully submitted and is now under review.</p>
+            <p>Your {claim.claim_type} claim (SHIF-linked) has been successfully submitted and is now under review.</p>
             
             <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <p style="margin: 0;"><strong>Claim ID:</strong> {claim.id}</p>

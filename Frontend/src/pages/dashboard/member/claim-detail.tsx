@@ -150,6 +150,59 @@ export default function MemberClaimDetail() {
                 </div>
             </div>
 
+            {/* Committee Feedback & History */}
+            {data.reviews && data.reviews.length > 0 && (
+                <div className="sgss-card bg-white">
+                    <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+                        <h3 className="font-bold text-[var(--sgss-navy)] flex items-center gap-2">
+                             <BuildingOffice2Icon className="w-5 h-5 text-[var(--sgss-gold)]" />
+                             Committee Feedback & History
+                        </h3>
+                    </div>
+                    <div className="p-6">
+                        <div className="flow-root">
+                            <ul className="-mb-8">
+                                {data.reviews.map((rev: any, idx: number) => (
+                                    <li key={rev.id}>
+                                        <div className="relative pb-8">
+                                            {idx !== data.reviews.length - 1 ? (
+                                                <span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                                            ) : null}
+                                            <div className="relative flex space-x-3">
+                                                <div>
+                                                    <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${
+                                                        rev.action === 'approved' ? 'bg-emerald-500' : 
+                                                        rev.action === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
+                                                    }`}>
+                                                        <DocumentTextIcon className="h-5 w-5 text-white" aria-hidden="true" />
+                                                    </span>
+                                                </div>
+                                                <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                                                    <div>
+                                                        <p className="text-sm text-gray-500">
+                                                            Claim <span className="font-medium text-gray-900 capitalize">{rev.action}</span> by{' '}
+                                                            <span className="font-medium text-gray-900">{rev.reviewer?.name || "Committee"}</span>
+                                                        </p>
+                                                        {rev.note && (
+                                                            <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100 italic">
+                                                                "{rev.note}"
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="whitespace-nowrap text-right text-xs text-gray-500">
+                                                        <time dateTime={rev.created_at}>{new Date(rev.created_at).toLocaleDateString()}</time>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
 
         {/* Sidebar Column */}
@@ -255,7 +308,7 @@ function InpatientDetails({ details }: { details: any }) {
       <DetailRow label="Length of Stay" value={`${details.stay_days || 0} days`} />
       <div className="my-4 h-px bg-gray-100" />
       <DetailRow label="Daily Bed Charge" value={details.bed_charge_per_day} isCurrency />
-      <DetailRow label="NHIF Rebate" value={details.nhif_total} isCurrency />
+      <DetailRow label="SHIF/SHA Rebate" value={details.shif_total} isCurrency />
       <DetailRow label="Inpatient Charges" value={details.inpatient_total} isCurrency />
       <DetailRow label="Doctor Fees" value={details.doctor_total} isCurrency />
       <DetailRow label="Other Claimable" value={details.claimable_total} isCurrency />

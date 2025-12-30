@@ -127,7 +127,7 @@ class Command(BaseCommand):
         main_member = Member.objects.create(
             user=main_user,
             membership_type=mt_objects["single"],
-            nhif_number="NHIF123",
+            shif_number="SHIF123",
             mailing_address="Mombasa",
             valid_from=timezone.now().date() - timezone.timedelta(days=180),
             valid_to=timezone.now().date() + timezone.timedelta(days=365),
@@ -284,7 +284,7 @@ class Command(BaseCommand):
             mem = Member.objects.create(
                 user=user,
                 membership_type=mt,
-                nhif_number=f"NHIF-{random.randint(1000,9999)}",
+                shif_number=f"SHIF-{random.randint(1000,9999)}",
                 valid_from=timezone.now().date() - timezone.timedelta(days=random.randint(60, 300)),
                 valid_to=timezone.now().date() + timezone.timedelta(days=365),
                 benefits_from=timezone.now().date() - timezone.timedelta(days=60),

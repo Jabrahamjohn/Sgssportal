@@ -47,7 +47,7 @@ class MemberApplicationSerializer(serializers.ModelSerializer):
             "email",
             "membership_type_name",
             "status",
-            "nhif_number",
+            "shif_number",
             "mailing_address",
             "phone_mobile",
             "benefits_from",
@@ -68,7 +68,7 @@ class MemberSerializer(serializers.ModelSerializer):
             "user_full_name",
             "email",
             "membership_type",
-            "nhif_number",
+            "shif_number",
             "mailing_address",
             "phone_office",
             "phone_home",
@@ -181,6 +181,7 @@ class ClaimAttachmentSerializer(serializers.ModelSerializer):
 class ClaimSerializer(serializers.ModelSerializer):
     items = ClaimItemSerializer(many=True, read_only=True)
     attachments = ClaimAttachmentSerializer(many=True, read_only=True)
+    reviews = ClaimReviewSerializer(many=True, read_only=True)
     member_user_email = serializers.EmailField(source="member.user.email", read_only=True)
 
     details = serializers.DictField(required=False)
@@ -193,8 +194,8 @@ class ClaimSerializer(serializers.ModelSerializer):
             "date_of_first_visit", "date_of_discharge",
             "total_claimed", "total_payable", "member_payable",
             "status", "submitted_at", "notes",
-            "excluded", "override_amount", "nhif_number", "other_insurance",
-            "created_at", "items", "attachments"
+            "excluded", "override_amount", "shif_number", "other_insurance",
+            "created_at", "items", "attachments", "reviews"
         ]
         read_only_fields = [
             "id", "member", "member_user_email",

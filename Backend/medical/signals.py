@@ -55,8 +55,8 @@ def claim_saved(sender, instance: Claim, created, **kwargs):
                     _notify(
                         instance.member.user,
                         "Claim Submitted",
-                        f"Your claim {instance.id} has been submitted.",
-                        f"/claims/{instance.id}",
+                        f"Your SHIF/SHA-linked claim {instance.id} has been received.",
+                        f"/dashboard/member/claims/{instance.id}",
                         "claim"
                     )
                     # Send email notification
@@ -71,7 +71,7 @@ def claim_saved(sender, instance: Claim, created, **kwargs):
                     _notify(
                         c_user,
                         "New Claim Submitted",
-                        f"New {instance.claim_type} claim from {instance.member.user.get_full_name() or instance.member.user.username}.",
+                        f"New {instance.claim_type} claim (SHIF-linked) from {instance.member.user.get_full_name() or instance.member.user.username}.",
                         f"/dashboard/committee/claims/{instance.id}/",
                         "claim"
                     )
@@ -86,11 +86,16 @@ def claim_saved(sender, instance: Claim, created, **kwargs):
             elif not created:
                 # Notify Member on status change
                 if member_user:
+                    msg = f"Your claim {instance.id} status has been updated to {instance.status.upper()}."
+                    note = getattr(instance, 'status_note', None)
+                    if note:
+                        msg += f" Note: {note}"
+                        
                     _notify(
                         instance.member.user,
                         "Claim Update",
-                        f"Your claim {instance.id} is now {instance.status}.",
-                        f"/claims/{instance.id}",
+                        msg,
+                        f"/dashboard/member/claims/{instance.id}",
                         "claim"
                     )
                     # Send email for status changes
@@ -127,7 +132,7 @@ def member_saved(sender, instance: Member, created, **kwargs):
                 _notify(
                     c_user,
                     "New Membership Application",
-                    f"New application from {instance.user.get_full_name() or instance.user.username}.",
+                    f"New SHIF/SHA member registration: {instance.user.get_full_name() or instance.user.username}.",
                     f"/dashboard/committee/members/{instance.id}/",
                     "member"
                 )

@@ -202,7 +202,7 @@ export default function NewClaim() {
               </p>
               <ul className="mt-3 space-y-2 text-xs text-gray-500">
                  <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[var(--sgss-gold)]"></div>Ensure all receipts are clear</li>
-                 <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[var(--sgss-gold)]"></div>Include NHIF details where applicable</li>
+                 <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[var(--sgss-gold)]"></div>Include SHIF/SHA details where applicable</li>
                  <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[var(--sgss-gold)]"></div>Review amounts before submitting</li>
               </ul>
             </div>
@@ -281,7 +281,7 @@ export default function NewClaim() {
            Attachments
         </h3>
         <p className="text-sm text-gray-500 mb-4 max-w-2xl">
-          Upload scanned hospital bills, receipts, NHIF statements and any
+          Upload scanned hospital bills, receipts, SHIF/SHA statements and any
           supporting documents. Images and PDFs are accepted.
         </p>
 
@@ -465,13 +465,13 @@ function computeClaimTotals(data: any, type: string) {
   } else if (type === "inpatient") {
     const bed_charge_per_day = toNumber(data.bed_charge_per_day);
     const stay_days = toNumber(data.stay_days || 1);
-    const nhif_total = toNumber(data.nhif_total);
+    const shif_total = toNumber(data.shif_total);
     const inpatient_total = toNumber(data.inpatient_total);
     const doctor_total = toNumber(data.doctor_total);
     const claimable_total = toNumber(data.claimable_total);
     const discounts_total = toNumber(data.discounts_total);
 
-    const accommodation = bed_charge_per_day * stay_days - nhif_total;
+    const accommodation = bed_charge_per_day * stay_days - shif_total;
     total =
       accommodation +
       inpatient_total +
@@ -667,11 +667,11 @@ function InpatientForm({ data, onChange }: any) {
             }
           />
           <Input
-            label="NHIF Total (Ksh)"
+            label="SHIF/SHA Total (Ksh)"
             type="number"
-            value={data.nhif_total ?? ""}
+            value={data.shif_total ?? ""}
             onChange={(e) =>
-              onChange("nhif_total", Number(e.target.value || 0))
+              onChange("shif_total", Number(e.target.value || 0))
             }
           />
         </div>

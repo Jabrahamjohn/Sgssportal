@@ -94,7 +94,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-auto bg-white text-gray-800 rounded-xl shadow-xl border border-gray-100 z-40">
+        <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-auto bg-white text-gray-800 rounded-xl shadow-2xl border border-gray-100 z-[999]">
           <div className="flex items-center justify-between px-4 py-2 border-b">
             <h3 className="text-sm font-semibold">Notifications</h3>
             <button
@@ -114,33 +114,40 @@ export default function NotificationBell() {
               {items.map((n) => (
                 <li
                   key={n.id}
-                  className={`px-4 py-3 flex flex-col gap-1 ${
-                    !n.read ? "bg-blue-50" : ""
+                  className={`relative hover:bg-gray-50 transition-colors ${
+                    !n.read ? "bg-blue-50/50" : ""
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold">{n.title}</span>
-                    {!n.read && (
-                      <button
-                        onClick={() => markOneRead(n.id)}
-                        className="text-[11px] text-blue-600 hover:underline"
-                      >
-                        Mark read
-                      </button>
-                    )}
+                  <div className="flex flex-col p-4 gap-1">
+                    <div className="flex items-center justify-between gap-2 relative z-10">
+                      <span className="font-semibold text-[13px]">{n.title}</span>
+                      {!n.read && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            markOneRead(n.id);
+                          }}
+                          className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded hover:bg-blue-700 transition-colors"
+                        >
+                          Mark read
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">{n.message}</p>
+                    <span className="text-[10px] text-gray-400 mt-1">
+                      {new Date(n.created_at).toLocaleString()}
+                    </span>
                   </div>
-                  <p className="text-xs text-gray-600">{n.message}</p>
+
                   {n.link && (
                     <NavLink
                       to={n.link}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      View →
-                    </NavLink>
+                      onClick={() => setOpen(false)}
+                      className="absolute inset-0 z-0"
+                      aria-label="View details"
+                    />
                   )}
-                  <span className="text-[10px] text-gray-400">
-                    {new Date(n.created_at).toLocaleString()}
-                  </span>
                 </li>
               ))}
             </ul>

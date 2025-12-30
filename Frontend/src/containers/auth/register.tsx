@@ -29,7 +29,7 @@ export default function Register() {
     membership_type: "single",
     mailing_address: "",
     phone_mobile: "",
-    nhif_number: "",
+    shif_number: "",
     family_doctor_name: "",
     family_doctor_phone_office: "",
   });
@@ -74,7 +74,7 @@ export default function Register() {
         membership_type: form.membership_type,
         mailing_address: form.mailing_address,
         phone_mobile: form.phone_mobile,
-        nhif_number: form.nhif_number,
+        shif_number: form.shif_number,
         family_doctor_name: form.family_doctor_name,
         family_doctor_phone_office: form.family_doctor_phone_office,
         dependants: dependants.filter((d) => d.full_name.trim().length > 0),
@@ -191,7 +191,7 @@ export default function Register() {
             onChange={(e) => handleChange("mailing_address", e.target.value)}
           />
 
-          {/* Doctor / NHIF */}
+          {/* Doctor / SHIF/SHA */}
           <div className="grid md:grid-cols-2 gap-4">
             <Input
               label="Family Doctor Name"
@@ -208,9 +208,9 @@ export default function Register() {
               }
             />
             <Input
-              label="NHIF Number"
-              value={form.nhif_number}
-              onChange={(e) => handleChange("nhif_number", e.target.value)}
+              label="SHIF/SHA Number"
+              value={form.shif_number}
+              onChange={(e) => handleChange("shif_number", e.target.value)}
             />
           </div>
 

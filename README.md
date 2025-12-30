@@ -118,7 +118,7 @@ The backend (Django REST Framework) exposes structured APIs for the frontend (Re
 **Data Flow:**
 
 * Admin adds or updates **Membership Types** (e.g., Single, Family, Senior).
-* Admin creates or approves **Member** profiles → assigns membership type, NHIF number, and validity period.
+* Admin creates or approves **Member** profiles → assigns membership type, SHIF number, and validity period.
 * Backend ensures **60-day waiting period** before a member becomes eligible for claims.
 
 **Frontend Tasks:**
@@ -136,7 +136,7 @@ The backend (Django REST Framework) exposes structured APIs for the frontend (Re
 
 1. **Member creates claim** → selects type (`Inpatient`, `Outpatient`, `Chronic`).
 2. Adds **claim items** (consultation, drugs, procedures, etc.).
-3. Uploads **attachments** (receipts, NHIF slips, doctor report).
+3. Uploads **attachments** (receipts, SHIF slips, doctor report).
 4. Submits → claim status = `submitted`.
 5. **Committee reviews:**
 
@@ -146,7 +146,7 @@ The backend (Django REST Framework) exposes structured APIs for the frontend (Re
 
    * Fund share = 80%
    * Member share = 20%
-   * NHIF/other insurance amounts deducted
+   * SHIF/SHA/other insurance amounts deducted
    * Ceilings and annual limits enforced
 7. **Member gets notifications** of each update.
 
@@ -264,7 +264,7 @@ The backend (Django REST Framework) exposes structured APIs for the frontend (Re
 | Step | Action                                           | Responsible | Status                  |
 | ---- | ------------------------------------------------ | ----------- | ----------------------- |
 | 1    | Submit new claim with items & attachments        | Member      | `submitted`             |
-| 2    | Auto-validation (waiting period, NHIF, ceilings) | Backend     | -                       |
+| 2    | Auto-validation (waiting period, SHIF, ceilings) | Backend     | -                       |
 | 3    | Review claim                                     | Committee   | `reviewed`              |
 | 4    | Approve or reject                                | Committee   | `approved` / `rejected` |
 | 5    | Update payable calculations                      | Backend     |                         |

@@ -19,3 +19,6 @@ class MedicalConfig(AppConfig):
                 instance.groups.add(member_group)
 
         post_save.connect(assign_default_group, sender=User)
+        
+        # Register signals
+        import medical.signals

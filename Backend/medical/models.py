@@ -77,7 +77,7 @@ class Member(models.Model):
     family_doctor_phone_fax = models.CharField(max_length=50, blank=True)
     family_doctor_phone_mobile = models.CharField(max_length=50, blank=True)
 
-    nhif_number = models.CharField(max_length=100, blank=True, null=True)
+    shif_number = models.CharField(max_length=100, blank=True, null=True)
     other_medical_scheme = models.CharField(max_length=255, blank=True)
 
     # Membership lifecycle
@@ -184,8 +184,8 @@ class Claim(models.Model):
     # Bylaws extras
     excluded = models.BooleanField(default=False)
     override_amount = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
-    nhif_number = models.CharField(max_length=100, blank=True, null=True)
-    other_insurance = models.JSONField(blank=True, null=True)  # {"nhif": 0, "other": 0}
+    shif_number = models.CharField(max_length=100, blank=True, null=True)
+    other_insurance = models.JSONField(blank=True, null=True)  # {"shif": 0, "other": 0}
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -233,8 +233,8 @@ class Claim(models.Model):
         elif ctype == "inpatient":
             stay_days = d.get("stay_days") or 1
             accommodation = (d.get("bed_charge_per_day") or 0) * stay_days
-            nhif = d.get("nhif_total") or 0
-            accommodation = max(accommodation - nhif, 0)
+            shif = d.get("shif_total") or d.get("nhif_total") or 0
+            accommodation = max(accommodation - shif, 0)
 
             total = (
                 accommodation
@@ -279,7 +279,7 @@ class Claim(models.Model):
 
         limit = base_limit + critical_boost
 
-        if previous + float(self.total_payable or 0) > limit:
+        if float(previous) + float(self.total_payable or 0) > limit:
             raise ValidationError("Annual limit exceeded.")
 
     @transaction.atomic
@@ -339,16 +339,16 @@ class Claim(models.Model):
         else:
             fund_share_amount = float(self.total_claimed) * (fund_share_percent / 100.0)
 
-        nhif_amount = float((self.other_insurance or {}).get('nhif', 0))
+        shif_amount = float((self.other_insurance or {}).get('shif', (self.other_insurance or {}).get('nhif', 0)))
         other_ins = float((self.other_insurance or {}).get('other', 0))
-
-        fund_share_amount = max(0, fund_share_amount - nhif_amount - other_ins)
-        member_share_amount = float(self.total_claimed) - fund_share_amount - nhif_amount - other_ins
+ 
+        fund_share_amount = max(0, fund_share_amount - shif_amount - other_ins)
+        member_share_amount = float(self.total_claimed) - fund_share_amount - shif_amount - other_ins
 
         # Apply ceilings
         if fund_share_amount > ceiling:
             fund_share_amount = ceiling
-            member_share_amount = float(self.total_claimed) - fund_share_amount - nhif_amount - other_ins
+            member_share_amount = float(self.total_claimed) - fund_share_amount - shif_amount - other_ins
 
         # Annual membership limit (per membership type limit)
         membership_limit = float(self.member.membership_type.annual_limit or 0)
@@ -361,7 +361,7 @@ class Claim(models.Model):
         spent = float(spent)
         if spent + fund_share_amount > membership_limit:
             fund_share_amount = max(0, membership_limit - spent)
-            member_share_amount = float(self.total_claimed) - fund_share_amount - nhif_amount - other_ins
+            member_share_amount = float(self.total_claimed) - fund_share_amount - shif_amount - other_ins
 
         self.total_payable = fund_share_amount
         self.member_payable = member_share_amount

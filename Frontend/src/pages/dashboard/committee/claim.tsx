@@ -26,7 +26,7 @@ type CommitteeClaimResponse = {
     username: string;
     email: string;
     membership_type: string | null;
-    nhif_number: string | null;
+    shif_number: string | null;
   };
   claim: {
     type: string;
@@ -381,8 +381,8 @@ export default function CommitteeClaimDetail() {
                                 <p className="text-white/90">{member.membership_type || "—"}</p>
                            </div>
                            <div>
-                                <label className="text-[10px] uppercase tracking-wider text-white/50 block mb-0.5">NHIF No.</label>
-                                <p className="text-white/90">{member.nhif_number || "—"}</p>
+                                <label className="text-[10px] uppercase tracking-wider text-white/50 block mb-0.5">SHIF/SHA No.</label>
+                                <p className="text-white/90">{member.shif_number || "—"}</p>
                            </div>
                        </div>
                    </div>

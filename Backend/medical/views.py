@@ -228,7 +228,7 @@ def update_my_member(request):
         "family_doctor_phone_home",
         "family_doctor_phone_mobile",
         "family_doctor_phone_fax",
-        "nhif_number",
+        "shif_number",
         "other_medical_scheme",
     ]
 
@@ -384,6 +384,12 @@ class ClaimViewSet(viewsets.ModelViewSet):
         claim.status = status_val
         if status_val == "submitted" and not claim.submitted_at:
             claim.submitted_at = timezone.now()
+        
+        # Attach note for signal to pick up
+        note = request.data.get("note")
+        if note:
+            claim.status_note = note
+            
         claim.save(update_fields=["status", "submitted_at"])
         claim.compute_payable()
 
@@ -417,6 +423,38 @@ class ClaimViewSet(viewsets.ModelViewSet):
         reviews_qs = ClaimReview.objects.filter(claim=claim).select_related('reviewer').order_by('-created_at')
         data = ClaimReviewSerializer(reviews_qs, many=True).data
         return Response({"results": data})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def upload_summary_pdf(request, claim_id):
+    """
+    Called by the frontend after claim submission to upload a generated PDF summary.
+    """
+    claim = get_object_or_404(Claim, id=claim_id)
+
+    # Verify ownership or committee status
+    user = request.user
+    is_committee = user.groups.filter(name__in=["Admin", "Committee"]).exists() or user.is_superuser
+    if not is_committee and claim.member.user != user:
+        return Response({"detail": "Permission denied."}, status=403)
+
+    file_obj = request.FILES.get("file")
+    if not file_obj:
+        return Response({"detail": "No file uploaded."}, status=400)
+
+    # Save as ClaimAttachment
+    attachment = ClaimAttachment.objects.create(
+        claim=claim,
+        uploaded_by=user,
+        file=file_obj,
+        content_type="application/pdf"
+    )
+
+    return Response({
+        "id": str(attachment.id),
+        "message": "Summary PDF uploaded successfully"
+    }, status=status.HTTP_201_CREATED)
 
 
 # ============================================================
@@ -797,7 +835,7 @@ def login_view(request):
         user=user,
         defaults={
             "membership_type": MembershipType.objects.first(),
-            "nhif_number": "PENDING",
+            "shif_number": "PENDING",
             "valid_from": timezone.now().date(),
             "valid_to": timezone.now().date() + timezone.timedelta(days=365),
             "status": "active",
@@ -805,16 +843,7 @@ def login_view(request):
         },
     )
 
-    csrf_token = get_token(request)
-    response = Response({"detail": "Login successful."})
-    response.set_cookie(
-        "csrftoken",
-        csrf_token,
-        httponly=False,
-        secure=False,
-        samesite="Lax",
-    )
-    return response
+    return Response({"detail": "Login successful."})
 
 
 @api_view(["POST"])
@@ -895,7 +924,7 @@ def register_view(request):
       "family_doctor_phone_home": "",
       "family_doctor_phone_fax": "",
       "family_doctor_phone_mobile": "",
-      "nhif_number": "",
+      "shif_number": "",
       "other_medical_scheme": "",
       "dependants": [
         {
@@ -961,7 +990,7 @@ def register_view(request):
         family_doctor_phone_home=data.get("family_doctor_phone_home", ""),
         family_doctor_phone_fax=data.get("family_doctor_phone_fax", ""),
         family_doctor_phone_mobile=data.get("family_doctor_phone_mobile", ""),
-        nhif_number=data.get("nhif_number", "") or "PENDING",
+        shif_number=data.get("shif_number", "") or "PENDING",
         other_medical_scheme=data.get("other_medical_scheme", ""),
         status="pending",
         valid_from=None,
@@ -1003,7 +1032,7 @@ def committee_claims(request):
     List claims for committee with optional filters:
     ?status=submitted|reviewed|approved|rejected|paid
     ?type=outpatient|inpatient|chronic
-    ?q=<member name or username or nhif>
+    ?q=<member name or username or shif/sha>
     """
     status_f = request.GET.get("status")
     type_f = request.GET.get("type")
@@ -1022,7 +1051,7 @@ def committee_claims(request):
             Q(member__user__username__icontains=q) |
             Q(member__user__first_name__icontains=q) |
             Q(member__user__last_name__icontains=q) |
-            Q(nhif_number__icontains=q)
+            Q(shif_number__icontains=q)
         )
 
     data = []
@@ -1076,7 +1105,7 @@ def committee_claim_detail(request, pk):
             "username": c.member.user.username,
             "email": c.member.user.email,
             "membership_type": c.member.membership_type.name if c.member.membership_type else None,
-            "nhif_number": c.nhif_number or c.member.nhif_number,
+            "shif_number": c.shif_number or c.member.shif_number,
         },
         "claim": {
             "type": c.claim_type,
@@ -1267,7 +1296,7 @@ def member_dashboard_info(request):
         "email": request.user.email,
         "membership_type": member.membership_type.name if member.membership_type else None,
         "membership_no": str(member.id),
-        "nhif_number": member.nhif_number,
+        "shif_number": member.shif_number,
         "valid_from": member.valid_from,
         "valid_to": member.valid_to,
         "status": member.status,
@@ -1296,7 +1325,7 @@ def committee_dashboard_info(request):
         "email": request.user.email,
         "role": "Committee",
         "membership_no": str(member.id) if member else None,
-        "nhif_number": member.nhif_number if member else None,
+        "shif_number": member.shif_number if member else None,
         "membership_type": member.membership_type.name if member and member.membership_type else None,
         "pending_total": pending,
         "today_new": today_new,

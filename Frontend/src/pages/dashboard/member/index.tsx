@@ -197,7 +197,7 @@ export default function MemberDashboard() {
              <div className="space-y-4">
                 <ProfileItem label="Membership No" value={memberInfo?.membership_no || "N/A"} />
                 <ProfileItem label="Type" value={memberInfo?.membership_type || "Standard"} />
-                <ProfileItem label="NHIF No" value={memberInfo?.nhif_number || "Not set"} />
+                <ProfileItem label="SHIF/SHA No" value={memberInfo?.shif_number || "Not set"} />
                 <div className="h-px bg-gray-100 my-2"></div>
                 <ProfileItem label="Valid From" value={formatDate(memberInfo?.valid_from)} />
                 <ProfileItem label="Expires" value={formatDate(memberInfo?.valid_to)} />

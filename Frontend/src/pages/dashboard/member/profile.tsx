@@ -43,7 +43,7 @@ export default function MemberProfilePage() {
         family_doctor_phone_mobile: profile.family_doctor_phone_mobile,
         family_doctor_phone_fax: profile.family_doctor_phone_fax,
         other_medical_scheme: profile.other_medical_scheme,
-        nhif_number: profile.nhif_number,
+        shif_number: profile.shif_number,
       });
       setProfile(res.data);
     } catch (e) {
@@ -137,9 +137,9 @@ export default function MemberProfilePage() {
                         onChange={(e) => handleChange("mailing_address", e.target.value)}
                     />
                     <Input
-                        label="NHIF Number"
-                        value={profile.nhif_number || ""}
-                        onChange={(e) => handleChange("nhif_number", e.target.value)}
+                        label="SHIF/SHA Number"
+                        value={profile.shif_number || ""}
+                        onChange={(e) => handleChange("shif_number", e.target.value)}
                     />
                 </div>
                 <div className="mt-4">

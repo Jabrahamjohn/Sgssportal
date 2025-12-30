@@ -6,7 +6,7 @@ export default function Benefits() {
     "Chronic illness medication assistance for registered chronic cases.",
     "Critical illness top-up of Ksh 200,000 for qualifying cases.",
     "Annual benefit limit of Ksh 250,000 per individual member.",
-    "Mandatory NHIF and other schemes are offset before Fund pays.",
+    "Mandatory SHIF/SHA and other schemes are offset before Fund pays.",
   ];
 
   return (

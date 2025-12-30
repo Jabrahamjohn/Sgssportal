@@ -70,7 +70,7 @@ export default function CommitteeClaimDetailPage() {
         <p><strong>Name:</strong> {member.name}</p>
         <p><strong>Email:</strong> {member.email}</p>
         <p><strong>Membership Type:</strong> {member.membership_type}</p>
-        <p><strong>NHIF:</strong> {member.nhif_number || "N/A"}</p>
+        <p><strong>SHIF/SHA:</strong> {member.shif_number || "N/A"}</p>
       </div>
 
       {/* CLAIM SUMMARY */}

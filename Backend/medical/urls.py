@@ -45,6 +45,7 @@ urlpatterns = [
     # uploads / reports
     path("reports/export/", views.export_claims_csv),
     path("claims/bulk_status/", views.bulk_change_status),
+    path("claims/<uuid:claim_id>/upload_summary/", views.upload_summary_pdf, name="upload-summary-pdf"),
 
     # admin summary / audit
     path("dashboard/admin/summary/", views.admin_dashboard_summary, name="admin-dashboard-summary"),

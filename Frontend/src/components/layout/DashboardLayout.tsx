@@ -228,7 +228,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-200 opacity-30 blur-[100px] rounded-full pointer-events-none mix-blend-multiply"></div>
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-yellow-100 opacity-40 blur-[80px] rounded-full pointer-events-none mix-blend-multiply"></div>
 
-        <header className="flex items-center justify-between px-4 lg:px-8 py-5 glass-panel z-10 mx-4 lg:mx-6 mt-4 lg:mt-6 rounded-2xl shadow-sm">
+        <header className="flex items-center justify-between px-4 lg:px-8 py-5 glass-panel z-30 mx-4 lg:mx-6 mt-4 lg:mt-6 rounded-2xl shadow-sm">
           <div className="flex items-center gap-4">
              {/* Mobile Menu Button */}
              <Button 

@@ -8,7 +8,7 @@ interface Application {
   email: string;
   membership_type_name?: string;
   status: string;
-  nhif_number?: string;
+  shif_number?: string;
   mailing_address?: string;
   phone_mobile?: string;
   benefits_from?: string | null;
@@ -152,8 +152,8 @@ export default function CommitteeApplicationsPage() {
                 {selected.membership_type_name || "—"}
               </p>
               <p>
-                <span className="font-medium">NHIF Number: </span>
-                {selected.nhif_number || "—"}
+                <span className="font-medium">SHIF/SHA Number: </span>
+                {selected.shif_number || "—"}
               </p>
               <p>
                 <span className="font-medium">Mobile: </span>

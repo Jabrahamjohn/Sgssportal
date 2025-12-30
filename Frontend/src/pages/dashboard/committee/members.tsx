@@ -29,7 +29,7 @@ type MemberRow = {
     key: string;
   } | null;
   status: string;
-  nhif_number?: string | null;
+  shif_number?: string | null;
   valid_from?: string | null;
   valid_to?: string | null;
 };
@@ -100,8 +100,8 @@ export default function CommitteeMembersPage() {
       const term = q.toLowerCase();
       const name = getFullName(m.user).toLowerCase();
       const email = (m.user.email || "").toLowerCase();
-      const nhif = (m.nhif_number || "").toLowerCase();
-      return name.includes(term) || email.includes(term) || nhif.includes(term);
+      const shif = (m.shif_number || "").toLowerCase();
+      return name.includes(term) || email.includes(term) || shif.includes(term);
   });
 
   return (
@@ -127,7 +127,7 @@ export default function CommitteeMembersPage() {
                     <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                         className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sgss-gold)]/20 focus:border-[var(--sgss-gold)] transition-all bg-white"
-                        placeholder="Search members by name, email, or NHIF..."
+                        placeholder="Search members by name, email, or SHIF/SHA..."
                         value={q}
                         onChange={e => setQ(e.target.value)}
                     />
@@ -181,7 +181,7 @@ export default function CommitteeMembersPage() {
                                             <div>
                                                 <p className="font-bold text-[var(--sgss-navy)]">{getFullName(m.user)}</p>
                                                 <p className="text-xs text-gray-400">{m.user?.email || "No Email"}</p>
-                                                {m.nhif_number && <p className="text-[10px] text-gray-400 mt-0.5 font-mono">NHIF: {m.nhif_number}</p>}
+                                                {m.shif_number && <p className="text-[10px] text-gray-400 mt-0.5 font-mono">SHIF/SHA: {m.shif_number}</p>}
                                             </div>
                                         </div>
                                     </td>

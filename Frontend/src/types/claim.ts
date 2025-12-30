@@ -20,6 +20,7 @@ export interface Claim {
   status: ClaimStatus;
   notes?: string | null;
   excluded: boolean;
+  shif_number?: string | null;
   created_at: string;
   items?: ClaimItem[];
 }
@@ -38,9 +39,9 @@ export interface InpatientClaim {
   admission_date: string;
   discharge_date: string;
   bed_charge_per_day: number;
-  nhif_number?: string;
-  nhif_rebate_per_day?: number;
-  nhif_total?: number;
+  shif_number?: string;
+  shif_rebate_per_day?: number;
+  shif_total?: number;
   inpatient_charges: Array<{ description: string; amount: number }>;
   doctor_charges: Array<{ name: string; specialty?: string; amount: number }>;
   claimable_charges: Array<{ category: string; amount: number }>;

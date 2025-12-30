@@ -72,7 +72,7 @@ export default function ClaimsTable() {
 
         <input
           className="border p-2 rounded"
-          placeholder="Search member name / username / NHIF…"
+          placeholder="Search member name / username / SHIF/SHA…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

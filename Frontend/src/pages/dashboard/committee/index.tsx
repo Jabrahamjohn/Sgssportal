@@ -139,8 +139,8 @@ export default function CommitteeDashboard() {
                       <span className="font-medium text-gray-800">{info?.membership_no || "—"}</span>
                   </div>
                    <div>
-                      <span className="block text-gray-500 text-xs">NHIF No</span>
-                      <span className="font-medium text-gray-800">{info?.nhif_number || "—"}</span>
+                      <span className="block text-gray-500 text-xs">SHIF/SHA No</span>
+                      <span className="font-medium text-gray-800">{info?.shif_number || "—"}</span>
                   </div>
               </div>
           </div>

@@ -26,7 +26,7 @@ type MemberType = {
   };
   membership_type?: { id: string; name: string; key: string } | null;
   status: string;
-  nhif_number?: string | null;
+  shif_number?: string | null;
   mailing_address?: string | null;
   phone_mobile?: string | null;
 };
@@ -172,7 +172,7 @@ export default function RegistrationQueue() {
                                          <div className="space-y-1 text-xs">
                                              <div className="flex items-center gap-2 text-gray-700 font-medium">
                                                  <IdentificationIcon className="w-3.5 h-3.5 text-gray-400" />
-                                                 NHIF: {m.nhif_number || "N/A"}
+                                                 SHIF/SHA: {m.shif_number || "N/A"}
                                              </div>
                                              <div className="px-2 py-0.5 rounded bg-gray-100 w-fit text-gray-600">
                                                  {m.membership_type?.name || "Standard Membership"}

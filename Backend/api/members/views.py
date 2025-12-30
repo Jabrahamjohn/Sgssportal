@@ -15,7 +15,7 @@ def member_me(request):
             "full_name": member.user.get_full_name() or member.user.username,
             "email": member.user.email,
             "membership_type": member.membership_type.name if member.membership_type else None,
-            "nhif_number": member.nhif_number,
+            "shif_number": member.shif_number,
             "valid_from": member.valid_from,
             "valid_to": member.valid_to,
         }

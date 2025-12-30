@@ -114,7 +114,7 @@ export default function CommitteeClaimsPage() {
                         className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sgss-gold)]/20 focus:border-[var(--sgss-gold)] transition-all"
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
-                        placeholder="Search by member name, NHIF, or Reference ID..."
+                        placeholder="Search by member name, SHIF/SHA, or Reference ID..."
                       />
                  </div>
                  <div className="flex items-center gap-2 min-w-[200px]">

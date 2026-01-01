@@ -28,7 +28,7 @@ urlpatterns = [
 
     # password reset
     path("auth/password_reset/", views_auth.CustomPasswordResetView.as_view(), name="password-reset"),
-    path("auth/password_reset/confirm/<uidb64>/<token>/", views_auth.CustomPasswordResetConfirmView.as_view(), name="password_reset_confirm"),
+    path("auth/password_reset/confirm/", views_auth.CustomPasswordResetConfirmView.as_view(), name="password_reset_confirm"),
 
     # member info
     path("members/me/", views.my_member, name="my-member"),

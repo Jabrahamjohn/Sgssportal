@@ -107,40 +107,43 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     """
     API View to set the new password.
     """
+    def dispatch(self, request, *args, **kwargs):
+        # Bypass the middleware check in PasswordResetConfirmView that requires
+        # uidb64 and token to be in URL kwargs. We handle them in POST body.
+        # We call the grandparent (View/ProcessFormView) dispatch directly.
+        from django.views.generic.base import View
+        return View.dispatch(self, request, *args, **kwargs)
+
     def post(self, request, *args, **kwargs):
         try:
             data = json.loads(request.body)
-            uidb64 = data.get('uid') # Frontend should send these
+            uidb64 = data.get('uid')
             token = data.get('token')
             password = data.get('password')
-        except:
-             return JsonResponse({'detail': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            return JsonResponse({'detail': 'Invalid JSON'}, status=400)
              
         if not (uidb64 and token and password):
             return JsonResponse({'detail': 'Missing parameters.'}, status=400)
             
-        # Standard format expects parameters in URL kwargs, but we can manually invoke form.
-        # Actually, PasswordResetConfirmView expects uidb64 and token in kwargs.
-        
-        # We can dynamically set them on 'self.kwargs' if we route this as a generic POST endpoint.
-        self.kwargs['uidb64'] = uidb64
-        self.kwargs['token'] = token
-        
-        # And injection of password into expected POST dict for the form
-        request.POST = request.POST.copy()
-        request.POST['new_password1'] = password
-        request.POST['new_password1'] = password # form expects this? usually new_password1
-        
-        from django.contrib.auth.forms import SetPasswordForm
         user = self.get_user(uidb64)
         
         if user is None:
-             return JsonResponse({'detail': 'Invalid link.'}, status=400)
-             
-        form = SetPasswordForm(user, data={'new_password1': password})
+             return JsonResponse({'detail': 'Invalid link (user not found).'}, status=400)
+
+        # SECURITY: Verify token!
+        if not self.token_generator.check_token(user, token):
+            return JsonResponse({'detail': 'Invalid or expired token.'}, status=400)
+
+        # Initialize form with the user and data
+        # Django's SetPasswordForm requires both new_password1 and new_password2
+        form = self.form_class(user, data={'new_password1': password, 'new_password2': password})
         
         if form.is_valid():
-            form.save()
+            # Explicitly set and save
+            user.set_password(password)
+            user.save()
+            
             return JsonResponse({'detail': 'Password has been reset successfully.'})
         else:
             return JsonResponse({'detail': 'Invalid password.', 'errors': form.errors}, status=400)

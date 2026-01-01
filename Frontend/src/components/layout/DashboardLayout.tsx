@@ -201,7 +201,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 active={active("/dashboard/admin/users")}
               />
 
-              <Nav to="/dashboard/admin/settings" icon={Cog6ToothIcon}
+              <Nav to="/dashboard/admin/settings" icon={CogIcon}
                 label="Configuration"
                 active={active("/dashboard/admin/settings")}
               />

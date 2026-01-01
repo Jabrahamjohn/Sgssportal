@@ -19,6 +19,8 @@ import AppLayout from "./layout";
 import LandingPage from "./pages/landing/LandingPage";
 import Login from "./containers/auth/login";
 import Register from "./containers/auth/register";
+import ForgotPassword from "./containers/auth/forgot-password";
+import ResetPassword from "./containers/auth/reset-password";
 
 // Member
 import MemberDashboard from "./pages/dashboard/member";

@@ -2,7 +2,7 @@
 
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import views
+from . import views, views_auth
 
 router = DefaultRouter()
 
@@ -25,6 +25,10 @@ urlpatterns = [
     path("auth/login/", views.login_view, name="login"),
     path("auth/logout/", views.logout_view, name="logout"),
     path("auth/register/", views.register_view, name="register"),
+
+    # password reset
+    path("auth/password_reset/", views_auth.CustomPasswordResetView.as_view(), name="password-reset"),
+    path("auth/password_reset/confirm/", views_auth.CustomPasswordResetConfirmView.as_view(), name="password-reset-confirm"),
 
     # member info
     path("members/me/", views.my_member, name="my-member"),

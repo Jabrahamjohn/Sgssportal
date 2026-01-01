@@ -88,6 +88,8 @@ export default function AppRouter() {
       {/* Auth */}
       <Route path="/login" element={<Unauthenticated><Login /></Unauthenticated>} />
       <Route path="/register" element={<Unauthenticated><Register /></Unauthenticated>} />
+      <Route path="/forgot-password" element={<Unauthenticated><ForgotPassword /></Unauthenticated>} />
+      <Route path="/reset-password" element={<Unauthenticated><ResetPassword /></Unauthenticated>} />
 
       {/* Protected */}
       <Route

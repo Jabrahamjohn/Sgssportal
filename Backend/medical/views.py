@@ -868,7 +868,8 @@ def logout_view(request):
 @permission_classes([AllowAny])
 @ensure_csrf_cookie
 def csrf_cookie(request):
-    return JsonResponse({"detail": "CSRF cookie set"})
+    from django.middleware.csrf import get_token
+    return JsonResponse({"detail": "CSRF cookie set", "csrfToken": get_token(request)})
 
 
 @api_view(["GET"])

@@ -136,6 +136,13 @@ def member_saved(sender, instance: Member, created, **kwargs):
                     f"/dashboard/committee/members/{instance.id}/",
                     "member"
                 )
+        
+        # Send committee email alert
+        try:
+            from .email_notifications import send_new_member_committee_email
+            send_new_member_committee_email(instance)
+        except Exception as e:
+            print(f"Failed to send new member committee email: {e}")
     else:
         # Status changes handled here or in services? 
         # Services `approve_member` handles it manually with custom message.

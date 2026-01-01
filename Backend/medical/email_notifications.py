@@ -282,3 +282,101 @@ def send_committee_notification_email(claim, notification_type='new_claim'):
     except Exception as e:
         print(f"Failed to send committee notification: {e}")
         return False
+
+
+def send_application_rejected_email(member):
+    """Send email when membership application is rejected"""
+    subject = 'Update on Your SGSS Medical Fund Application'
+    
+    html_message = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #dc2626;">Application Status Update</h2>
+            
+            <p>Dear {member.user.get_full_name() or member.user.username},</p>
+            
+            <p>We regret to inform you that your application for membership with the SGSS Medical Fund has been declined at this time.</p>
+            
+            <div style="background-color: #fef2f2; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 0;"><strong>Status:</strong> Rejected</p>
+            </div>
+            
+            <p>If you believe this decision was made in error or if you would like more information, please contact the committee.</p>
+            
+            <p>If you wish to re-apply in the future or update your details, please log in to your dashboard.</p>
+            
+            <p>Best regards,<br>
+            <strong>SGSS Medical Fund Committee</strong></p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    plain_message = strip_tags(html_message)
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[member.user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        print(f"Failed to send rejection email: {e}")
+        return False
+
+
+def send_new_member_committee_email(member):
+    """Send email to committee when a new member registers"""
+    from django.contrib.auth.models import Group
+    
+    committee_group = Group.objects.filter(name="Committee").first()
+    if not committee_group:
+        return False
+    
+    committee_emails = list(committee_group.user_set.values_list('email', flat=True))
+    if not committee_emails:
+        return False
+        
+    subject = 'New Member Registration'
+    
+    html_message = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #1e40af;">New Member Registration</h2>
+            
+            <p>A new member has registered and requires review.</p>
+            
+            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 0;"><strong>Name:</strong> {member.user.get_full_name() or member.user.username}</p>
+                <p style="margin: 5px 0 0 0;"><strong>Email:</strong> {member.user.email}</p>
+                <p style="margin: 5px 0 0 0;"><strong>Membership Type:</strong> {member.membership_type.name if member.membership_type else 'Not Selected'}</p>
+                <p style="margin: 5px 0 0 0;"><strong>Status:</strong> Pending</p>
+            </div>
+            
+            <p><a href="{settings.FRONTEND_URL or 'http://localhost:3000'}/dashboard/committee/members" style="display: inline-block; background-color: #1e40af; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Review Application</a></p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    plain_message = strip_tags(html_message)
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=committee_emails,
+            html_message=html_message,
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        print(f"Failed to send new member committee alert: {e}")
+        return False

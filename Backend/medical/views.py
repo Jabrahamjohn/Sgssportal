@@ -104,6 +104,13 @@ class MemberViewSet(viewsets.ModelViewSet):
         from medical.services.membership import reject_member
         member = reject_member(member, reason)
 
+        # Send rejection email
+        try:
+            from .email_notifications import send_application_rejected_email
+            send_application_rejected_email(member)
+        except Exception as e:
+            print(f"Error sending rejection email: {e}")
+
         return Response(MemberSerializer(member).data)
 
 

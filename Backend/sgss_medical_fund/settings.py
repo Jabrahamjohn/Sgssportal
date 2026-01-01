@@ -246,11 +246,9 @@ if env('EMAIL_HOST', default=''):
     EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
     EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
     EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@sgssmedicalfund.org')
 elif DEBUG:
     # Console backend (emails print to console)
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    DEFAULT_FROM_EMAIL = 'noreply@sgssmedicalfund.org'
 else:
     # Production SMTP (SendGrid, AWS SES, etc.)
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -259,7 +257,9 @@ else:
     EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
     EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
     EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@sgssmedicalfund.org')
+
+# Set DEFAULT_FROM_EMAIL for all configurations
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@sgssmedicalfund.org')
 
 
 # settings.py

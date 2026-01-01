@@ -112,6 +112,45 @@ class MemberViewSet(viewsets.ModelViewSet):
             print(f"Error sending rejection email: {e}")
 
         return Response(MemberSerializer(member).data)
+    
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsCommittee])
+    def revoke(self, request, pk=None):
+        """Revoke an approved/active membership"""
+        member = self.get_object()
+        
+        if member.status not in ['approved', 'active']:
+            return Response(
+                {"detail": "Only approved/active memberships can be revoked."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        reason = request.data.get("reason", "")
+        member.status = 'inactive'
+        member.save()
+        
+        # Log the revocation
+        AuditLog.objects.create(
+            actor=request.user,
+            action=f"membership:REVOKED",
+            meta={"member_id": member.id, "reason": reason}
+        )
+        
+        # Notify member
+        _notify =lambda recipient, title, message, link=None, type_="system": (
+            Notification.objects.create(
+                recipient=recipient, title=title, message=message,
+                link=link, type=type_, actor=request.user
+            )
+        )
+        _notify(
+            member.user,
+            "Membership Revoked",
+            f"Your membership has been revoked. {reason}",
+            "/dashboard/member",
+            "member"
+        )
+        
+        return Response(MemberSerializer(member).data)
 
 
 

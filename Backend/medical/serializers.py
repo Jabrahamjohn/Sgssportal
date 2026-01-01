@@ -59,6 +59,7 @@ class MemberApplicationSerializer(serializers.ModelSerializer):
 class MemberSerializer(serializers.ModelSerializer):
     user_full_name = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
+    membership_type_details = serializers.SerializerMethodField()
     dependants = MemberDependentSerializer(many=True, read_only=True)
 
     class Meta:
@@ -68,6 +69,7 @@ class MemberSerializer(serializers.ModelSerializer):
             "user_full_name",
             "email",
             "membership_type",
+            "membership_type_details",
             "shif_number",
             "mailing_address",
             "phone_office",
@@ -93,6 +95,15 @@ class MemberSerializer(serializers.ModelSerializer):
 
     def get_email(self, obj):
         return obj.user.email
+    
+    def get_membership_type_details(self, obj):
+        if obj.membership_type:
+            return {
+                "id": obj.membership_type.id,
+                "name": obj.membership_type.name,
+                "annual_limit": obj.membership_type.annual_limit
+            }
+        return None
 
 class AdminUserSerializer(serializers.ModelSerializer):
     groups = serializers.SlugRelatedField(

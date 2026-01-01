@@ -118,6 +118,14 @@ export default function AppRouter() {
         <Route path="committee/claims" element={<CommitteeClaimsPage />} />
         <Route path="committee/claims/:id" element={<CommitteeClaimDetail />} />
         <Route path="committee/members" element={<CommitteeMembersPage />} />
+        <Route path="committee/members/:id" element={<CommitteeMembersPage />} />
+        <Route path="committee/settings" element={<AdminSettingsIndex />}>
+          <Route index element={<Navigate to="memberships" replace />} />
+          <Route path="memberships" element={<AdminMembershipTypes />} />
+          <Route path="reimbursement" element={<AdminReimbursementScales />} />
+          <Route path="general" element={<AdminGeneralSettings />} />
+          <Route path="registrations" element={<AdminRegistrations />} />
+        </Route>
 
         {/* ADMIN */}
         <Route path="admin" element={<AdminDashboard />} />

@@ -15,7 +15,7 @@ import {
   ArrowLeftStartOnRectangleIcon,
   UsersIcon,
   FolderOpenIcon,
-  Cog6ToothIcon,
+  Cog6ToothIcon as CogIcon,
   Bars3BottomLeftIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -175,6 +175,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
               <Nav to="/dashboard/committee/members" icon={UsersIcon}
                 label="Member Directory" active={active("/dashboard/committee/members")}
+              />
+
+              <Nav to="/dashboard/committee/settings" icon={CogIcon}
+                label="Settings" active={active("/dashboard/committee/settings")}
               />
             </div>
           )}

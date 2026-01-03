@@ -5,7 +5,7 @@
 The **SGSS Medical Fund Portal** digitizes all operations of the Siri Guru Singh Sabha Medical Fund.
 It handles **member management**, **medical claims**, **chronic illness requests**, **claim reviews**, and **fund governance** as per the Constitution (2015) and Bylaws (2024).
 
-The backend (Django REST Framework) exposes structured APIs for the frontend (React/Vite) to interact with.
+The backend (Django REST Framework) exposes structured APIs for the frontend (React/Vite) to interact with....
 
 ---
 

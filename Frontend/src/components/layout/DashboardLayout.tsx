@@ -14,9 +14,11 @@ import {
   UserCircleIcon,
   ArrowLeftStartOnRectangleIcon,
   UsersIcon,
+  UserGroupIcon,
   FolderOpenIcon,
   Cog6ToothIcon as CogIcon,
   Bars3BottomLeftIcon,
+  BanknotesIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 
@@ -62,8 +64,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const role = me?.role?.toLowerCase();
-  const isCommittee = role === "committee" || role === "admin";
+  const isCommittee = role === "committee" || role === "admin" || role === "trustee";
   const isAdmin = role === "admin";
+  const isTrustee = role === "trustee" || role === "admin";
 
   const active = (path: string) => location.pathname.startsWith(path);
 
@@ -164,6 +167,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 label="All Claims" active={active("/dashboard/committee/claims")}
               />
 
+              <Nav to="/dashboard/committee/meetings" icon={UserGroupIcon}
+                label="Meetings" active={active("/dashboard/committee/meetings")}
+              />
+
+              <Nav to="/dashboard/committee/reconciliation" icon={BanknotesIcon}
+                label="Reconciliation" active={active("/dashboard/committee/reconciliation")}
+              />
+
               <Nav to="/dashboard/committee/claims?status=submitted"
                 icon={ShieldCheckIcon}
                 label="Pending Review"
@@ -179,6 +190,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
               <Nav to="/dashboard/committee/settings" icon={CogIcon}
                 label="Settings" active={active("/dashboard/committee/settings")}
+              />
+            </div>
+          )}
+
+          {/* TRUSTEE MENU */}
+          {isTrustee && (
+            <div className="space-y-1">
+              <div className="border-t border-white/5 my-4 mx-2" />
+              <p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-3">
+                Adjudication
+              </p>
+
+              <Nav to="/dashboard/trustee/appeals" icon={ShieldCheckIcon}
+                label="Member Appeals" active={active("/dashboard/trustee/appeals")}
               />
             </div>
           )}

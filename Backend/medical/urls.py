@@ -16,6 +16,11 @@ router.register(r"chronic-requests", views.ChronicRequestViewSet, basename="chro
 router.register(r"notifications", views.NotificationViewSet, basename="notifications")
 router.register(r"settings", views.SettingViewSet, basename="settings")
 router.register(r"reimbursement-scales", views.ReimbursementScaleViewSet, basename="reimbursement-scales")
+router.register(r"meetings", views.CommitteeMeetingViewSet, basename="meetings")
+router.register(r"meeting-attendance", views.MeetingAttendanceViewSet, basename="meeting-attendance")
+router.register(r"meeting-claims", views.ClaimMeetingLinkViewSet, basename="meeting-claims")
+router.register(r"appeals", views.ClaimAppealViewSet, basename="appeals")
+router.register(r"payment-records", views.PaymentRecordViewSet, basename="payment-records")
 
 urlpatterns = [
 

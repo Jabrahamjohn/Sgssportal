@@ -4,6 +4,7 @@ from django.contrib.auth.models import Group
 from django.db import transaction, models, connection
 from django.db.models import Q, Sum, Count
 from django.db.models.functions import TruncMonth
+from django.forms.models import model_to_dict
 from django.http import JsonResponse, HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
@@ -21,14 +22,17 @@ from .models import (
     Claim, ClaimItem, ClaimReview, AuditLog,
     Notification, ReimbursementScale, Setting,
     ChronicRequest, ClaimAttachment,
+    CommitteeMeeting, MeetingAttendance, ClaimMeetingLink, ClaimAppeal, PaymentRecord
 )
 from .serializers import (
     MemberSerializer, MembershipTypeSerializer, ClaimSerializer, ClaimItemSerializer,
     ClaimReviewSerializer, NotificationSerializer, ReimbursementScaleSerializer,
     SettingSerializer, ChronicRequestSerializer, ClaimAttachmentSerializer,
-    AuditLogSerializer, MemberDependentSerializer, AdminUserSerializer
+    AuditLogSerializer, MemberDependentSerializer, AdminUserSerializer,
+    CommitteeMeetingSerializer, MeetingAttendanceSerializer, ClaimMeetingLinkSerializer, 
+    ClaimAppealSerializer, PaymentRecordSerializer
 )
-from .permissions import IsSelfOrAdmin, IsClaimOwnerOrCommittee, IsCommittee, IsAdmin
+from .permissions import IsSelfOrAdmin, IsClaimOwnerOrCommittee, IsCommittee, IsAdmin, IsTrustee
 from .audit import log_claim_event
 
 User = get_user_model()
@@ -397,7 +401,11 @@ class ClaimViewSet(viewsets.ModelViewSet):
         # 3. Enforce submission timestamp if submitted
         if claim.status == "submitted" and claim.submitted_at is None:
             claim.submitted_at = timezone.now()
-            claim.save(update_fields=["submitted_at"])
+            claim.save(update_fields=["status", "submitted_at"])
+            
+            # Phase 2B: Register Fingerprint
+            from medical.services.verification import register_claim_fingerprint
+            register_claim_fingerprint(claim)
 
         # 4. Compute totals
         claim.recalc_total()
@@ -423,6 +431,15 @@ class ClaimViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsCommittee])
     def set_status(self, request, pk=None):
         claim = self.get_object()
+        previous_state = model_to_dict(claim)
+        
+        # --- PHASE 2C: Conflict of Interest Guard ---
+        if claim.member.user == request.user:
+            return Response(
+                {"detail": "Conflict of Interest: You cannot review or change the status of your own claim."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         status_val = request.data.get("status")
         if status_val not in dict(Claim.STATUS_CHOICES):
             return Response({"detail": "Invalid status."}, status=400)
@@ -435,22 +452,57 @@ class ClaimViewSet(viewsets.ModelViewSet):
         note = request.data.get("note")
         if note:
             claim.status_note = note
+
+        # --- PHASE 2A: Governance Enforcement ---
+        if status_val in ["approved", "rejected"]:
+            # Check if there is a linked LOCKED meeting
+            latest_link = claim.meeting_links.filter(meeting__status="locked").last()
+            if not latest_link:
+                return Response(
+                    {"detail": "Cannot approve/reject claim without a linked, locked committee meeting decision."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # Ensure the decision matches
+            if latest_link.decision != status_val:
+                 return Response(
+                    {"detail": f"System decision ({status_val}) does not match the ratified meeting decision ({latest_link.decision})."},
+                    status=status.HTTP_400_BAD_REQUEST
+                 )
             
+        if status_val == "paid":
+             if not hasattr(claim, 'payment_record') or not claim.payment_record.reconciled:
+                  return Response(
+                      {"detail": "Cannot mark claim as PAID without a reconciled payment record proof."},
+                      status=status.HTTP_400_BAD_REQUEST
+                  )
+
         claim.save(update_fields=["status", "submitted_at"])
+        
+        # Phase 2B: Register Fingerprint if status changed to submitted
+        if claim.status == "submitted":
+            from medical.services.verification import register_claim_fingerprint
+            register_claim_fingerprint(claim)
         claim.compute_payable()
 
+        # Phase 2B: Deep Audit (Final Snapshot)
+        new_state = model_to_dict(claim)
+        
         note = request.data.get("note")
         log_claim_event(
             claim=claim,
             actor=request.user,
-            action=status_val,
+            action=f"status_change:{status_val}",
             note=note,
+            previous_state=previous_state,
+            new_state=new_state,
             role=request.user.groups.values_list("name", flat=True).first()
-                or ("admin" if request.user.is_superuser else "member"),
-            meta={"claim_id": str(claim.id)}
         )
-
-        return Response(ClaimSerializer(claim).data)
+        
+        return Response({
+            "status": "success",
+            "claim_status": claim.status,
+            "message": f"Claim status updated to {claim.status}"
+        })
 
     @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def audit(self, request, pk=None):
@@ -554,9 +606,19 @@ class ClaimReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ClaimReviewSerializer
     permission_classes = [permissions.IsAuthenticated, IsCommittee]
 
+    @transaction.atomic
     def perform_create(self, serializer):
+        claim = serializer.validated_data['claim']
+        previous_state = model_to_dict(claim)
+        
         review = serializer.save(reviewer=self.request.user)
-        claim = review.claim
+
+        # --- PHASE 2C: Conflict of Interest Guard ---
+        if claim.member.user == self.request.user:
+             raise serializers.ValidationError(
+                 {"detail": "Conflict of Interest: You cannot submit a review for your own claim."}
+             )
+
         from medical.services.rules import enforce_annual_limit
         enforce_annual_limit(claim)
 
@@ -577,6 +639,18 @@ class ClaimReviewViewSet(viewsets.ModelViewSet):
         elif review.action == "reviewed":
             claim.status = "reviewed"
 
+        # --- PHASE 2A: Governance Enforcement ---
+        if review.action in ["approved", "rejected"]:
+            latest_link = claim.meeting_links.filter(meeting__status="locked").last()
+            if not latest_link:
+                 raise serializers.ValidationError(
+                     {"detail": "Cannot approve/reject claim without a linked, locked committee meeting decision."}
+                 )
+            if latest_link.decision != review.action:
+                raise serializers.ValidationError(
+                    {"detail": f"Review action ({review.action}) does not match the ratified meeting decision ({latest_link.decision})."}
+                )
+
         claim.save(update_fields=["status"])
         claim.compute_payable()
 
@@ -591,6 +665,8 @@ class ClaimReviewViewSet(viewsets.ModelViewSet):
             action=f"review:{review.action}",
             note=review.note,
             role=role,
+            previous_state=previous_state,
+            new_state=model_to_dict(claim),
             meta={"review_id": str(review.id)},
         )
 
@@ -730,6 +806,143 @@ class ReimbursementScaleViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsCommittee]
 
 
+# ============================================================
+#                GOVERNANCE & MEETINGS
+# ============================================================
+
+class CommitteeMeetingViewSet(viewsets.ModelViewSet):
+    queryset = CommitteeMeeting.objects.all().order_by("-date")
+    serializer_class = CommitteeMeetingSerializer
+    permission_classes = [permissions.IsAuthenticated, IsCommittee]
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    @action(detail=True, methods=["post"])
+    def ratify(self, request, pk=None):
+        meeting = self.get_object()
+        if not meeting.quorum_confirmed:
+            return Response({"detail": "Quorum must be confirmed before ratification."}, status=400)
+        meeting.status = "ratified"
+        meeting.save()
+        return Response(CommitteeMeetingSerializer(meeting).data)
+
+    @action(detail=True, methods=["post"])
+    def lock(self, request, pk=None):
+        meeting = self.get_object()
+        if meeting.status != "ratified":
+            return Response({"detail": "Meeting must be ratified before locking."}, status=400)
+        
+        # Lock it
+        meeting.status = "locked"
+        meeting.save()
+
+        # Audit
+        AuditLog.objects.create(
+            actor=request.user,
+            action="meeting:LOCKED",
+            meta={"meeting_id": str(meeting.id), "date": str(meeting.date)}
+        )
+
+        return Response(CommitteeMeetingSerializer(meeting).data)
+
+
+class MeetingAttendanceViewSet(viewsets.ModelViewSet):
+    queryset = MeetingAttendance.objects.all()
+    serializer_class = MeetingAttendanceSerializer
+    permission_classes = [permissions.IsAuthenticated, IsCommittee]
+
+
+class ClaimMeetingLinkViewSet(viewsets.ModelViewSet):
+    queryset = ClaimMeetingLink.objects.all()
+    serializer_class = ClaimMeetingLinkSerializer
+    permission_classes = [permissions.IsAuthenticated, IsCommittee]
+
+    def perform_create(self, serializer):
+        meeting = serializer.validated_data['meeting']
+        if meeting.status == "locked":
+            raise serializers.ValidationError({"detail": "Cannot add claims to a locked meeting."})
+        serializer.save()
+
+
+# ============================================================
+#                TRUSTEE APPEALS
+# ============================================================
+
+class ClaimAppealViewSet(viewsets.ModelViewSet):
+    queryset = ClaimAppeal.objects.all().order_by("-created_at")
+    serializer_class = ClaimAppealSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            return [permissions.IsAuthenticated(), IsTrustee()]
+        if self.action == "create":
+            return [permissions.IsAuthenticated()] # Members can appeal
+        if self.action in ["update", "partial_update", "destroy", "resolve"]:
+            return [permissions.IsAuthenticated(), IsTrustee()]
+        return super().get_permissions()
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        
+        if _in_group(user, ["Trustee", "Admin"]):
+            return qs
+        
+        # Members see their own appeals
+        return qs.filter(appealed_by__user=user)
+
+    def perform_create(self, serializer):
+        member = Member.objects.get(user=self.request.user)
+        # Ensure claim belongs to member
+        claim = serializer.validated_data['claim']
+        if claim.member != member:
+             raise serializers.ValidationError({"detail": "You can only appeal your own claims."})
+        
+        # Change claim status to 'Under Appeal' (not in choices yet?)
+        # For now, let's just log it.
+        serializer.save(appealed_by=member)
+
+    @action(detail=True, methods=["post"])
+    def resolve(self, request, pk=None):
+        appeal = self.get_object()
+        decision = request.data.get("decision")
+        notes = request.data.get("notes")
+
+        appeal.status = "resolved"
+        appeal.trustee_decision = decision
+        appeal.trustee_notes = notes
+        appeal.decided_at = timezone.now()
+        appeal.save()
+
+        # Logic to apply trustee decision to claim if needed
+        return Response(ClaimAppealSerializer(appeal).data)
+
+
+class PaymentRecordViewSet(viewsets.ModelViewSet):
+    queryset = PaymentRecord.objects.all()
+    serializer_class = PaymentRecordSerializer
+    permission_classes = [permissions.IsAuthenticated, IsCommittee]
+
+    @action(detail=True, methods=["post"])
+    def reconcile(self, request, pk=None):
+        payment = self.get_object()
+        payment.reconciled = True
+        payment.reconciled_by = request.user
+        payment.reconciled_at = timezone.now()
+        payment.save()
+
+        # Audit
+        AuditLog.objects.create(
+            actor=request.user,
+            action="payment:RECONCILED",
+            meta={"payment_id": str(payment.id), "claim_id": str(payment.claim.id)}
+        )
+
+        return Response(PaymentRecordSerializer(payment).data)
+
+
 # ============================================
 #                REPORTS (placeholder)
 # ============================================
@@ -764,6 +977,8 @@ def me(request):
 
     if user.is_superuser:
         role = "admin"
+    elif "trustee" in groups_normalized:
+        role = "trustee"
     elif "committee" in groups_normalized:
         role = "committee"
     elif "member" in groups_normalized:

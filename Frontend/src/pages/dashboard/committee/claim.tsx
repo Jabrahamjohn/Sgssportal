@@ -2,10 +2,13 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "~/config/api";
+import { useAuth } from "~/store/contexts/AuthContext";
 import Skeleton from "~/components/loader/skeleton";
 import Button from "~/components/controls/button";
 import PageTransition from "~/components/animations/PageTransition";
 import Badge from "~/components/controls/badge";
+import { Alert } from "~/components/controls";
+import dayjs from "dayjs";
 import { 
     PaperClipIcon, 
     ChatBubbleLeftRightIcon,
@@ -40,6 +43,12 @@ type CommitteeClaimResponse = {
     override_amount: string | null;
     submitted_at: string | null;
     created_at: string;
+    meeting_links?: {
+        meeting_id: string;
+        meeting_date: string;
+        meeting_status: string;
+        decision: string;
+    }[];
   };
   items: {
     id: string;
@@ -72,6 +81,7 @@ type AuditEntry = {
 export default function CommitteeClaimDetail() {
   const { id } = useParams();
   const nav = useNavigate();
+  const { auth } = useAuth();
   const [data, setData] = useState<CommitteeClaimResponse | null>(null);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -180,9 +190,24 @@ export default function CommitteeClaimDetail() {
 
   const { member, claim, items, attachments } = data;
   const currentStatus = (claim.status || "").toLowerCase();
+  
+  const isConflict = auth.user?.username === member.username || auth.user?.email === member.email;
+  const isRedacted = claim.notes === "[REDACTED - MEDICAL PRIVACY]";
 
   return (
     <PageTransition className="space-y-6">
+      {/* CONFLICT WARNING */}
+      {isConflict && (
+        <Alert
+          message="Conflict of Interest Warning"
+          description="This claim belongs to you or a dependant. You are strictly prohibited from adjudicating or changing the status of this claim."
+          type="error"
+          showIcon
+          icon={<XCircleIcon className="w-6 h-6" />}
+          className="rounded-xl border-red-100 shadow-sm"
+        />
+      )}
+
       {/* Header + actions */}
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div className="flex items-start gap-3">
@@ -201,6 +226,17 @@ export default function CommitteeClaimDetail() {
                        </span>
                        <span>|</span>
                        <span className="capitalize">Type: {claim.type || "N/A"}</span>
+                       {claim.meeting_links?.length ? (
+                          <div className="flex gap-2">
+                             {claim.meeting_links.map((link: any) => (
+                               <Badge key={link.meeting_id} variant={link.meeting_status === 'locked' ? 'success' : 'info'}>
+                                  Session: {dayjs(link.meeting_date).format("DD MMM")} ({link.decision})
+                               </Badge>
+                             ))}
+                          </div>
+                        ) : (
+                          <span className="text-amber-500 font-medium ml-2">Unscheduled</span>
+                        )}
                    </div>
                </div>
           </div>
@@ -217,7 +253,7 @@ export default function CommitteeClaimDetail() {
             </Button>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              disabled={acting || currentStatus === "approved"}
+              disabled={acting || currentStatus === "approved" || isConflict}
               onClick={() => handleStatusChange("approved", true)}
             >
               <CheckCircleIcon className="w-4 h-4 mr-1.5" />
@@ -225,7 +261,7 @@ export default function CommitteeClaimDetail() {
             </Button>
             <Button
               className="bg-red-600 hover:bg-red-700 text-white"
-              disabled={acting || currentStatus === "rejected"}
+              disabled={acting || currentStatus === "rejected" || isConflict}
               onClick={() => handleStatusChange("rejected", true)}
             >
                <XCircleIcon className="w-4 h-4 mr-1.5" />
@@ -233,7 +269,7 @@ export default function CommitteeClaimDetail() {
             </Button>
             <Button
               className="bg-[var(--sgss-navy)] hover:bg-[#04146a] text-white"
-              disabled={acting || currentStatus === "paid"}
+              disabled={acting || currentStatus === "paid" || isConflict}
               onClick={() => handleStatusChange("paid", true)}
             >
                <BanknotesIcon className="w-4 h-4 mr-1.5" />
@@ -274,9 +310,12 @@ export default function CommitteeClaimDetail() {
                     </div>
                   )}
                    {claim.notes && (
-                    <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg text-sm mt-4">
-                        <strong className="block mb-1 text-xs uppercase tracking-wider opacity-70">Claim Notes</strong> 
-                        {claim.notes}
+                    <div className={`${isRedacted ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-blue-50 border-blue-200 text-blue-800'} border px-4 py-3 rounded-lg text-sm mt-4 relative overflow-hidden`}>
+                        {isRedacted && <div className="absolute top-0 right-0 p-2 opacity-10"><DocumentMagnifyingGlassIcon className="w-12 h-12" /></div>}
+                        <strong className="block mb-1 text-xs uppercase tracking-wider opacity-70">
+                           {isRedacted ? '🔒 Medical Privacy Active' : 'Claim Notes'}
+                        </strong> 
+                        <span className={isRedacted ? 'font-mono' : ''}>{claim.notes}</span>
                     </div>
                   )}
               </div>

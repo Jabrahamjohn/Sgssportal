@@ -100,40 +100,37 @@ export default function MemberDashboard() {
       </div>
 
       {/* STATS GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <StatCard 
-          label="Remaining Limit" 
-          value={balance !== null && balance !== undefined ? `Ksh ${Number(balance).toLocaleString()}` : '...'} 
-          icon={<BanknotesIcon className="w-6 h-6" />}
-          variant="primary"
-        />
-        <StatCard 
-          label="Total Claims" 
-          value={total} 
-          icon={<DocumentTextIcon className="w-6 h-6" />}
-        />
-        <StatCard 
-          label="Pending Processing" 
-          value={submitted} 
-          icon={<ClockIcon className="w-6 h-6" />}
-        />
-        <StatCard 
-          label="Paid Claims" 
-          value={paid} 
-          icon={<CurrencyDollarIcon className="w-6 h-6" />}
-          variant="gold"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+        <div className="md:col-span-8">
+           <BenefitUsage balance={balance} />
+        </div>
+        <div className="md:col-span-4 flex flex-col gap-4">
+            <StatCard 
+              label="Pending Board Review" 
+              value={submitted} 
+              icon={<ClockIcon className="w-6 h-6" />}
+              variant="default"
+              className="flex-1"
+            />
+            <StatCard 
+              label="Paid Claims" 
+              value={paid} 
+              icon={<CurrencyDollarIcon className="w-6 h-6" />}
+              variant="gold"
+              className="flex-1"
+            />
+        </div>
       </div>
 
       <FadeIn delay={0.3}>
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8 pb-12">
           
           {/* RECENT ACTIVITY TABLE */}
-          <div className="lg:col-span-2 sgss-card p-0 overflow-hidden flex flex-col min-h-[400px]">
-            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h3 className="font-bold text-[var(--sgss-navy)]">Recent Claims</h3>
+          <div className="lg:col-span-2 sgss-card p-0 overflow-hidden flex flex-col min-h-[400px] border-none shadow-xl shadow-gray-200/50">
+            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white">
+              <h3 className="font-bold text-[var(--sgss-navy)]">Recent Digital Claims</h3>
               <Link to="/dashboard/member/claims" className="text-xs font-semibold text-[var(--sgss-gold)] hover:text-yellow-600 transition-colors uppercase tracking-wider">
-                 View All
+                 View All History
               </Link>
             </div>
 
@@ -150,27 +147,29 @@ export default function MemberDashboard() {
                     <p>No claims found. Start by creating one!</p>
                   </div>
                ) : (
-                  <table className="w-full text-sm text-left whitespace-nowrap">
-                    <thead className="bg-gray-50/50 text-gray-500 font-medium border-b border-gray-100">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50/50 text-gray-400 font-bold text-[10px] uppercase tracking-widest border-b border-gray-100">
                        <tr>
-                          <th className="px-6 py-3">Reference</th>
-                          <th className="px-6 py-3">Type</th>
-                          <th className="px-6 py-3">Status</th>
-                          <th className="px-6 py-3 text-right">Amount</th>
-                          <th className="px-6 py-3 w-10"></th>
+                          <th className="px-6 py-4">Reference</th>
+                          <th className="px-6 py-4">Type</th>
+                          <th className="px-6 py-4">Status</th>
+                          <th className="px-6 py-4 text-right">Amount</th>
+                          <th className="px-6 py-4 w-10"></th>
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {claims.slice(0, 5).map((c) => (
-                        <tr key={c.id} className="hover:bg-gray-50/50 transition-colors group">
-                          <td className="px-6 py-3 font-mono text-xs text-gray-500">#{String(c.id).slice(0, 8)}</td>
-                          <td className="px-6 py-3 font-medium text-[var(--sgss-navy)] capitalize">{c.claim_type}</td>
-                          <td className="px-6 py-3"><StatusBadge status={c.status} /></td>
-                          <td className="px-6 py-3 text-right text-[var(--sgss-navy)] font-semibold">
+                        <tr key={c.id} className="hover:bg-blue-50/30 transition-colors group">
+                          <td className="px-6 py-4 font-mono text-[10px] text-gray-400">#{String(c.id).slice(0, 8).toUpperCase()}</td>
+                          <td className="px-6 py-4">
+                             <span className="font-bold text-[var(--sgss-navy)] text-xs uppercase tracking-tight">{c.claim_type}</span>
+                          </td>
+                          <td className="px-6 py-4"><StatusBadge status={c.status} /></td>
+                          <td className="px-6 py-4 text-right text-[var(--sgss-navy)] font-black">
                             Ksh {Number(c.total_claimed || 0).toLocaleString()}
                           </td>
-                          <td className="px-6 py-3 text-right">
-                             <Link to={`/dashboard/member/claims/${c.id}`} className="p-2 rounded-lg bg-gray-100 hover:bg-[var(--sgss-gold)] hover:text-white transition-colors inline-flex items-center justify-center text-gray-500">
+                          <td className="px-6 py-4 text-right">
+                             <Link to={`/dashboard/member/claims/${c.id}`} className="w-8 h-8 rounded-full bg-gray-50 hover:bg-[var(--sgss-gold)] hover:text-white transition-all inline-flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:shadow-md">
                                <ArrowRightIcon className="w-4 h-4" />
                              </Link>
                           </td>
@@ -183,29 +182,38 @@ export default function MemberDashboard() {
           </div>
 
           {/* PROFILE SUMMARY */}
-          <div className="sgss-card h-fit sticky top-6">
-             <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--sgss-navy)] to-[var(--sgss-gold)] text-white flex items-center justify-center text-lg font-bold shadow-lg">
+          <div className="sgss-card h-fit sticky top-6 border-none shadow-xl shadow-gray-200/50 p-6 md:p-8">
+             <div className="flex items-center gap-4 mb-8">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--sgss-navy)] to-[#0c1b64] text-white flex items-center justify-center text-xl font-black shadow-xl shadow-blue-900/20">
                    {memberInfo?.full_name?.charAt(0) || "M"}
                 </div>
                 <div className="overflow-hidden">
-                   <h3 className="font-bold text-[var(--sgss-navy)] truncate">{memberInfo?.full_name || "Guest Member"}</h3>
-                   <p className="text-xs text-gray-500 truncate">{memberInfo?.email || "No Email"}</p>
+                   <h3 className="font-black text-[var(--sgss-navy)] truncate leading-tight">{memberInfo?.full_name || "Guest Member"}</h3>
+                   <p className="text-xs text-gray-400 truncate mt-0.5">{memberInfo?.email || "No Email Address"}</p>
                 </div>
              </div>
 
-             <div className="space-y-4">
-                <ProfileItem label="Membership No" value={memberInfo?.membership_no || "N/A"} />
-                <ProfileItem label="Type" value={memberInfo?.membership_type || "Standard"} />
-                <ProfileItem label="SHIF/SHA No" value={memberInfo?.shif_number || "Not set"} />
+             <div className="space-y-6">
+                <ProfileItem label="Membership ID" value={memberInfo?.membership_no || "N/A"} icon={<div className="w-1 h-1 rounded-full bg-[var(--sgss-gold)]"/>} />
+                <ProfileItem label="Benefit Level" value={memberInfo?.membership_type || "Standard"} icon={<div className="w-1 h-1 rounded-full bg-[var(--sgss-gold)]"/>} />
+                <ProfileItem label="SHA Reference" value={memberInfo?.shif_number || "Not Linked"} icon={<div className="w-1 h-1 rounded-full bg-[var(--sgss-gold)]"/>} />
                 <div className="h-px bg-gray-100 my-2"></div>
-                <ProfileItem label="Valid From" value={formatDate(memberInfo?.valid_from)} />
-                <ProfileItem label="Expires" value={formatDate(memberInfo?.valid_to)} />
+                <div className="grid grid-cols-2 gap-4">
+                   <div>
+                       <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Issue Date</span>
+                       <span className="text-sm font-semibold text-[var(--sgss-navy)]">{formatDate(memberInfo?.valid_from)}</span>
+                   </div>
+                   <div>
+                       <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Expiry Date</span>
+                       <span className="text-sm font-semibold text-[var(--sgss-navy)]">{formatDate(memberInfo?.valid_to)}</span>
+                   </div>
+                </div>
              </div>
 
-             <div className="mt-6 pt-4 border-t border-gray-100">
-                <Link to="/dashboard/member/profile" className="block w-full text-center py-2.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
-                   Full Profile Settings
+             <div className="mt-8">
+                <Link to="/dashboard/member/profile" className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-gray-50 text-sm font-bold text-[var(--sgss-navy)] hover:bg-[var(--sgss-navy)] hover:text-white transition-all group">
+                   Manage My Account
+                   <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
              </div>
           </div>
@@ -216,30 +224,89 @@ export default function MemberDashboard() {
   );
 }
 
+function BenefitUsage({ balance }: { balance: number | null }) {
+  const MAX = 250000;
+  const used = balance !== null ? MAX - balance : 0;
+  const percent = Math.min(100, Math.max(0, (used / MAX) * 100));
+  
+  return (
+    <div className="sgss-card p-6 md:p-8 border-none shadow-xl shadow-gray-200/50 h-full flex flex-col justify-between group overflow-hidden relative min-h-[280px]">
+      <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-1000">
+         <BanknotesIcon className="w-48 h-48 text-[var(--sgss-navy)]" />
+      </div>
+      
+      <div className="relative z-10">
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-gray-400">Benefit Mirror</span>
+            <h3 className="text-3xl font-black text-[var(--sgss-navy)] mt-1">
+              KSh {balance?.toLocaleString() || "0"}
+              <span className="text-xs font-bold text-gray-400 ml-2">Remaining</span>
+            </h3>
+          </div>
+          <div className="p-3 bg-blue-50 rounded-2xl">
+             <BanknotesIcon className="w-6 h-6 text-[var(--sgss-navy)]" />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-gray-500">
+            <span>Utilization: {percent.toFixed(1)}%</span>
+            <span>Limit: KSh {MAX.toLocaleString()}</span>
+          </div>
+          <div className="h-4 bg-gray-100 rounded-full overflow-hidden p-1 border border-gray-50">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${percent}%` }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              className={`h-full rounded-full bg-gradient-to-r ${percent > 80 ? 'from-orange-400 to-red-500' : 'from-[var(--sgss-navy)] to-[var(--sgss-gold)] shadow-lg shadow-blue-900/20'}`}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="relative z-10 flex gap-4 mt-8 pt-6 border-t border-gray-100">
+         <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-[var(--sgss-gold)]" />
+            <span className="text-[10px] font-bold text-gray-400 uppercase">2024 Policy</span>
+         </div>
+         <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-[10px] font-bold text-gray-400 uppercase">Approved Status</span>
+         </div>
+      </div>
+    </div>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   const s = (status || "").toLowerCase();
   
-  const styles: any = {
-    submitted: "bg-yellow-50 text-yellow-700 border-yellow-200 ring-1 ring-yellow-500/10",
-    approved: "bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-emerald-500/10",
-    paid: "bg-blue-50 text-blue-700 border-blue-200 ring-1 ring-blue-500/10",
-    rejected: "bg-red-50 text-red-700 border-red-200 ring-1 ring-red-500/10"
+  const config: any = {
+    submitted: { cls: "bg-amber-50 text-amber-700 border-amber-100", icon: ClockIcon, label: "Board Review" },
+    approved: { cls: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: CheckCircleIcon, label: "Adjudicated" },
+    paid: { cls: "bg-blue-50 text-blue-700 border-blue-100", icon: CurrencyDollarIcon, label: "Funds Disbursed" },
+    rejected: { cls: "bg-red-50 text-red-700 border-red-100", icon: XMarkIcon, label: "Claim Declined" }
   };
 
-  const cls = styles[s] || "bg-gray-50 text-gray-600 border-gray-200 ring-1 ring-gray-500/10";
+  const { cls, icon: Icon, label } = config[s] || { cls: "bg-gray-50 text-gray-600 border-gray-200", icon: InformationCircleIcon, label: status };
 
   return (
-    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${cls}`}>
-      {status || "Unknown"}
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border ${cls}`}>
+      <Icon className="w-3.5 h-3.5" />
+      {label}
     </span>
   );
 }
 
-function ProfileItem({ label, value }: { label: string, value: string }) {
+function ProfileItem({ label, value, icon }: { label: string, value: string, icon?: React.ReactNode }) {
    return (
-      <div className="flex justify-between items-center text-sm">
-         <span className="text-gray-500">{label}</span>
-         <span className="font-medium text-[var(--sgss-navy)]">{value}</span>
+      <div className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0">
+         <div className="flex items-center gap-2">
+            {icon}
+            <span className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">{label}</span>
+         </div>
+         <span className="font-bold text-[var(--sgss-navy)] text-xs">{value}</span>
       </div>
    )
 }

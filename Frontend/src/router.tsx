@@ -38,6 +38,11 @@ import CommitteeClaimDetail from "./pages/dashboard/committee/claim";
 import CommitteeMembersPage from "./pages/dashboard/committee/members";
 import CommitteeClaimsPage from "./pages/dashboard/committee/claims";
 import CommitteeApplicationsPage from "./pages/dashboard/committee/applications";
+import CommitteeMeetingsPage from "./pages/dashboard/committee/meetings";
+import CommitteeReconciliationPage from "./pages/dashboard/committee/reconciliation";
+import CommitteeMeetingDetailPage from "./pages/dashboard/committee/meetings/detail";
+import CommitteeMeetingModePage from "./pages/dashboard/committee/meetings/mode";
+import TrusteeAppealsPage from "./pages/dashboard/trustee/appeals";
 
 // Admin
 import AdminDashboard from "./pages/dashboard/admin";
@@ -117,6 +122,10 @@ export default function AppRouter() {
         <Route path="committee" element={<CommitteeDashboard />} />
         <Route path="committee/claims" element={<CommitteeClaimsPage />} />
         <Route path="committee/claims/:id" element={<CommitteeClaimDetail />} />
+        <Route path="committee/meetings" element={<CommitteeMeetingsPage />} />
+        <Route path="committee/meetings/:id" element={<CommitteeMeetingDetailPage />} />
+        <Route path="committee/meetings/:id/mode" element={<CommitteeMeetingModePage />} />
+        <Route path="committee/reconciliation" element={<CommitteeReconciliationPage />} />
         <Route path="committee/members" element={<CommitteeMembersPage />} />
         <Route path="committee/members/:id" element={<CommitteeMembersPage />} />
         <Route path="committee/settings" element={<AdminSettingsIndex />}>
@@ -126,6 +135,9 @@ export default function AppRouter() {
           <Route path="general" element={<AdminGeneralSettings />} />
           <Route path="registrations" element={<AdminRegistrations />} />
         </Route>
+
+        {/* TRUSTEE */}
+        <Route path="trustee/appeals" element={<TrusteeAppealsPage />} />
 
         {/* ADMIN */}
         <Route path="admin" element={<AdminDashboard />} />

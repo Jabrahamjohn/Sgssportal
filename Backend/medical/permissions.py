@@ -19,6 +19,10 @@ class IsCommittee(permissions.BasePermission):
     def has_permission(self, request, view):
         return _in_group(request.user, ["Committee", "Admin"])
 
+class IsTrustee(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return _in_group(request.user, ["Trustee", "Admin"])
+
 class IsSelfOrAdmin(permissions.BasePermission):
     """
     Used with Member endpoints where object has .user

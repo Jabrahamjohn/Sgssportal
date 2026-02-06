@@ -402,9 +402,22 @@ class ClaimReview(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
-        # discretionary override guard (<= 150,000)
-        if self.action == 'override' and self.claim.override_amount and float(self.claim.override_amount) > 150000:
-            raise ValidationError("Discretionary override cannot exceed Ksh 150,000.")
+        # 1. Discretionary limit guard (<= 150,000)
+        amount = self.claim.override_amount or self.claim.total_payable
+        if amount and float(amount) > 150000:
+            # Check for linked locked meeting type
+            latest_link = self.claim.meeting_links.filter(meeting__status="locked").last()
+            if latest_link and latest_link.meeting.meeting_type != 'emergency':
+                raise ValidationError("Claims exceeding Ksh 150,000 require ratification in an EMERGENCY meeting.")
+            
+            # If no link at all, it's already blocked by the view, but let's be safe
+            if not latest_link and self.action in ['approved', 'paid']:
+                 raise ValidationError("High-value claims must be linked to a locked Emergency Meeting.")
+
+    def save(self, *args, **kwargs):
+        # We don't call full_clean() here yet to avoid recursive issues if not careful, 
+        # but the roadmap says "Enforce model.full_clean() in Serializer"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.claim_id} - {self.action}"
@@ -434,7 +447,101 @@ class AuditLog(models.Model):
     actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     action = models.CharField(max_length=100)  # e.g. "claims:INSERT"
     meta = models.JSONField(blank=True, null=True)
+    
+    # Phase 2B: Deep Audit
+    previous_state = models.JSONField(blank=True, null=True)
+    new_state = models.JSONField(blank=True, null=True)
+    meeting = models.ForeignKey('CommitteeMeeting', on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
+    
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+# ---------------------------
+# Governance & Meetings
+# ---------------------------
+class CommitteeMeeting(models.Model):
+    MEETING_TYPES = [
+        ('monthly', 'Monthly'),
+        ('emergency', 'Emergency'),
+        ('appeal', 'Appeal'),
+    ]
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('ratified', 'Ratified'),
+        ('locked', 'Locked'),
+    ]
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    date = models.DateTimeField()
+    meeting_type = models.CharField(max_length=20, choices=MEETING_TYPES, default='monthly')
+    quorum_confirmed = models.BooleanField(default=False)
+    minutes_upload = models.FileField(upload_to='minutes/', blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='meetings_created')
+
+    def __str__(self):
+        return f"{self.get_meeting_type_display()} meeting on {self.date}"
+
+
+class MeetingAttendance(models.Model):
+    meeting = models.ForeignKey(CommitteeMeeting, on_delete=models.CASCADE, related_name='attendance')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    present = models.BooleanField(default=True)
+    role = models.CharField(max_length=100, blank=True, null=True) # Chair, Secretary, Member
+
+    class Meta:
+        unique_together = ('meeting', 'user')
+
+    def __str__(self):
+        return f"{self.user.username} at {self.meeting}"
+
+
+class ClaimMeetingLink(models.Model):
+    DECISION_CHOICES = [
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('deferred', 'Deferred'),
+    ]
+    meeting = models.ForeignKey(CommitteeMeeting, on_delete=models.CASCADE, related_name='claim_links')
+    claim = models.ForeignKey(Claim, on_delete=models.CASCADE, related_name='meeting_links')
+    decision = models.CharField(max_length=20, choices=DECISION_CHOICES)
+    decision_notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('meeting', 'claim')
+
+    def __str__(self):
+        return f"Decision for {self.claim.id} in {self.meeting}"
+
+
+class ClaimAppeal(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('under_review', 'Under Trustee Review'),
+        ('resolved', 'Resolved'),
+    ]
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    claim = models.ForeignKey(Claim, on_delete=models.CASCADE, related_name='appeals')
+    appealed_by = models.ForeignKey(Member, on_delete=models.CASCADE)
+    reason = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    trustee_decision = models.TextField(blank=True, null=True)
+    trustee_notes = models.TextField(blank=True, null=True)
+    decided_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Appeal for {self.claim.id}"
+
+
+class ClaimFingerprint(models.Model):
+    claim = models.OneToOneField(Claim, on_delete=models.CASCADE, related_name='fingerprint')
+    hash_value = models.CharField(max_length=64, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Fingerprint for {self.claim_id}"
 
 
 class ChronicRequest(models.Model):
@@ -457,5 +564,19 @@ class ClaimAttachment(models.Model):
     file = models.FileField(upload_to='claim_attachments/')
     content_type = models.CharField(max_length=100, blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+class PaymentRecord(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    claim = models.OneToOneField(Claim, on_delete=models.CASCADE, related_name='payment_record')
+    payment_method = models.CharField(max_length=50, choices=[('mpesa', 'M-Pesa'), ('eft', 'EFT'), ('cheque', 'Cheque')])
+    reference_number = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_date = models.DateTimeField(default=timezone.now)
+    reconciled = models.BooleanField(default=False)
+    reconciled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='payments_reconciled')
+    reconciled_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Payment for {self.claim_id} ({self.reference_number})"
 
 

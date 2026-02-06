@@ -86,12 +86,12 @@ export default function MeetingList() {
     {
       title: "Claims",
       key: "claims_count",
-      render: (_, record: any) => record.claim_links?.length || 0,
+      render: (_: any, record: any) => record.claim_links?.length || 0,
     },
     {
       title: "Actions",
       key: "actions",
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <Button 
           type="primary" 
           icon={<EyeOutlined />} 

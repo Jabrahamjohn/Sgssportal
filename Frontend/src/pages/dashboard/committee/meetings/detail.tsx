@@ -117,7 +117,7 @@ export default function MeetingDetail() {
     {
       title: "Amount",
       key: "amount",
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <Text strong>KSh {Number(record.claim_details?.total_claimed || 0).toLocaleString()}</Text>
       )
     },
@@ -134,7 +134,7 @@ export default function MeetingDetail() {
     {
       title: "Actions",
       key: "actions",
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <Button 
           type="link" 
           icon={<EyeOutlined />} 
@@ -248,7 +248,7 @@ export default function MeetingDetail() {
 
           <Button 
              block 
-             icon={< ThunderboldOutlined />} 
+             icon={<MeetingModeIcon />} 
              size="large"
              onClick={() => nav(`/dashboard/committee/meetings/${id}/mode`)}
              className="bg-[var(--sgss-navy)] text-white hover:bg-[var(--sgss-navy-light)] border-none h-14 rounded-2xl font-bold shadow-xl shadow-blue-900/10 flex items-center justify-center gap-3 uppercase tracking-wider"
@@ -320,11 +320,11 @@ export default function MeetingDetail() {
   );
 }
 
-// Fixed icons
-function ThunderboldOutlined() {
+// Fixed icons components
+function MeetingModeIcon() {
   return <ThunderboltOutlined />;
 }
 
 function EyeOutlined() {
-  return <FileSyncOutlined />; // Better icon for file/review
+  return <FileSyncOutlined />;
 }

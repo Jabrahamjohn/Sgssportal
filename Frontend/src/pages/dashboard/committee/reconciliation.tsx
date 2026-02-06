@@ -103,7 +103,7 @@ export default function TreasurerReconciliation() {
     {
       title: "Actions",
       key: "actions",
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <Button 
           type="primary" 
           icon={<DollarOutlined />} 

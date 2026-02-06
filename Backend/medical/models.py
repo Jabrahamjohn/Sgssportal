@@ -181,6 +181,8 @@ class Claim(models.Model):
     # Store structured form payload (outpatient / inpatient / chronic)
     details = models.JSONField(default=dict, blank=True)
 
+    is_trustee_ratified = models.BooleanField(default=False)
+    
     # Bylaws extras
     excluded = models.BooleanField(default=False)
     override_amount = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
@@ -211,6 +213,16 @@ class Claim(models.Model):
         # 2) Membership active (waiting period + expiry + status)
         if self.member and not self.member.is_active_for_claims():
             raise ValidationError("Membership not eligible for claims (waiting period / status / expiry).")
+
+        # 3) Constitutional Limit Gate (150k Committee Cap)
+        if self.status in ['approved', 'paid'] and float(self.total_payable or 0) > 150000:
+            if not self.is_trustee_ratified:
+                raise ValidationError("Claims exceeding KSh 150,000 require Board of Trustees ratification before approval/payment.")
+
+        # 4) Appeal Freeze
+        if self.appeals.filter(status='pending').exists():
+            if self.status not in ['draft', 'submitted', 'rejected']:
+                raise ValidationError("Claim is currently under appeal and cannot be modified or processed by the committee.")
 
     # -------------------------------------------------------------------
     # SGSS BYELAW RULE ENGINE HELPERS
@@ -399,6 +411,7 @@ class ClaimReview(models.Model):
     role = models.CharField(max_length=50, blank=True, null=True)
     action = models.CharField(max_length=50, choices=ACTIONS)
     note = models.TextField(blank=True, null=True)
+    byelaw_reference = models.CharField(max_length=100, blank=True, null=True, help_text="e.g. Byelaw §9.1.a")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
@@ -456,6 +469,18 @@ class AuditLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
+class DataAccessLog(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    claim = models.ForeignKey(Claim, on_delete=models.CASCADE, related_name='access_logs')
+    attachment = models.ForeignKey('ClaimAttachment', on_delete=models.SET_NULL, null=True, blank=True)
+    reason = models.CharField(max_length=255, default="Claim Review")
+    accessed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-accessed_at']
+
+
 # ---------------------------
 # Governance & Meetings
 # ---------------------------
@@ -506,6 +531,7 @@ class ClaimMeetingLink(models.Model):
     claim = models.ForeignKey(Claim, on_delete=models.CASCADE, related_name='meeting_links')
     decision = models.CharField(max_length=20, choices=DECISION_CHOICES)
     decision_notes = models.TextField(blank=True, null=True)
+    byelaw_reference = models.CharField(max_length=100, blank=True, null=True, help_text="Mandatory for rejections or limit caps")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -578,5 +604,17 @@ class PaymentRecord(models.Model):
 
     def __str__(self):
         return f"Payment for {self.claim_id} ({self.reference_number})"
+
+    def clean(self):
+        # Segregation of Duties: Reconciler cannot be the final approver
+        if self.reconciled and self.reconciled_by:
+            # Findwho approved this claim
+            approver = self.claim.reviews.filter(action='approved').values_list('reviewer', flat=True).first()
+            if approver and str(approver) == str(self.reconciled_by.id):
+                 raise ValidationError("Segregation of Duties Violation: The user who approved this claim cannot be the one who reconciles its payment.")
+            
+            # Reconciler cannot be the claim owner
+            if self.claim.member.user == self.reconciled_by:
+                raise ValidationError("Segregation of Duties Violation: You cannot reconcile a payment for your own claim.")
 
 

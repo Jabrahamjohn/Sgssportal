@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group
 from .models import (
     Member, MembershipType, Claim, ClaimItem, ClaimReview, AuditLog,
     Notification, ReimbursementScale, Setting, ChronicRequest, ClaimAttachment, MemberDependent,
-    CommitteeMeeting, MeetingAttendance, ClaimMeetingLink, ClaimAppeal, PaymentRecord
+    CommitteeMeeting, MeetingAttendance, ClaimMeetingLink, ClaimAppeal, PaymentRecord, DataAccessLog
 )
 
 User = get_user_model()
@@ -140,7 +140,7 @@ class ClaimReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ClaimReview
-        fields = ["id", "claim", "role", "action", "note", "created_at", "reviewer"]
+        fields = ["id", "claim", "role", "action", "note", "byelaw_reference", "created_at", "reviewer"]
 
     def validate(self, attrs):
         from django.core.exceptions import ValidationError as DjangoValidationError
@@ -223,11 +223,13 @@ class ClaimSerializer(serializers.ModelSerializer):
             "total_claimed", "total_payable", "member_payable",
             "status", "submitted_at", "notes",
             "excluded", "override_amount", "shif_number", "other_insurance",
+            "is_trustee_ratified",
             "created_at", "items", "attachments", "reviews"
         ]
         read_only_fields = [
             "id", "member", "member_user_email",
             "total_claimed", "total_payable", "member_payable",
+            "is_trustee_ratified",
             "created_at", "submitted_at"
         ]
 
@@ -483,7 +485,15 @@ class ClaimMeetingLinkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ClaimMeetingLink
-        fields = ["id", "meeting", "claim", "claim_details", "decision", "decision_notes"]
+        fields = ["id", "meeting", "claim", "claim_details", "decision", "decision_notes", "byelaw_reference"]
+
+
+class DataAccessLogSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source="user.get_full_name", read_only=True)
+    
+    class Meta:
+        model = DataAccessLog
+        fields = ["id", "user", "user_name", "claim", "attachment", "reason", "accessed_at"]
 
 
 class CommitteeMeetingSerializer(serializers.ModelSerializer):

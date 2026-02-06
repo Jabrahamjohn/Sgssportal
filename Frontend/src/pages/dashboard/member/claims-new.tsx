@@ -292,7 +292,19 @@ export default function NewClaim() {
                   </div>
                   <p className="text-sm font-bold text-[var(--sgss-navy)]">Add Receipts / Invoices</p>
                   <p className="text-xs text-gray-400 mt-1">Upload images or PDF files (Max 10MB)</p>
-                  <input type="file" multiple className="hidden" onChange={(e) => setFiles([...files, ...Array.from(e.target.files || [])])} />
+                  <input 
+                    type="file" 
+                    multiple 
+                    className="hidden" 
+                    onChange={(e) => {
+                      const newFiles = Array.from(e.target.files || []);
+                      if (newFiles.length > 0) {
+                        setFiles(prev => [...prev, ...newFiles]);
+                        // Reset input value so same file can be selected again
+                        e.target.value = '';
+                      }
+                    }} 
+                  />
                 </label>
 
                 {files.length > 0 && (
@@ -419,7 +431,7 @@ function OutpatientForm({ data, onChange }: any) {
         <Input label="Number of Consultations" type="number" value={data.consultations_count ?? ""} onChange={(e) => onChange("consultations_count", Number(e.target.value))} />
         <Input label="Total Fees (Ksh)" type="number" value={data.consultation_fee ?? ""} onChange={(e) => onChange("consultation_fee", Number(e.target.value))} />
       </div>
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 gap-4">
         <Input label="Medicines Cost" type="number" value={data.medicine_cost ?? ""} onChange={(e) => onChange("medicine_cost", Number(e.target.value))} />
         <Input label="Investigations" type="number" value={data.investigation_cost ?? ""} onChange={(e) => onChange("investigation_cost", Number(e.target.value))} />
         <Input label="Procedures" type="number" value={data.procedure_cost ?? ""} onChange={(e) => onChange("procedure_cost", Number(e.target.value))} />

@@ -21,7 +21,7 @@ from .models import (
     Member, MembershipType, MemberDependent,
     Claim, ClaimItem, ClaimReview, AuditLog,
     Notification, ReimbursementScale, Setting,
-    ChronicRequest, ClaimAttachment,
+    ChronicRequest, ClaimAttachment, DataAccessLog,
     CommitteeMeeting, MeetingAttendance, ClaimMeetingLink, ClaimAppeal, PaymentRecord
 )
 from .serializers import (
@@ -30,7 +30,7 @@ from .serializers import (
     SettingSerializer, ChronicRequestSerializer, ClaimAttachmentSerializer,
     AuditLogSerializer, MemberDependentSerializer, AdminUserSerializer,
     CommitteeMeetingSerializer, MeetingAttendanceSerializer, ClaimMeetingLinkSerializer, 
-    ClaimAppealSerializer, PaymentRecordSerializer
+    ClaimAppealSerializer, PaymentRecordSerializer, DataAccessLogSerializer
 )
 from .permissions import IsSelfOrAdmin, IsClaimOwnerOrCommittee, IsCommittee, IsAdmin, IsTrustee
 from .audit import log_claim_event
@@ -377,6 +377,18 @@ class ClaimViewSet(viewsets.ModelViewSet):
         ctx["request"] = self.request
         return ctx
 
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Log data access if committee member views a claim they don't own
+        if request.user.groups.filter(name__in=["Committee", "Admin"]).exists():
+            if instance.member.user != request.user:
+                DataAccessLog.objects.create(
+                    user=request.user,
+                    claim=instance,
+                    reason=f"Reviewing claim via {request.resolver_match.view_name}"
+                )
+        return super().retrieve(request, *args, **kwargs)
+
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
@@ -410,6 +422,12 @@ class ClaimViewSet(viewsets.ModelViewSet):
         # 4. Compute totals
         claim.recalc_total()
         claim.compute_payable()
+        
+        # Phase 2A/4 Hardening: Enforce DB-level Byelaw constraints
+        try:
+            claim.full_clean()
+        except ValidationError as e:
+             raise serializers.ValidationError(e.message_dict if hasattr(e, "message_dict") else e.messages)
 
         # 5. Audit trail
         action = "submitted" if claim.status == "submitted" else "created"
@@ -427,6 +445,10 @@ class ClaimViewSet(viewsets.ModelViewSet):
         claim = serializer.save()
         claim.recalc_total()
         claim.compute_payable()
+        try:
+            claim.full_clean()
+        except ValidationError as e:
+            raise serializers.ValidationError(e.message_dict if hasattr(e, "message_dict") else e.messages)
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsCommittee])
     def set_status(self, request, pk=None):
@@ -476,6 +498,16 @@ class ClaimViewSet(viewsets.ModelViewSet):
                       status=status.HTTP_400_BAD_REQUEST
                   )
 
+        # --- PHASE 2A: Governance Enforcement (Byelaw Hardening) ---
+        try:
+            # Re-calculates totals and validates 150k limit + Appeal freeze
+            claim.full_clean()
+        except ValidationError as e:
+            return Response(
+                {"detail": e.message_dict if hasattr(e, "message_dict") else e.messages},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         claim.save(update_fields=["status", "submitted_at"])
         
         # Phase 2B: Register Fingerprint if status changed to submitted
@@ -503,6 +535,25 @@ class ClaimViewSet(viewsets.ModelViewSet):
             "claim_status": claim.status,
             "message": f"Claim status updated to {claim.status}"
         })
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsTrustee])
+    def ratify_large_claim(self, request, pk=None):
+        """
+        Board of Trustees action to ratify claims exceeding KSh 150,000.
+        Byelaw §4.2: MC authority is capped at 150k.
+        """
+        claim = self.get_object()
+        claim.is_trustee_ratified = True
+        claim.save(update_fields=["is_trustee_ratified"])
+        
+        log_claim_event(
+            claim=claim,
+            actor=request.user,
+            action="trustee_ratification",
+            note="Board of Trustees ratified claim amount exceeding 150k.",
+            role="Trustee"
+        )
+        return Response({"status": "success", "is_trustee_ratified": True})
 
     @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def audit(self, request, pk=None):
@@ -692,12 +743,28 @@ class ClaimAttachmentViewSet(viewsets.ModelViewSet):
             note=obj.file.name if hasattr(obj.file, "name") else "Attachment uploaded",
             role=self.request.user.groups.values_list("name", flat=True).first()
                 or ("admin" if self.request.user.is_superuser else "member"),
-            meta={
-                "attachment_id": str(obj.id),
-                "content_type": obj.content_type,
-                "file": obj.file.url if hasattr(obj.file, "url") else None
-            }
+            meta={"attachment_id": str(obj.id)}
         )
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Log data access for direct attachment view
+        if request.user.groups.filter(name__in=["Committee", "Admin"]).exists():
+            if instance.claim.member.user != request.user:
+                DataAccessLog.objects.create(
+                    user=request.user,
+                    claim=instance.claim,
+                    attachment=instance,
+                    reason="Viewing attachment directly"
+                )
+        return super().retrieve(request, *args, **kwargs)
+
+
+class DataAccessLogViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = DataAccessLog.objects.select_related("user", "claim", "attachment").all()
+    serializer_class = DataAccessLogSerializer
+    permission_classes = [permissions.IsAuthenticated, IsCommittee]
+
 
 
 # ============================================================
@@ -931,6 +998,16 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
         payment.reconciled = True
         payment.reconciled_by = request.user
         payment.reconciled_at = timezone.now()
+        
+        try:
+            # Segregation of duties validation
+            payment.full_clean()
+        except ValidationError as e:
+            return Response(
+                {"detail": e.message_dict if hasattr(e, "message_dict") else e.messages},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
         payment.save()
 
         # Audit

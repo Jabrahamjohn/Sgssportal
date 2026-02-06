@@ -21,6 +21,7 @@ router.register(r"meeting-attendance", views.MeetingAttendanceViewSet, basename=
 router.register(r"meeting-claims", views.ClaimMeetingLinkViewSet, basename="meeting-claims")
 router.register(r"appeals", views.ClaimAppealViewSet, basename="appeals")
 router.register(r"payment-records", views.PaymentRecordViewSet, basename="payment-records")
+router.register(r"data-access-logs", views.DataAccessLogViewSet, basename="data-access-logs")
 
 urlpatterns = [
 

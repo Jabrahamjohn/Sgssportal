@@ -8,6 +8,7 @@ import { useAuth } from "~/store/contexts/AuthContext";
 import StatCard from "~/components/sgss/StatCard";
 import PageTransition from "~/components/animations/PageTransition";
 import FadeIn from "~/components/animations/FadeIn";
+import { motion } from "framer-motion";
 
 import {
   BanknotesIcon,
@@ -15,7 +16,9 @@ import {
   CheckCircleIcon,
   CurrencyDollarIcon,
   ArrowRightIcon,
-  ClockIcon
+  ClockIcon,
+  XMarkIcon,
+  InformationCircleIcon
 } from "@heroicons/react/24/outline";
 
 export default function MemberDashboard() {

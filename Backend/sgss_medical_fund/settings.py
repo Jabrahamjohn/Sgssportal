@@ -154,6 +154,12 @@ DATABASES = {
     )
 }
 
+# --- RENDER DEPLOYMENT FIX ---
+# Enforce SSL for Postgres in production to prevent connection failures
+if not DEBUG and DATABASES['default'].get('ENGINE') == 'django.db.backends.postgresql':
+    DATABASES['default'].setdefault('OPTIONS', {})
+    DATABASES['default']['OPTIONS']['sslmode'] = 'require'
+
 # AUTH_USER_MODEL
 # Note: AUTH_USER_MODEL should only be set when implementing a custom user model.
 # The previous setting 'auth.user' was incorrect (should be 'auth.User' if needed, but that's the default).

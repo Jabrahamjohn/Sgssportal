@@ -150,15 +150,18 @@ WSGI_APPLICATION = 'sgss_medical_fund.wsgi.application'
 DATABASES = {
     'default': env.db(
         'DATABASE_URL',
-        default='postgres://postgres:postgres@localhost:5432/sgss_medical_fund'
+        default='postgres://postgres:postgres@localhost:5432/sgss_medical_fund',
+        ssl_require=not DEBUG
     )
 }
 
-# --- RENDER DEPLOYMENT FIX ---
-# Enforce SSL for Postgres in production to prevent connection failures
+# --- RENDER DEPLOYMENT FIX (Robust) ---
+# Enforce SSL and manage connection persistent for Render environments
 if not DEBUG and DATABASES['default'].get('ENGINE') == 'django.db.backends.postgresql':
     DATABASES['default'].setdefault('OPTIONS', {})
     DATABASES['default']['OPTIONS']['sslmode'] = 'require'
+    # Recommended for Render to prevent connection exhaustion
+    DATABASES['default']['CONN_MAX_AGE'] = 600
 
 # AUTH_USER_MODEL
 # Note: AUTH_USER_MODEL should only be set when implementing a custom user model.

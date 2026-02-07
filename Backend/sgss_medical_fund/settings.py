@@ -150,8 +150,7 @@ WSGI_APPLICATION = 'sgss_medical_fund.wsgi.application'
 DATABASES = {
     'default': env.db(
         'DATABASE_URL',
-        default='postgres://postgres:postgres@localhost:5432/sgss_medical_fund',
-        ssl_require=not DEBUG
+        default='postgres://postgres:postgres@localhost:5432/sgss_medical_fund'
     )
 }
 
